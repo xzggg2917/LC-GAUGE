@@ -176,7 +176,22 @@ const HPLCGradientPage: React.FC = () => {
     const chartData: any[] = []
     const totalTime = Math.max(...gradientSteps.map(s => s.time))
     
-    if (totalTime === 0) return []
+    // 如果只有一个步骤且时间为0，显示该步骤的初始状态
+    if (totalTime === 0) {
+      const step = gradientSteps[0]
+      chartData.push({
+        time: '0.00',
+        'Mobile Phase A (%)': step.phaseA,
+        'Mobile Phase B (%)': step.phaseB
+      })
+      // 添加一个时间点以便显示折线
+      chartData.push({
+        time: '10.00',
+        'Mobile Phase A (%)': step.phaseA,
+        'Mobile Phase B (%)': step.phaseB
+      })
+      return chartData
+    }
     
     // 为每个时间点生成数据
     const points = 1000
@@ -514,6 +529,7 @@ const HPLCGradientPage: React.FC = () => {
                     <InputNumber
                       min={0}
                       step={0.1}
+                      precision={1}
                       value={step.time}
                       onChange={(value) => updateStep(step.id, 'time', value || 0)}
                       style={{ width: '100%' }}
@@ -524,6 +540,7 @@ const HPLCGradientPage: React.FC = () => {
                       min={0}
                       max={100}
                       step={0.1}
+                      precision={1}
                       value={step.phaseA}
                       onChange={(value) => updateStep(step.id, 'phaseA', value || 0)}
                       style={{ width: '100%' }}
@@ -533,6 +550,7 @@ const HPLCGradientPage: React.FC = () => {
                     <InputNumber
                       min={0}
                       step={0.01}
+                      precision={2}
                       value={step.flowRate}
                       onChange={(value) => updateStep(step.id, 'flowRate', value || 0)}
                       style={{ width: '100%' }}
