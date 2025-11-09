@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Card, Form, Input, Button, Tabs, message, Space, Typography } from 'antd'
-import { UserOutlined, LockOutlined, MailOutlined, ExperimentOutlined } from '@ant-design/icons'
+import { UserOutlined, LockOutlined, ExperimentOutlined } from '@ant-design/icons'
 import { useAuth } from '../contexts/AuthContext'
 import './LoginPage.css'
 
@@ -30,7 +30,7 @@ const LoginPage: React.FC = () => {
   const handleRegister = async (values: any) => {
     setLoading(true)
     try {
-      const result = await register(values.username, values.email, values.password)
+      const result = await register(values.username, values.password)
       if (result.success) {
         message.success(result.message)
         registerForm.resetFields()
@@ -157,18 +157,6 @@ const LoginPage: React.FC = () => {
                         />
                       </Form.Item>
 
-                      <Form.Item
-                        name="email"
-                        rules={[
-                          { required: true, message: '请输入邮箱' },
-                          { type: 'email', message: '请输入有效的邮箱地址' }
-                        ]}
-                      >
-                        <Input
-                          prefix={<MailOutlined />}
-                          placeholder="邮箱"
-                        />
-                      </Form.Item>
 
                       <Form.Item
                         name="password"

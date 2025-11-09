@@ -130,7 +130,9 @@ const AppContent: React.FC = () => {
         mobilePhaseA: [{ id: Date.now().toString() + '1', name: '', percentage: 0 }],
         mobilePhaseB: [{ id: Date.now().toString() + '2', name: '', percentage: 0 }]
       },
+      // 新建文件时factors为空数组，让FactorsPage使用预定义数据
       factors: [],
+      // 新建文件时gradient为空数组，让HPLC Gradient页面初始化
       gradient: []
     }
     
@@ -506,7 +508,9 @@ const AppContent: React.FC = () => {
       label: (
         <div style={{ padding: '8px 0' }}>
           <div style={{ fontWeight: 500 }}>{currentUser?.username}</div>
-          <div style={{ fontSize: '12px', color: '#999' }}>{currentUser?.email}</div>
+          <div style={{ fontSize: '12px', color: '#999' }}>
+            注册于: {currentUser?.registeredAt ? new Date(currentUser.registeredAt).toLocaleDateString() : ''}
+          </div>
         </div>
       ),
       disabled: true

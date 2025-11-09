@@ -2,7 +2,6 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 
 interface User {
   username: string
-  email: string
   registeredAt: string
 }
 
@@ -10,7 +9,7 @@ interface AuthContextType {
   isAuthenticated: boolean
   currentUser: User | null
   login: (username: string, password: string) => Promise<{ success: boolean; message: string }>
-  register: (username: string, email: string, password: string) => Promise<{ success: boolean; message: string }>
+  register: (username: string, password: string) => Promise<{ success: boolean; message: string }>
   logout: () => void
   verifyUser: (username: string, password: string) => Promise<boolean>
 }
@@ -35,7 +34,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [])
 
-  const register = async (username: string, email: string, password: string): Promise<{ success: boolean; message: string }> => {
+  const register = async (username: string, password: string): Promise<{ success: boolean; message: string }> => {
     try {
       // 获取已注册用户列表
       const usersData = localStorage.getItem('hplc_users')
@@ -46,15 +45,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return { success: false, message: '用户名已存在' }
       }
 
-      // 检查邮箱是否已存在
-      if (users.some((u: any) => u.email === email)) {
-        return { success: false, message: '邮箱已被注册' }
-      }
-
       // 创建新用户（实际应用中应该加密密码）
       const newUser = {
         username,
-        email,
         password, // 注意：生产环境中应该使用加密
         registeredAt: new Date().toISOString()
       }
@@ -86,7 +79,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // 保存登录状态
       const currentUser: User = {
         username: user.username,
-        email: user.email,
         registeredAt: user.registeredAt
       }
 

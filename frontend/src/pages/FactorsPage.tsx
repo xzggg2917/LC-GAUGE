@@ -36,28 +36,56 @@ const FactorsPage: React.FC = () => {
   const [isEditing, setIsEditing] = useState<boolean>(false)
 
   // 监听Context数据变化
-  useEffect(() => {
-    if (data.factors.length === 0) {
-      // 新文件创建时，factors为空，重置为预定义数据
-      setReagents([...PREDEFINED_REAGENTS])
-    } else {
-      setReagents(data.factors)
-    }
-  }, [data.factors])
-
-  // 自动保存数据到 Context 和 localStorage
-  // 使用 ref 来避免初始化时触发 dirty
-  const isInitialMount = React.useRef(true)
+  const lastSyncedFactors = React.useRef<string>('')
+  const hasInitialized = React.useRef(false)
   
   useEffect(() => {
-    localStorage.setItem('hplc_factors_data', JSON.stringify(reagents))
+    const currentFactorsStr = JSON.stringify(data.factors)
+    
+    // 如果数据没有变化，跳过更新
+    if (lastSyncedFactors.current === currentFactorsStr) {
+      return
+    }
+    
+    lastSyncedFactors.current = currentFactorsStr
+    
+    if (data.factors.length === 0 && !hasInitialized.current) {
+      // 只在第一次遇到空数据时使用预定义数据
+      hasInitialized.current = true
+      console.log('🔄 FactorsPage: 检测到空数据，使用预定义试剂列表')
+      setReagents([...PREDEFINED_REAGENTS])
+      // 立即同步到Context，避免其他页面读取到空数据
+      updateFactorsData([...PREDEFINED_REAGENTS])
+    } else if (data.factors.length > 0) {
+      // 有数据时直接使用
+      hasInitialized.current = true
+      setReagents(data.factors)
+    }
+  }, [data.factors, updateFactorsData])
+
+  // 自动保存数据到 Context 和 localStorage
+  // 使用 ref 来避免初始化时触发 dirty 和避免循环更新
+  const isInitialMount = React.useRef(true)
+  const lastLocalData = React.useRef<string>('')
+  
+  useEffect(() => {
+    const currentLocalDataStr = JSON.stringify(reagents)
+    
+    localStorage.setItem('hplc_factors_data', currentLocalDataStr)
     
     // 跳过初始挂载时的更新
     if (isInitialMount.current) {
       isInitialMount.current = false
+      lastLocalData.current = currentLocalDataStr
       return
     }
     
+    // 如果本地数据没有变化（可能是从Context同步来的），跳过更新
+    if (lastLocalData.current === currentLocalDataStr) {
+      return
+    }
+    
+    lastLocalData.current = currentLocalDataStr
     updateFactorsData(reagents)
     setIsDirty(true)
   }, [reagents, updateFactorsData, setIsDirty])

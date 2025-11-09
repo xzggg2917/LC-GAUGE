@@ -69,38 +69,75 @@ const calculateCurvePoint = (
 }
 
 const HPLCGradientPage: React.FC = () => {
-  // 从 localStorage 加载初始数据
-  const loadInitialData = (): GradientStep[] => {
-    try {
-      const savedData = localStorage.getItem('hplc_gradient_steps')
-      if (savedData) {
-        return JSON.parse(savedData)
-      }
-    } catch (error) {
-      console.error('加载梯度数据失败:', error)
+  const { data, updateGradientData, setIsDirty } = useAppContext()
+  
+  // 使用Context中的数据初始化
+  const [gradientSteps, setGradientSteps] = useState<GradientStep[]>(() => {
+    // 如果Context中有数据就使用，否则返回默认的一行
+    if (data.gradient.length > 0) {
+      return data.gradient
     }
-    // 返回默认数据（只有一行）
     return [
-      { id: Date.now().toString(), stepNo: 0, time: 0, mobilePhaseA: 0, flowRate: 0, curve: 'linear' }
+      { id: Date.now().toString(), stepNo: 0, time: 0.0, phaseA: 100, phaseB: 0, flowRate: 1.0, curve: 'linear' }
     ]
-  }
+  })
 
-  const [gradientSteps, setGradientSteps] = useState<GradientStep[]>(loadInitialData())
-
-  // 自动保存数据到 localStorage
+  // 监听Context数据变化，避免循环更新
+  const lastSyncedGradient = React.useRef<string>('')
+  const hasInitialized = React.useRef(false)
+  
   useEffect(() => {
-    localStorage.setItem('hplc_gradient_steps', JSON.stringify(gradientSteps))
-  }, [gradientSteps])
-
-  // 从 localStorage 加载 Methods 页面的数据
-  useEffect(() => {
-    const savedMethodsData = localStorage.getItem('hplc_methods_data')
-    if (savedMethodsData) {
-      const methodsData = JSON.parse(savedMethodsData)
-      // 可以使用 methodsData 中的 Mobile Phase A 信息
-      console.log('Methods Data:', methodsData)
+    const currentGradientStr = JSON.stringify(data.gradient)
+    
+    // 如果数据没有变化，跳过更新
+    if (lastSyncedGradient.current === currentGradientStr) {
+      return
     }
-  }, [])
+    
+    lastSyncedGradient.current = currentGradientStr
+    
+    if (data.gradient.length === 0 && !hasInitialized.current) {
+      // 只在第一次遇到空数据时初始化
+      hasInitialized.current = true
+      const defaultStep = [
+        { id: Date.now().toString(), stepNo: 0, time: 0.0, phaseA: 100, phaseB: 0, flowRate: 1.0, curve: 'linear' }
+      ]
+      setGradientSteps(defaultStep)
+      // 立即同步到Context，避免其他页面读取到空数据
+      updateGradientData(defaultStep)
+    } else if (data.gradient.length > 0) {
+      // 有数据时直接使用
+      hasInitialized.current = true
+      setGradientSteps(data.gradient)
+    }
+  }, [data.gradient, updateGradientData])
+
+  // 自动保存数据到 Context 和 localStorage
+  // 使用 ref 来避免初始化时触发 dirty 和避免循环更新
+  const isInitialMount = React.useRef(true)
+  const lastLocalData = React.useRef<string>('')
+  
+  useEffect(() => {
+    const currentLocalDataStr = JSON.stringify(gradientSteps)
+    
+    localStorage.setItem('hplc_gradient_data', currentLocalDataStr)
+    
+    // 跳过初始挂载时的更新
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      lastLocalData.current = currentLocalDataStr
+      return
+    }
+    
+    // 如果本地数据没有变化（可能是从Context同步来的），跳过更新
+    if (lastLocalData.current === currentLocalDataStr) {
+      return
+    }
+    
+    lastLocalData.current = currentLocalDataStr
+    updateGradientData(gradientSteps)
+    setIsDirty(true)
+  }, [gradientSteps, updateGradientData, setIsDirty])
 
   // 添加新步骤
   const addStep = () => {
@@ -108,7 +145,8 @@ const HPLCGradientPage: React.FC = () => {
       id: Date.now().toString(),
       stepNo: gradientSteps.length,
       time: 0,
-      mobilePhaseA: 0,
+  phaseA: 0,
+        phaseB: 100,
       flowRate: 0,
       curve: 'linear'
     }
@@ -145,17 +183,17 @@ const HPLCGradientPage: React.FC = () => {
     for (let i = 0; i <= points; i++) {
       const currentTime = (totalTime * i) / points
       
-      let mobilePhaseA = 0
+  let phaseA = 0
       
       if (currentTime <= gradientSteps[0].time) {
         // 在第一个步骤之前或之内,从0到第一个步骤
-        mobilePhaseA = calculateCurvePoint(
+  phaseA = calculateCurvePoint(
           gradientSteps[0].curve,
           currentTime,
           0,
           gradientSteps[0].time,
           0,
-          gradientSteps[0].mobilePhaseA
+          gradientSteps[0].phaseA
         )
       } else {
         // 找到当前时间所在的区间
@@ -171,22 +209,22 @@ const HPLCGradientPage: React.FC = () => {
         const step2 = gradientSteps[segmentIndex + 1]
         
         // 使用 step2 的曲线类型,表示从 step1 到 step2 的过渡曲线
-        mobilePhaseA = calculateCurvePoint(
+  phaseA = calculateCurvePoint(
           step2.curve,
           currentTime,
           step1.time,
           step2.time,
-          step1.mobilePhaseA,
-          step2.mobilePhaseA
+          step1.phaseA,
+          step2.phaseA
         )
       }
       
-      const mobilePhaseB = 100 - mobilePhaseA
+  const phaseB = 100 - phaseA
       
       chartData.push({
         time: currentTime.toFixed(2),
-        'Mobile Phase A (%)': parseFloat(mobilePhaseA.toFixed(2)),
-        'Mobile Phase B (%)': parseFloat(mobilePhaseB.toFixed(2))
+  'Mobile Phase A (%)': parseFloat(phaseA.toFixed(2)),
+  'Mobile Phase B (%)': parseFloat(phaseB.toFixed(2))
       })
     }
     
@@ -375,7 +413,7 @@ const HPLCGradientPage: React.FC = () => {
   const handleConfirm = () => {
     // 验证数据
     const hasInvalidData = gradientSteps.some(step => 
-      step.time < 0 || step.mobilePhaseA < 0 || step.mobilePhaseA > 100 || step.flowRate < 0
+  step.time < 0 || step.phaseA < 0 || step.phaseA > 100 || step.flowRate < 0
     )
     
     if (hasInvalidData) {
@@ -401,8 +439,8 @@ const HPLCGradientPage: React.FC = () => {
       steps: gradientSteps.map(step => ({
         stepNo: step.stepNo,
         time: step.time,
-        mobilePhaseA: step.mobilePhaseA,
-        mobilePhaseB: 100 - step.mobilePhaseA,
+  phaseA: step.phaseA,
+  phaseB: 100 - step.phaseA,
         flowRate: step.flowRate,
         volume: calculateVolume(step.time, step.flowRate),
         curve: step.curve
@@ -486,8 +524,8 @@ const HPLCGradientPage: React.FC = () => {
                       min={0}
                       max={100}
                       step={0.1}
-                      value={step.mobilePhaseA}
-                      onChange={(value) => updateStep(step.id, 'mobilePhaseA', value || 0)}
+                      value={step.phaseA}
+                      onChange={(value) => updateStep(step.id, 'phaseA', value || 0)}
                       style={{ width: '100%' }}
                     />
                   </td>
