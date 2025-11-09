@@ -38,6 +38,8 @@ export interface GradientStep {
 export interface AppData {
   version: string
   lastModified: string
+  owner?: string  // 文件所有者用户名
+  createdAt?: string  // 创建时间
   methods: {
     sampleCount: number | null
     preTreatmentReagents: PreTreatmentReagent[]
@@ -114,36 +116,66 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [])
 
   const updateMethodsData = (methodsData: AppData['methods']) => {
-    setData(prev => ({
-      ...prev,
-      methods: methodsData,
-      lastModified: new Date().toISOString()
-    }))
-    setIsDirty(true)
+    setData(prev => {
+      // 比较数据是否真的变化了（不包括lastModified）
+      const dataChanged = JSON.stringify(prev.methods) !== JSON.stringify(methodsData)
+      
+      if (!dataChanged) {
+        console.log('⏭️ AppContext: methods数据未变化，跳过更新')
+        return prev // 返回旧状态，不触发更新
+      }
+      
+      console.log('🔄 AppContext: methods数据变化，更新Context')
+      return {
+        ...prev,
+        methods: methodsData,
+        lastModified: new Date().toISOString()
+      }
+    })
     
     // 同步到localStorage
     localStorage.setItem('hplc_methods_raw', JSON.stringify(methodsData))
   }
 
   const updateFactorsData = (factorsData: ReagentFactor[]) => {
-    setData(prev => ({
-      ...prev,
-      factors: factorsData,
-      lastModified: new Date().toISOString()
-    }))
-    setIsDirty(true)
+    setData(prev => {
+      // 比较数据是否真的变化了
+      const dataChanged = JSON.stringify(prev.factors) !== JSON.stringify(factorsData)
+      
+      if (!dataChanged) {
+        console.log('⏭️ AppContext: factors数据未变化，跳过更新')
+        return prev
+      }
+      
+      console.log('🔄 AppContext: factors数据变化，更新Context')
+      return {
+        ...prev,
+        factors: factorsData,
+        lastModified: new Date().toISOString()
+      }
+    })
     
     // 同步到localStorage
     localStorage.setItem('hplc_factors_data', JSON.stringify(factorsData))
   }
 
   const updateGradientData = (gradientData: GradientStep[]) => {
-    setData(prev => ({
-      ...prev,
-      gradient: gradientData,
-      lastModified: new Date().toISOString()
-    }))
-    setIsDirty(true)
+    setData(prev => {
+      // 比较数据是否真的变化了
+      const dataChanged = JSON.stringify(prev.gradient) !== JSON.stringify(gradientData)
+      
+      if (!dataChanged) {
+        console.log('⏭️ AppContext: gradient数据未变化，跳过更新')
+        return prev
+      }
+      
+      console.log('🔄 AppContext: gradient数据变化，更新Context')
+      return {
+        ...prev,
+        gradient: gradientData,
+        lastModified: new Date().toISOString()
+      }
+    })
     
     // 同步到localStorage
     localStorage.setItem('hplc_gradient_data', JSON.stringify(gradientData))

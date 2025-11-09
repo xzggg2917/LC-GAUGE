@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Card, Typography, InputNumber, Select, Button, Row, Col, message } from 'antd'
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
@@ -33,6 +33,15 @@ const MethodsPage: React.FC = () => {
   // 强制刷新图表的状态
   const [chartRefreshKey, setChartRefreshKey] = useState(0)
 
+  // 使用 useMemo 缓存 filterOption 函数，避免每次渲染都创建新函数
+  const selectFilterOption = React.useMemo(
+    () => (input: string, option: any) => {
+      const children = String(option?.children || '')
+      return children.toLowerCase().includes(input.toLowerCase())
+    },
+    []
+  )
+
   useEffect(() => {
     // 加载 Factors 数据
     const loadFactorsData = () => {
@@ -41,8 +50,19 @@ const MethodsPage: React.FC = () => {
         if (factorsDataStr) {
           const factors = JSON.parse(factorsDataStr)
           setFactorsData(factors)
-          const reagentNames = factors.map((f: any) => f.name).filter((n: string) => n.trim())
-          setAvailableReagents(reagentNames)
+          
+          // 提取试剂名称，去重并排序，确保数组稳定
+          const reagentNames = Array.from(
+            new Set(factors.map((f: any) => f.name).filter((n: string) => n && n.trim()))
+          ).sort()
+          
+          // 只有在试剂列表真正改变时才更新
+          setAvailableReagents(prev => {
+            if (JSON.stringify(prev) === JSON.stringify(reagentNames)) {
+              return prev // 返回旧引用，避免触发重渲染
+            }
+            return reagentNames as string[]
+          })
         }
       } catch (error) {
         console.error('加载 Factors 数据失败:', error)
@@ -50,11 +70,6 @@ const MethodsPage: React.FC = () => {
     }
 
     loadFactorsData()
-
-    // 监听 storage 事件,当 Factors 数据更新时重新加载
-    const handleStorageChange = () => {
-      loadFactorsData()
-    }
 
     // 监听 HPLC Gradient 数据更新
     const handleGradientDataUpdated = () => {
@@ -72,21 +87,30 @@ const MethodsPage: React.FC = () => {
       setChartRefreshKey(prev => prev + 1) // 强制刷新图表
     }
 
-    window.addEventListener('storage', handleStorageChange)
-    
     // 自定义事件监听(同页面内的更新)
     window.addEventListener('factorsDataUpdated', loadFactorsData as EventListener)
     window.addEventListener('gradientDataUpdated', handleGradientDataUpdated)
 
     return () => {
-      window.removeEventListener('storage', handleStorageChange)
       window.removeEventListener('factorsDataUpdated', loadFactorsData as EventListener)
       window.removeEventListener('gradientDataUpdated', handleGradientDataUpdated)
     }
   }, [])
 
-  // 监听Context数据变化，更新本地状态
+  // 监听Context数据变化，更新本地状态（但要避免循环更新）
+  const lastSyncedData = React.useRef<string>('')
+  
   useEffect(() => {
+    const currentDataStr = JSON.stringify(data.methods)
+    
+    // 如果数据没有变化，跳过更新
+    if (lastSyncedData.current === currentDataStr) {
+      console.log('⏭️ MethodsPage: Context数据未变化，跳过更新')
+      return
+    }
+    
+    console.log('🔄 MethodsPage: Context数据变化，更新本地状态')
+    lastSyncedData.current = currentDataStr
     setSampleCount(data.methods.sampleCount)
     setPreTreatmentReagents(data.methods.preTreatmentReagents)
     setMobilePhaseA(data.methods.mobilePhaseA)
@@ -96,6 +120,7 @@ const MethodsPage: React.FC = () => {
   // 自动保存数据到 Context 和 localStorage (每次状态变化时)
   // 使用 ref 来避免初始化时触发 dirty
   const isInitialMount = React.useRef(true)
+  const lastLocalData = React.useRef<string>('')
   
   useEffect(() => {
     const dataToSave = {
@@ -105,14 +130,27 @@ const MethodsPage: React.FC = () => {
       mobilePhaseB
     }
     
+    const currentLocalDataStr = JSON.stringify(dataToSave)
+    
     // 保存到 localStorage
-    localStorage.setItem('hplc_methods_raw', JSON.stringify(dataToSave))
+    localStorage.setItem('hplc_methods_raw', currentLocalDataStr)
     
     // 跳过初始挂载时的更新
     if (isInitialMount.current) {
+      console.log('⏭️ MethodsPage: 跳过初始挂载时的更新')
       isInitialMount.current = false
+      lastLocalData.current = currentLocalDataStr
       return
     }
+    
+    // 如果本地数据没有变化（可能是从Context同步来的），跳过更新
+    if (lastLocalData.current === currentLocalDataStr) {
+      console.log('⏭️ MethodsPage: 本地数据未变化，跳过Context更新')
+      return
+    }
+    
+    console.log('🔄 MethodsPage: 本地数据变化，同步到Context并标记dirty')
+    lastLocalData.current = currentLocalDataStr
     
     // 同步到Context并标记为脏数据
     updateMethodsData(dataToSave)
@@ -167,27 +205,29 @@ const MethodsPage: React.FC = () => {
     }
   }
 
-  // 更新试剂
-  const updateReagent = (
+  // 更新试剂 - 使用useCallback缓存函数，避免每次渲染创建新函数
+  const updateReagent = useCallback((
     type: 'preTreatment' | 'phaseA' | 'phaseB',
     id: string,
     field: 'name' | 'percentage' | 'volume',
     value: string | number
   ) => {
+    console.log(`🔧 更新试剂 - type: ${type}, id: ${id}, field: ${field}, value:`, value)
+    
     if (type === 'preTreatment') {
-      setPreTreatmentReagents(preTreatmentReagents.map(r => 
+      setPreTreatmentReagents(prev => prev.map(r => 
         r.id === id ? { ...r, [field]: value } : r
       ))
     } else if (type === 'phaseA') {
-      setMobilePhaseA(mobilePhaseA.map(r => 
+      setMobilePhaseA(prev => prev.map(r => 
         r.id === id ? { ...r, [field]: value } : r
       ))
     } else {
-      setMobilePhaseB(mobilePhaseB.map(r => 
+      setMobilePhaseB(prev => prev.map(r => 
         r.id === id ? { ...r, [field]: value } : r
       ))
     }
-  }
+  }, [])
 
   // 计算百分比总和(仅用于 Mobile Phase A/B)
   const calculateTotal = (reagents: Reagent[]): number => {
@@ -404,15 +444,17 @@ const MethodsPage: React.FC = () => {
               <Select
                 style={{ width: '100%' }}
                 placeholder="选择试剂"
-                value={reagent.name || undefined}
+                value={reagent.name || null}
                 onChange={(value) => updateReagent('preTreatment', reagent.id, 'name', value)}
                 showSearch
-                filterOption={(input, option) =>
-                  String(option?.children || '').toLowerCase().includes(input.toLowerCase())
-                }
+                allowClear
+                filterOption={selectFilterOption}
+                notFoundContent="未找到试剂"
+                optionFilterProp="children"
+                getPopupContainer={(trigger) => trigger.parentElement || document.body}
               >
-                {availableReagents.map((name, index) => (
-                  <Option key={index} value={name}>{name}</Option>
+                {availableReagents.map((name) => (
+                  <Option key={name} value={name}>{name}</Option>
                 ))}
               </Select>
             </Col>
@@ -478,15 +520,17 @@ const MethodsPage: React.FC = () => {
               <Select
                 style={{ width: '100%' }}
                 placeholder="选择试剂"
-                value={reagent.name || undefined}
+                value={reagent.name || null}
                 onChange={(value) => updateReagent(type, reagent.id, 'name', value)}
                 showSearch
-                filterOption={(input, option) =>
-                  String(option?.children || '').toLowerCase().includes(input.toLowerCase())
-                }
+                allowClear
+                filterOption={selectFilterOption}
+                notFoundContent="未找到试剂"
+                optionFilterProp="children"
+                getPopupContainer={(trigger) => trigger.parentElement || document.body}
               >
-                {availableReagents.map((name, index) => (
-                  <Option key={index} value={name}>{name}</Option>
+                {availableReagents.map((name) => (
+                  <Option key={name} value={name}>{name}</Option>
                 ))}
               </Select>
             </Col>

@@ -1,0 +1,205 @@
+.login-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.login-container {
+  width: 100%;
+  max-width: 1200px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  align-items: center;
+}
+
+/* Logo区域 */
+.logo-section {
+  color: white;
+  padding: 40px;
+}
+
+.logo-wrapper {
+  text-align: center;
+  margin-bottom: 60px;
+}
+
+.logo-icon {
+  font-size: 120px;
+  color: white;
+  margin-bottom: 20px;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+.system-title {
+  color: white !important;
+  margin: 20px 0 10px 0 !important;
+  font-weight: 700;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.system-subtitle {
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-weight: 300;
+  margin-top: 0 !important;
+  font-size: 16px;
+  letter-spacing: 1px;
+}
+
+.system-description {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.description-text {
+  color: white !important;
+  font-size: 18px;
+  margin-bottom: 20px !important;
+  text-align: center;
+}
+
+.features-list {
+  width: 100%;
+}
+
+.features-list .ant-space-item {
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 16px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.features-list .ant-space-item:last-child {
+  border-bottom: none;
+}
+
+/* 表单区域 */
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.auth-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  padding: 20px;
+}
+
+.auth-card .ant-tabs-nav {
+  margin-bottom: 30px;
+}
+
+.auth-card .ant-tabs-tab {
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.auth-card .ant-form-item {
+  margin-bottom: 20px;
+}
+
+.auth-card .ant-input,
+.auth-card .ant-input-password {
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.auth-card .ant-btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 8px;
+  height: 48px;
+  font-size: 16px;
+  font-weight: 500;
+  margin-top: 10px;
+}
+
+.auth-card .ant-btn-primary:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.auth-card .ant-btn-link {
+  color: #667eea;
+  padding: 0;
+  height: auto;
+}
+
+.footer-text {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+}
+
+/* 响应式设计 */
+@media (max-width: 992px) {
+  .login-container {
+    grid-template-columns: 1fr;
+    max-width: 500px;
+  }
+
+  .logo-section {
+    padding: 20px;
+  }
+
+  .logo-icon {
+    font-size: 80px;
+  }
+
+  .system-title {
+    font-size: 28px !important;
+  }
+
+  .system-subtitle {
+    font-size: 14px !important;
+  }
+
+  .system-description {
+    padding: 20px;
+  }
+}
+
+/* 表单输入焦点效果 */
+.auth-card .ant-input:focus,
+.auth-card .ant-input-password:focus,
+.auth-card .ant-input-affix-wrapper:focus,
+.auth-card .ant-input-affix-wrapper-focused {
+  border-color: #667eea;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
