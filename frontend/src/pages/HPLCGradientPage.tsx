@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useLayoutEffect, useMemo } from 'react'
 import { Card, Typography, Button, InputNumber, Select, Row, Col, message } from 'antd'
-import { PlusOutlined, DeleteOutlined } from '@ant-design/icons'
+import { PlusOutlined, DeleteOutlined, ArrowLeftOutlined } from '@ant-design/icons'
+import { useNavigate } from 'react-router-dom'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { useAppContext } from '../contexts/AppContext'
 import type { GradientStep } from '../contexts/AppContext'
@@ -72,6 +73,7 @@ const calculateCurvePoint = (
 }
 
 const HPLCGradientPage: React.FC = () => {
+  const navigate = useNavigate()
   const { data, updateGradientData, setIsDirty } = useAppContext()
   
   // 使用Context中的数据初始化
@@ -692,7 +694,14 @@ const HPLCGradientPage: React.FC = () => {
       </Card>
 
       {/* 确认按钮 */}
-      <div style={{ textAlign: 'right', marginTop: 24 }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 24 }}>
+        <Button 
+          icon={<ArrowLeftOutlined />} 
+          onClick={() => navigate('/methods')}
+          size="large"
+        >
+          返回 Methods
+        </Button>
         <Button type="primary" size="large" onClick={handleConfirm}>
           确定
         </Button>
