@@ -45,16 +45,24 @@ const TablePage: React.FC = () => {
 
     // 监听数据更新
     const handleDataUpdate = () => {
-      console.log('🔔 检测到数据更新，重新加载表格...')
+      console.log('🔔 TablePage: 检测到数据更新，重新加载表格...')
+      loadAllData()
+    }
+    
+    // 监听文件数据变更事件
+    const handleFileDataChanged = () => {
+      console.log('📢 TablePage: 接收到 fileDataChanged 事件，立即重新加载')
       loadAllData()
     }
 
     window.addEventListener('gradientDataUpdated', handleDataUpdate)
     window.addEventListener('factorsDataUpdated', handleDataUpdate)
+    window.addEventListener('fileDataChanged', handleFileDataChanged)
 
     return () => {
       window.removeEventListener('gradientDataUpdated', handleDataUpdate)
       window.removeEventListener('factorsDataUpdated', handleDataUpdate)
+      window.removeEventListener('fileDataChanged', handleFileDataChanged)
     }
   }, [])
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useLayoutEffect, useMemo } from 'react'
 import { Card, Typography, Button, InputNumber, Select, Row, Col, message } from 'antd'
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
@@ -11,6 +11,7 @@ const { Option } = Select
 
 // 曲线类型定义
 const CURVE_TYPES = [
+  { value: 'initial', label: 'Initial', color: '#999999' },  // Initial状态，仅用于第一行
   { value: 'pre-step', label: '1. 预先骤曲线 (Pre-step)', color: '#1890ff' },
   { value: 'weak-convex', label: '2. 弱凸曲线 (Weak Convex)', color: '#f5222d' },
   { value: 'medium-convex', label: '3. 中凸曲线 (Medium Convex)', color: '#f5222d' },
@@ -41,6 +42,8 @@ const calculateCurvePoint = (
   const ratio = relativeT / T
   
   switch (curveType) {
+    case 'initial':
+      return y0  // Initial状态保持初始值
     case 'pre-step':
       return y1
     case 'weak-convex':
@@ -73,20 +76,22 @@ const HPLCGradientPage: React.FC = () => {
   
   // 使用Context中的数据初始化
   const [gradientSteps, setGradientSteps] = useState<GradientStep[]>(() => {
-    // 如果Context中有数据就使用，否则返回默认的一行
+    // 如果Context中有数据就使用，否则返回默认的两行
     if (data.gradient.length > 0) {
       return data.gradient
     }
+    // 默认两行：第一行为Initial状态，第二行为空
     return [
-      { id: Date.now().toString(), stepNo: 0, time: 0.0, phaseA: 100, phaseB: 0, flowRate: 1.0, curve: 'linear' }
+      { id: Date.now().toString(), stepNo: 0, time: 0.0, phaseA: 0, phaseB: 100, flowRate: 0, curve: 'initial' },
+      { id: (Date.now() + 1).toString(), stepNo: 1, time: 0, phaseA: 0, phaseB: 100, flowRate: 0, curve: 'linear' }
     ]
   })
 
-  // 监听Context数据变化，避免循环更新
+  // 监听Context数据变化，立即同步更新
   const lastSyncedGradient = React.useRef<string>('')
   const hasInitialized = React.useRef(false)
   
-  useEffect(() => {
+  useLayoutEffect(() => {
     const currentGradientStr = JSON.stringify(data.gradient)
     
     // 如果数据没有变化，跳过更新
@@ -97,17 +102,20 @@ const HPLCGradientPage: React.FC = () => {
     lastSyncedGradient.current = currentGradientStr
     
     if (data.gradient.length === 0 && !hasInitialized.current) {
-      // 只在第一次遇到空数据时初始化
+      // 只在第一次遇到空数据时初始化（两行）
       hasInitialized.current = true
-      const defaultStep = [
-        { id: Date.now().toString(), stepNo: 0, time: 0.0, phaseA: 100, phaseB: 0, flowRate: 1.0, curve: 'linear' }
+      console.log('🔄 HPLCGradientPage: 检测到空数据，初始化默认两行')
+      const defaultSteps = [
+        { id: Date.now().toString(), stepNo: 0, time: 0.0, phaseA: 0, phaseB: 100, flowRate: 0, curve: 'initial' },
+        { id: (Date.now() + 1).toString(), stepNo: 1, time: 0, phaseA: 0, phaseB: 100, flowRate: 0, curve: 'linear' }
       ]
-      setGradientSteps(defaultStep)
+      setGradientSteps(defaultSteps)
       // 立即同步到Context，避免其他页面读取到空数据
-      updateGradientData(defaultStep)
+      updateGradientData(defaultSteps)
     } else if (data.gradient.length > 0) {
       // 有数据时直接使用
       hasInitialized.current = true
+      console.log('🔄 HPLCGradientPage: 立即同步Context数据')
       setGradientSteps(data.gradient)
     }
   }, [data.gradient, updateGradientData])
@@ -138,6 +146,22 @@ const HPLCGradientPage: React.FC = () => {
     updateGradientData(gradientSteps)
     setIsDirty(true)
   }, [gradientSteps, updateGradientData, setIsDirty])
+  
+  // 监听文件数据变更事件
+  useEffect(() => {
+    const handleFileDataChanged = () => {
+      console.log('📢 HPLCGradientPage: 接收到 fileDataChanged 事件')
+      // hasInitialized标记会在useLayoutEffect中处理数据更新
+      // 这里只需要重置标记，让下次Context变化时能正确处理
+      hasInitialized.current = false
+      console.log('🔄 HPLCGradientPage: 已重置初始化标记')
+    }
+    
+    window.addEventListener('fileDataChanged', handleFileDataChanged)
+    return () => {
+      window.removeEventListener('fileDataChanged', handleFileDataChanged)
+    }
+  }, [])
 
   // 添加新步骤
   const addStep = () => {
@@ -155,8 +179,8 @@ const HPLCGradientPage: React.FC = () => {
 
   // 删除最后一步
   const deleteLastStep = () => {
-    if (gradientSteps.length <= 1) {
-      message.warning('至少保留一个步骤')
+    if (gradientSteps.length <= 2) {
+      message.warning('至少保留两个步骤（Initial + 一个步骤）')
       return
     }
     setGradientSteps(gradientSteps.slice(0, -1))
@@ -442,6 +466,13 @@ const HPLCGradientPage: React.FC = () => {
         return
       }
     }
+    
+    // 验证是否有有效的梯度数据（至少一个步骤的时间>0）
+    const totalTime = Math.max(...gradientSteps.map(s => s.time))
+    if (totalTime === 0) {
+      message.warning('请至少输入一个步骤的有效时间（大于0）')
+      return
+    }
 
     // chartData 已由 useMemo 在组件作用域中定义
     const componentVolumes = calculateComponentVolumes(chartData)
@@ -524,14 +555,28 @@ const HPLCGradientPage: React.FC = () => {
                 <tr key={step.id}>
                   <td>{step.stepNo}</td>
                   <td>
-                    <InputNumber
-                      min={0}
-                      step={0.1}
-                      precision={1}
-                      value={step.time}
-                      onChange={(value) => updateStep(step.id, 'time', value || 0)}
-                      style={{ width: '100%' }}
-                    />
+                    {step.stepNo === 0 ? (
+                      // Step 0 的 Time 显示 "Initial"，灰色不可编辑
+                      <div style={{ 
+                        padding: '4px 11px', 
+                        color: '#999', 
+                        backgroundColor: '#f5f5f5',
+                        border: '1px solid #d9d9d9',
+                        borderRadius: '6px',
+                        textAlign: 'center'
+                      }}>
+                        Initial
+                      </div>
+                    ) : (
+                      <InputNumber
+                        min={0}
+                        step={0.1}
+                        precision={1}
+                        value={step.time}
+                        onChange={(value) => updateStep(step.id, 'time', value || 0)}
+                        style={{ width: '100%' }}
+                      />
+                    )}
                   </td>
                   <td>
                     <InputNumber
@@ -555,17 +600,31 @@ const HPLCGradientPage: React.FC = () => {
                     />
                   </td>
                   <td>
-                    <Select
-                      value={step.curve}
-                      onChange={(value) => updateStep(step.id, 'curve', value)}
-                      style={{ width: '100%' }}
-                    >
-                      {CURVE_TYPES.map(curve => (
-                        <Option key={curve.value} value={curve.value}>
-                          {curve.label}
-                        </Option>
-                      ))}
-                    </Select>
+                    {step.stepNo === 0 ? (
+                      // Step 0 的 Curve 显示 "Initial"，灰色不可编辑
+                      <div style={{ 
+                        padding: '4px 11px', 
+                        color: '#999', 
+                        backgroundColor: '#f5f5f5',
+                        border: '1px solid #d9d9d9',
+                        borderRadius: '6px',
+                        textAlign: 'center'
+                      }}>
+                        Initial
+                      </div>
+                    ) : (
+                      <Select
+                        value={step.curve}
+                        onChange={(value) => updateStep(step.id, 'curve', value)}
+                        style={{ width: '100%' }}
+                      >
+                        {CURVE_TYPES.filter(c => c.value !== 'initial').map(curve => (
+                          <Option key={curve.value} value={curve.value}>
+                            {curve.label}
+                          </Option>
+                        ))}
+                      </Select>
+                    )}
                   </td>
                 </tr>
               ))}

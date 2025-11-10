@@ -45,10 +45,13 @@ const MethodsPage: React.FC = () => {
   useEffect(() => {
     // 加载 Factors 数据
     const loadFactorsData = () => {
+      console.log('🔄 MethodsPage: 开始加载factors数据')
       try {
         const factorsDataStr = localStorage.getItem('hplc_factors_data')
+        console.log('  - localStorage中的factors:', factorsDataStr ? `存在(${factorsDataStr.length}字符)` : '不存在')
         if (factorsDataStr) {
           const factors = JSON.parse(factorsDataStr)
+          console.log(`  - 解析出${factors.length}个试剂`)
           setFactorsData(factors)
           
           // 提取试剂名称，去重并排序，确保数组稳定
@@ -56,16 +59,24 @@ const MethodsPage: React.FC = () => {
             new Set(factors.map((f: any) => f.name).filter((n: string) => n && n.trim()))
           ).sort()
           
+          console.log(`  - 提取出${reagentNames.length}个试剂名称:`, reagentNames.slice(0, 3))
+          
           // 只有在试剂列表真正改变时才更新
           setAvailableReagents(prev => {
             if (JSON.stringify(prev) === JSON.stringify(reagentNames)) {
+              console.log('  - 试剂列表未变化，跳过更新')
               return prev // 返回旧引用，避免触发重渲染
             }
+            console.log('  - 更新试剂列表')
             return reagentNames as string[]
           })
+        } else {
+          console.log('  ⚠️ localStorage中没有factors数据，清空试剂列表')
+          setFactorsData([])
+          setAvailableReagents([])
         }
       } catch (error) {
-        console.error('加载 Factors 数据失败:', error)
+        console.error('❌ 加载 Factors 数据失败:', error)
       }
     }
 
@@ -106,15 +117,34 @@ const MethodsPage: React.FC = () => {
     
     // 延迟检查，等待文件数据加载完成
     const checkTimer = setTimeout(checkGradientDataOnLoad, 500)
+    
+    // 监听文件数据变更事件（打开文件、新建文件时触发）
+    const handleFileDataChanged = (e: Event) => {
+      const customEvent = e as CustomEvent
+      console.log('📢 MethodsPage: 接收到 fileDataChanged 事件', customEvent.detail)
+      
+      // 立即刷新图表
+      setChartRefreshKey(prev => prev + 1)
+      
+      // 延迟重新加载factors数据（等待FactorsPage初始化预定义数据）
+      setTimeout(() => {
+        console.log('🔄 MethodsPage: 延迟加载factors数据')
+        loadFactorsData()
+      }, 100)
+      
+      console.log('🔄 MethodsPage: 已强制刷新页面数据')
+    }
 
     // 自定义事件监听(同页面内的更新)
     window.addEventListener('factorsDataUpdated', loadFactorsData as EventListener)
     window.addEventListener('gradientDataUpdated', handleGradientDataUpdated)
+    window.addEventListener('fileDataChanged', handleFileDataChanged)
 
     return () => {
       clearTimeout(checkTimer)
       window.removeEventListener('factorsDataUpdated', loadFactorsData as EventListener)
       window.removeEventListener('gradientDataUpdated', handleGradientDataUpdated)
+      window.removeEventListener('fileDataChanged', handleFileDataChanged)
     }
   }, [])
 
@@ -246,15 +276,104 @@ const MethodsPage: React.FC = () => {
         r.id === id ? { ...r, [field]: value } : r
       ))
     } else if (type === 'phaseA') {
-      setMobilePhaseA(prev => prev.map(r => 
-        r.id === id ? { ...r, [field]: value } : r
-      ))
-    } else {
-      setMobilePhaseB(prev => prev.map(r => 
-        r.id === id ? { ...r, [field]: value } : r
-      ))
+      setMobilePhaseA(prev => {
+        const updated = prev.map(r => 
+          r.id === id ? { ...r, [field]: value } : r
+        )
+        // 🔥 试剂改变时重新计算gradient calculations
+        recalculateGradientCalculations(updated, mobilePhaseB)
+        return updated
+      })
+    } else if (type === 'phaseB') {
+      setMobilePhaseB(prev => {
+        const updated = prev.map(r => 
+          r.id === id ? { ...r, [field]: value } : r
+        )
+        // 🔥 试剂改变时重新计算gradient calculations
+        recalculateGradientCalculations(mobilePhaseA, updated)
+        return updated
+      })
     }
-  }, [])
+  }, [mobilePhaseA, mobilePhaseB])
+  
+  // 🔥 重新计算gradient的calculations（当试剂配置改变时）
+  const recalculateGradientCalculations = (phaseA: Reagent[], phaseB: Reagent[]) => {
+    try {
+      const gradientDataStr = localStorage.getItem('hplc_gradient_data')
+      if (!gradientDataStr) {
+        console.log('⏭️ 没有gradient数据，跳过重新计算')
+        return
+      }
+      
+      const gradientData = JSON.parse(gradientDataStr)
+      if (!gradientData.calculations) {
+        console.log('⏭️ gradient数据没有calculations，跳过重新计算')
+        return
+      }
+      
+      console.log('🔄 重新计算gradient calculations...')
+      
+      // 获取原有的体积数据
+      const totalVolumeA = gradientData.calculations.mobilePhaseA?.volume || 0
+      const totalVolumeB = gradientData.calculations.mobilePhaseB?.volume || 0
+      
+      // 重新计算 Mobile Phase A 的组分
+      const totalPercentageA = phaseA.reduce((sum, r) => sum + (r.percentage || 0), 0)
+      const newComponentsA = phaseA
+        .filter(r => r.name && r.name.trim())
+        .map(r => ({
+          reagentName: r.name,
+          percentage: r.percentage,
+          ratio: totalPercentageA > 0 ? r.percentage / totalPercentageA : 0,
+          volume: totalPercentageA > 0 ? (totalVolumeA * r.percentage / totalPercentageA) : 0
+        }))
+      
+      // 重新计算 Mobile Phase B 的组分
+      const totalPercentageB = phaseB.reduce((sum, r) => sum + (r.percentage || 0), 0)
+      const newComponentsB = phaseB
+        .filter(r => r.name && r.name.trim())
+        .map(r => ({
+          reagentName: r.name,
+          percentage: r.percentage,
+          ratio: totalPercentageB > 0 ? r.percentage / totalPercentageB : 0,
+          volume: totalPercentageB > 0 ? (totalVolumeB * r.percentage / totalPercentageB) : 0
+        }))
+      
+      // 更新calculations中的组分信息
+      gradientData.calculations.mobilePhaseA.components = newComponentsA
+      gradientData.calculations.mobilePhaseB.components = newComponentsB
+      
+      // 重新计算所有试剂的总体积
+      const allReagentVolumes: { [key: string]: number } = {}
+      
+      newComponentsA.forEach((c: any) => {
+        if (allReagentVolumes[c.reagentName]) {
+          allReagentVolumes[c.reagentName] += c.volume
+        } else {
+          allReagentVolumes[c.reagentName] = c.volume
+        }
+      })
+      
+      newComponentsB.forEach((c: any) => {
+        if (allReagentVolumes[c.reagentName]) {
+          allReagentVolumes[c.reagentName] += c.volume
+        } else {
+          allReagentVolumes[c.reagentName] = c.volume
+        }
+      })
+      
+      gradientData.calculations.allReagentVolumes = allReagentVolumes
+      
+      // 保存更新后的gradient数据
+      localStorage.setItem('hplc_gradient_data', JSON.stringify(gradientData))
+      console.log('✅ 已更新gradient calculations')
+      
+      // 刷新图表
+      setChartRefreshKey(prev => prev + 1)
+    } catch (error) {
+      console.error('❌ 重新计算gradient calculations失败:', error)
+    }
+  }
 
   // 计算百分比总和(仅用于 Mobile Phase A/B)
   const calculateTotal = (reagents: Reagent[]): number => {

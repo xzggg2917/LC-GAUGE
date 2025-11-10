@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useLayoutEffect } from 'react'
 import { Card, Typography, Button, InputNumber, Input, message, Row, Col } from 'antd'
 import { PlusOutlined, DeleteOutlined, EditOutlined, SaveOutlined } from '@ant-design/icons'
 import { useAppContext } from '../contexts/AppContext'
@@ -35,11 +35,11 @@ const FactorsPage: React.FC = () => {
   })
   const [isEditing, setIsEditing] = useState<boolean>(false)
 
-  // 监听Context数据变化
+  // 监听Context数据变化，立即同步更新
   const lastSyncedFactors = React.useRef<string>('')
   const hasInitialized = React.useRef(false)
   
-  useEffect(() => {
+  useLayoutEffect(() => {
     const currentFactorsStr = JSON.stringify(data.factors)
     
     // 如果数据没有变化，跳过更新
@@ -56,9 +56,16 @@ const FactorsPage: React.FC = () => {
       setReagents([...PREDEFINED_REAGENTS])
       // 立即同步到Context，避免其他页面读取到空数据
       updateFactorsData([...PREDEFINED_REAGENTS])
+      // 🔥 立即写入localStorage，避免MethodsPage读取时为空
+      localStorage.setItem('hplc_factors_data', JSON.stringify([...PREDEFINED_REAGENTS]))
+      console.log('✅ FactorsPage: 已立即写入localStorage')
+      // 🔥 触发事件通知其他页面factors数据已更新
+      window.dispatchEvent(new Event('factorsDataUpdated'))
+      console.log('📢 FactorsPage: 触发 factorsDataUpdated 事件')
     } else if (data.factors.length > 0) {
       // 有数据时直接使用
       hasInitialized.current = true
+      console.log('🔄 FactorsPage: 立即同步Context数据')
       setReagents(data.factors)
     }
   }, [data.factors, updateFactorsData])
@@ -89,6 +96,22 @@ const FactorsPage: React.FC = () => {
     updateFactorsData(reagents)
     setIsDirty(true)
   }, [reagents, updateFactorsData, setIsDirty])
+  
+  // 监听文件数据变更事件
+  useEffect(() => {
+    const handleFileDataChanged = () => {
+      console.log('📢 FactorsPage: 接收到 fileDataChanged 事件')
+      // hasInitialized标记会在useLayoutEffect中处理数据更新
+      // 这里只需要重置标记，让下次Context变化时能正确处理
+      hasInitialized.current = false
+      console.log('🔄 FactorsPage: 已重置初始化标记')
+    }
+    
+    window.addEventListener('fileDataChanged', handleFileDataChanged)
+    return () => {
+      window.removeEventListener('fileDataChanged', handleFileDataChanged)
+    }
+  }, [])
 
   // 添加新试剂
   const addReagent = () => {

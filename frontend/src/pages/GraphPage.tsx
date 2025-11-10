@@ -25,16 +25,24 @@ const GraphPage: React.FC = () => {
 
     // 监听数据更新
     const handleDataUpdate = () => {
-      console.log('🔔 检测到数据更新，重新计算雷达图...')
+      console.log('🔔 GraphPage: 检测到数据更新，重新计算雷达图...')
+      calculateTotalScores()
+    }
+    
+    // 监听文件数据变更事件
+    const handleFileDataChanged = () => {
+      console.log('📢 GraphPage: 接收到 fileDataChanged 事件，立即重新计算')
       calculateTotalScores()
     }
 
     window.addEventListener('gradientDataUpdated', handleDataUpdate)
     window.addEventListener('factorsDataUpdated', handleDataUpdate)
+    window.addEventListener('fileDataChanged', handleFileDataChanged)
 
     return () => {
       window.removeEventListener('gradientDataUpdated', handleDataUpdate)
       window.removeEventListener('factorsDataUpdated', handleDataUpdate)
+      window.removeEventListener('fileDataChanged', handleFileDataChanged)
     }
   }, [])
 

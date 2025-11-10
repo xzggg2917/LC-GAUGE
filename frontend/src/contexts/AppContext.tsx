@@ -1,5 +1,23 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 
+// 预定义的试剂数据(用于新建文件时初始化)
+const PREDEFINED_REAGENTS: ReagentFactor[] = [
+  { id: '1', name: 'Acetone', density: 0.791, safetyScore: 1.995, healthScore: 0.809, envScore: 0.310, recycleScore: 0, disposal: 2, power: 1 },
+  { id: '2', name: 'Acetonitrile', density: 0.786, safetyScore: 2.724, healthScore: 1.056, envScore: 0.772, recycleScore: 0, disposal: 2, power: 2 },
+  { id: '3', name: 'Chloroform', density: 1.483, safetyScore: 1.077, healthScore: 1.425, envScore: 1.435, recycleScore: 0, disposal: 2, power: 3 },
+  { id: '4', name: 'Dichloromethane', density: 1.327, safetyScore: 2.618, healthScore: 0.638, envScore: 0.343, recycleScore: 0, disposal: 2, power: 2 },
+  { id: '5', name: 'Ethanol', density: 0.789, safetyScore: 1.872, healthScore: 0.204, envScore: 0.485, recycleScore: 0, disposal: 2, power: 3 },
+  { id: '6', name: 'Ethyl acetate', density: 0.902, safetyScore: 1.895, healthScore: 0.796, envScore: 0.199, recycleScore: 0, disposal: 2, power: 2 },
+  { id: '7', name: 'Heptane', density: 0.684, safetyScore: 1.925, healthScore: 0.784, envScore: 1.089, recycleScore: 0, disposal: 2, power: 3 },
+  { id: '8', name: 'Hexane (n)', density: 0.659, safetyScore: 2.004, healthScore: 0.974, envScore: 1.100, recycleScore: 0, disposal: 2, power: 2 },
+  { id: '9', name: 'Isooctane', density: 0.692, safetyScore: 1.630, healthScore: 0.330, envScore: 1.555, recycleScore: 0, disposal: 2, power: 2 },
+  { id: '10', name: 'Isopropanol', density: 0.785, safetyScore: 1.874, healthScore: 0.885, envScore: 0.540, recycleScore: 0, disposal: 2, power: 3 },
+  { id: '11', name: 'Methanol', density: 0.791, safetyScore: 1.912, healthScore: 0.430, envScore: 0.317, recycleScore: 0, disposal: 2, power: 3 },
+  { id: '12', name: 'Sulfuric acid 96%', density: 1.84, safetyScore: 1.756, healthScore: 2.000, envScore: 1.985, recycleScore: 0, disposal: 2, power: 2 },
+  { id: '13', name: 't-butyl methyl ether', density: 0.74, safetyScore: 1.720, healthScore: 0.570, envScore: 1.150, recycleScore: 0, disposal: 2, power: 2 },
+  { id: '14', name: 'Tetrahydrofuran', density: 0.889, safetyScore: 1.965, healthScore: 0.990, envScore: 0.900, recycleScore: 0, disposal: 2, power: 2 }
+]
+
 // 定义数据类型
 export interface Reagent {
   id: string
@@ -187,6 +205,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     console.log('  - methods.mobilePhaseB:', newData.methods.mobilePhaseB)
     console.log('  - gradient类型:', Array.isArray(newData.gradient) ? '数组' : '对象')
     
+    // 🔥 如果factors为空数组（新建文件），使用预定义试剂列表
+    let factorsToUse = newData.factors
+    if (!factorsToUse || factorsToUse.length === 0) {
+      console.log('  📝 检测到空factors，使用预定义试剂列表')
+      factorsToUse = [...PREDEFINED_REAGENTS]
+    }
+    
     // 如果是对象，打印其结构
     if (newData.gradient && typeof newData.gradient === 'object' && !Array.isArray(newData.gradient)) {
       console.log('  - gradient对象键:', Object.keys(newData.gradient))
@@ -211,6 +236,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     
     const processedData = {
       ...newData,
+      factors: factorsToUse,
       gradient: gradientSteps
     }
     
@@ -218,7 +244,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     
     // 同步到localStorage
     localStorage.setItem('hplc_methods_raw', JSON.stringify(newData.methods))
-    localStorage.setItem('hplc_factors_data', JSON.stringify(newData.factors))
+    localStorage.setItem('hplc_factors_data', JSON.stringify(factorsToUse))
+    console.log('  ✅ 已写入factors到localStorage，包含', factorsToUse.length, '个试剂')
     
     // gradient数据需要特殊处理
     if (Array.isArray(newData.gradient)) {
@@ -238,6 +265,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
     
     console.log('✅ setAllData 完成，已更新Context和localStorage')
+    
+    // 触发全局事件，通知所有页面数据已更新（用于强制刷新）
+    window.dispatchEvent(new CustomEvent('fileDataChanged', { 
+      detail: { 
+        timestamp: Date.now(),
+        hasGradientData: !Array.isArray(newData.gradient) || newData.gradient.length > 0
+      } 
+    }))
+    console.log('📢 触发 fileDataChanged 事件')
   }
 
   const exportData = (): AppData => {
