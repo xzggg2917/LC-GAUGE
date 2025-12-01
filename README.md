@@ -41,6 +41,27 @@
 - **框架**: Electron
 - **打包工具**: electron-builder
 - **支持平台**: Windows, macOS, Linux
+- **数据存储**: 本地文件系统（永久保存，不受浏览器缓存影响）
+
+## 💾 数据存储
+
+### Electron 桌面应用（推荐）
+用户数据保存在操作系统的应用数据目录：
+- **Windows**: `C:\Users\<YourName>\AppData\Roaming\hplc-green-chemistry-app\`
+- **macOS**: `~/Library/Application Support/hplc-green-chemistry-app/`
+- **Linux**: `~/.config/hplc-green-chemistry-app/`
+
+**优势**：
+- ✅ 永久保存，清除浏览器缓存不会丢失数据
+- ✅ 可以直接备份和恢复文件
+- ✅ 更高的安全性和隔离性
+
+### Web 开发环境
+开发时使用浏览器的 localStorage（仅用于调试）
+
+📖 详细文档：
+- [桌面存储架构](./DESKTOP_STORAGE_ARCHITECTURE.md)
+- [数据迁移指南](./MIGRATION_GUIDE.md)
 
 ## 📁 项目结构
 

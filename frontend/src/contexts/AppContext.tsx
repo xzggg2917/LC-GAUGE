@@ -1,23 +1,23 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react'
+﻿import React, { createContext, useContext, useState, ReactNode } from 'react'
 
 // 预定义的试剂数据(用于新建文件时初始化)
 export const PREDEFINED_REAGENTS: ReagentFactor[] = [
-  { id: '1', name: 'Acetone', density: 0.791, releasePotential: 0.698, fireExplos: 1.000, reactDecom: 0.000, acuteToxicity: 0.297, irritation: 0.625, chronicToxicity: 0.184, persistency: 0.126, airHazard: 0.184, waterHazard: 0.000, safetyScore: 1.995, healthScore: 0.809, envScore: 0.310, recycleScore: 0, disposal: 2, power: 1 },
-  { id: '2', name: 'Acetonitrile', density: 0.786, releasePotential: 0.615, fireExplos: 1.000, reactDecom: 0.600, acuteToxicity: 0.510, irritation: 0.625, chronicToxicity: 0.431, persistency: 0.341, airHazard: 0.431, waterHazard: 0.000, safetyScore: 2.724, healthScore: 1.056, envScore: 0.772, recycleScore: 0, disposal: 2, power: 2 },
-  { id: '3', name: 'Chloroform', density: 1.483, releasePotential: 0.684, fireExplos: 0.000, reactDecom: 0.000, acuteToxicity: 0.394, irritation: 0.625, chronicToxicity: 0.800, persistency: 0.457, airHazard: 0.800, waterHazard: 0.178, safetyScore: 1.077, healthScore: 1.425, envScore: 1.435, recycleScore: 0, disposal: 2, power: 3 },
-  { id: '4', name: 'CO2', density: 0, releasePotential: 0, fireExplos: 0, reactDecom: 0, acuteToxicity: 0, irritation: 0, chronicToxicity: 0, persistency: 0, airHazard: 0, waterHazard: 0, safetyScore: 0, healthScore: 0, envScore: 0, recycleScore: 0, disposal: 0, power: 0 },
-  { id: '5', name: 'Dichloromethane', density: 1.327, releasePotential: 0.753, fireExplos: 1.000, reactDecom: 0.600, acuteToxicity: 0.265, irritation: 0.349, chronicToxicity: 0.289, persistency: 0.023, airHazard: 0.289, waterHazard: 0.031, safetyScore: 2.618, healthScore: 0.638, envScore: 0.343, recycleScore: 0, disposal: 2, power: 2 },
-  { id: '6', name: 'Ethanol', density: 0.789, releasePotential: 0.580, fireExplos: 1.000, reactDecom: 0.000, acuteToxicity: 0.292, irritation: 0.000, chronicToxicity: 0.204, persistency: 0.282, airHazard: 0.204, waterHazard: 0.000, safetyScore: 1.872, healthScore: 0.204, envScore: 0.485, recycleScore: 0, disposal: 2, power: 3 },
-  { id: '7', name: 'Ethyl acetate', density: 0.902, releasePotential: 0.619, fireExplos: 1.000, reactDecom: 0.000, acuteToxicity: 0.276, irritation: 0.625, chronicToxicity: 0.171, persistency: 0.026, airHazard: 0.171, waterHazard: 0.003, safetyScore: 1.895, healthScore: 0.796, envScore: 0.199, recycleScore: 0, disposal: 2, power: 2 },
-  { id: '8', name: 'Heptane', density: 0.684, releasePotential: 0.557, fireExplos: 1.000, reactDecom: 0.000, acuteToxicity: 0.368, irritation: 0.625, chronicToxicity: 0.159, persistency: 0.430, airHazard: 0.159, waterHazard: 0.500, safetyScore: 1.925, healthScore: 0.784, envScore: 1.089, recycleScore: 0, disposal: 2, power: 3 },
-  { id: '9', name: 'Hexane (n)', density: 0.659, releasePotential: 0.661, fireExplos: 1.000, reactDecom: 0.000, acuteToxicity: 0.343, irritation: 0.625, chronicToxicity: 0.349, persistency: 0.426, airHazard: 0.349, waterHazard: 0.325, safetyScore: 2.004, healthScore: 0.974, envScore: 1.100, recycleScore: 0, disposal: 2, power: 2 },
-  { id: '10', name: 'Isooctane', density: 0.692, releasePotential: 0.630, fireExplos: 1.000, reactDecom: 0.000, acuteToxicity: 0.000, irritation: 0.330, chronicToxicity: 0.000, persistency: 0.680, airHazard: 0.000, waterHazard: 0.875, safetyScore: 1.630, healthScore: 0.330, envScore: 1.555, recycleScore: 0, disposal: 2, power: 2 },
-  { id: '11', name: 'Isopropanol', density: 0.785, releasePotential: 0.556, fireExplos: 1.000, reactDecom: 0.000, acuteToxicity: 0.318, irritation: 0.625, chronicToxicity: 0.260, persistency: 0.280, airHazard: 0.260, waterHazard: 0.000, safetyScore: 1.874, healthScore: 0.885, envScore: 0.540, recycleScore: 0, disposal: 2, power: 3 },
-  { id: '12', name: 'Methanol', density: 0.791, releasePotential: 0.646, fireExplos: 1.000, reactDecom: 0.000, acuteToxicity: 0.267, irritation: 0.113, chronicToxicity: 0.317, persistency: 0.000, airHazard: 0.317, waterHazard: 0.000, safetyScore: 1.912, healthScore: 0.430, envScore: 0.317, recycleScore: 0, disposal: 2, power: 3 },
-  { id: '13', name: 'Sulfuric acid 96%', density: 1.84, releasePotential: 0.000, fireExplos: 0.000, reactDecom: 0.800, acuteToxicity: 0.956, irritation: 1.000, chronicToxicity: 1.000, persistency: 0.485, airHazard: 1.000, waterHazard: 0.500, safetyScore: 1.756, healthScore: 2.000, envScore: 1.985, recycleScore: 0, disposal: 2, power: 2 },
-  { id: '14', name: 't-butyl methyl ether', density: 0.74, releasePotential: 0.720, fireExplos: 1.000, reactDecom: 0.000, acuteToxicity: 0.000, irritation: 0.220, chronicToxicity: 0.350, persistency: 0.710, airHazard: 0.350, waterHazard: 0.090, safetyScore: 1.720, healthScore: 0.570, envScore: 1.150, recycleScore: 0, disposal: 2, power: 2 },
-  { id: '15', name: 'Tetrahydrofuran', density: 0.889, releasePotential: 0.667, fireExplos: 1.000, reactDecom: 0.000, acuteToxicity: 0.298, irritation: 0.625, chronicToxicity: 0.365, persistency: 0.535, airHazard: 0.365, waterHazard: 0.000, safetyScore: 1.965, healthScore: 0.990, envScore: 0.900, recycleScore: 0, disposal: 2, power: 2 },
-  { id: '16', name: 'Water', density: 0, releasePotential: 0, fireExplos: 0, reactDecom: 0, acuteToxicity: 0, irritation: 0, chronicToxicity: 0, persistency: 0, airHazard: 0, waterHazard: 0, safetyScore: 0, healthScore: 0, envScore: 0, recycleScore: 0, disposal: 0, power: 0 },
+  { id: '1', name: 'Acetone', density: 0.791, releasePotential: 0.698, fireExplos: 1.000, reactDecom: 0.000, acuteToxicity: 0.297, irritation: 0.625, chronicToxicity: 0.184, persistency: 0.126, airHazard: 0.184, waterHazard: 0.000, safetyScore: 1.995, healthScore: 0.809, envScore: 0.310, disposal: 2 },
+  { id: '2', name: 'Acetonitrile', density: 0.786, releasePotential: 0.615, fireExplos: 1.000, reactDecom: 0.600, acuteToxicity: 0.510, irritation: 0.625, chronicToxicity: 0.431, persistency: 0.341, airHazard: 0.431, waterHazard: 0.000, safetyScore: 2.724, healthScore: 1.056, envScore: 0.772, disposal: 2 },
+  { id: '3', name: 'Chloroform', density: 1.483, releasePotential: 0.684, fireExplos: 0.000, reactDecom: 0.000, acuteToxicity: 0.394, irritation: 0.625, chronicToxicity: 0.800, persistency: 0.457, airHazard: 0.800, waterHazard: 0.178, safetyScore: 1.077, healthScore: 1.425, envScore: 1.435, disposal: 2 },
+  { id: '4', name: 'CO2', density: 0, releasePotential: 0, fireExplos: 0, reactDecom: 0, acuteToxicity: 0, irritation: 0, chronicToxicity: 0, persistency: 0, airHazard: 0, waterHazard: 0, safetyScore: 0, healthScore: 0, envScore: 0, disposal: 0 },
+  { id: '5', name: 'Dichloromethane', density: 1.327, releasePotential: 0.753, fireExplos: 1.000, reactDecom: 0.600, acuteToxicity: 0.265, irritation: 0.349, chronicToxicity: 0.289, persistency: 0.023, airHazard: 0.289, waterHazard: 0.031, safetyScore: 2.618, healthScore: 0.638, envScore: 0.343, disposal: 2 },
+  { id: '6', name: 'Ethanol', density: 0.789, releasePotential: 0.580, fireExplos: 1.000, reactDecom: 0.000, acuteToxicity: 0.292, irritation: 0.000, chronicToxicity: 0.204, persistency: 0.282, airHazard: 0.204, waterHazard: 0.000, safetyScore: 1.872, healthScore: 0.204, envScore: 0.485, disposal: 2 },
+  { id: '7', name: 'Ethyl acetate', density: 0.902, releasePotential: 0.619, fireExplos: 1.000, reactDecom: 0.000, acuteToxicity: 0.276, irritation: 0.625, chronicToxicity: 0.171, persistency: 0.026, airHazard: 0.171, waterHazard: 0.003, safetyScore: 1.895, healthScore: 0.796, envScore: 0.199, disposal: 2 },
+  { id: '8', name: 'Heptane', density: 0.684, releasePotential: 0.557, fireExplos: 1.000, reactDecom: 0.000, acuteToxicity: 0.368, irritation: 0.625, chronicToxicity: 0.159, persistency: 0.430, airHazard: 0.159, waterHazard: 0.500, safetyScore: 1.925, healthScore: 0.784, envScore: 1.089, disposal: 2 },
+  { id: '9', name: 'Hexane (n)', density: 0.659, releasePotential: 0.661, fireExplos: 1.000, reactDecom: 0.000, acuteToxicity: 0.343, irritation: 0.625, chronicToxicity: 0.349, persistency: 0.426, airHazard: 0.349, waterHazard: 0.325, safetyScore: 2.004, healthScore: 0.974, envScore: 1.100, disposal: 2 },
+  { id: '10', name: 'Isooctane', density: 0.692, releasePotential: 0.630, fireExplos: 1.000, reactDecom: 0.000, acuteToxicity: 0.000, irritation: 0.330, chronicToxicity: 0.000, persistency: 0.680, airHazard: 0.000, waterHazard: 0.875, safetyScore: 1.630, healthScore: 0.330, envScore: 1.555, disposal: 2 },
+  { id: '11', name: 'Isopropanol', density: 0.785, releasePotential: 0.556, fireExplos: 1.000, reactDecom: 0.000, acuteToxicity: 0.318, irritation: 0.625, chronicToxicity: 0.260, persistency: 0.280, airHazard: 0.260, waterHazard: 0.000, safetyScore: 1.874, healthScore: 0.885, envScore: 0.540, disposal: 2 },
+  { id: '12', name: 'Methanol', density: 0.791, releasePotential: 0.646, fireExplos: 1.000, reactDecom: 0.000, acuteToxicity: 0.267, irritation: 0.113, chronicToxicity: 0.317, persistency: 0.000, airHazard: 0.317, waterHazard: 0.000, safetyScore: 1.912, healthScore: 0.430, envScore: 0.317, disposal: 2 },
+  { id: '13', name: 'Sulfuric acid 96%', density: 1.84, releasePotential: 0.000, fireExplos: 0.000, reactDecom: 0.800, acuteToxicity: 0.956, irritation: 1.000, chronicToxicity: 1.000, persistency: 0.485, airHazard: 1.000, waterHazard: 0.500, safetyScore: 1.756, healthScore: 2.000, envScore: 1.985, disposal: 2 },
+  { id: '14', name: 't-butyl methyl ether', density: 0.74, releasePotential: 0.720, fireExplos: 1.000, reactDecom: 0.000, acuteToxicity: 0.000, irritation: 0.220, chronicToxicity: 0.350, persistency: 0.710, airHazard: 0.350, waterHazard: 0.090, safetyScore: 1.720, healthScore: 0.570, envScore: 1.150, disposal: 2 },
+  { id: '15', name: 'Tetrahydrofuran', density: 0.889, releasePotential: 0.667, fireExplos: 1.000, reactDecom: 0.000, acuteToxicity: 0.298, irritation: 0.625, chronicToxicity: 0.365, persistency: 0.535, airHazard: 0.365, waterHazard: 0.000, safetyScore: 1.965, healthScore: 0.990, envScore: 0.900, disposal: 2 },
+  { id: '16', name: 'Water', density: 0, releasePotential: 0, fireExplos: 0, reactDecom: 0, acuteToxicity: 0, irritation: 0, chronicToxicity: 0, persistency: 0, airHazard: 0, waterHazard: 0, safetyScore: 0, healthScore: 0, envScore: 0, disposal: 0 },
 ]
 
 // 定义数据类型
@@ -49,13 +49,15 @@ export interface ReagentFactor {
   persistency: number
   airHazard: number
   waterHazard: number
+  // Other factors
+  regeneration?: number
+  disposal: number
+  // Custom reagent flag
+  isCustom?: boolean
   // Main factors (aggregated scores)
   safetyScore: number
   healthScore: number
   envScore: number
-  recycleScore: number
-  disposal: number
-  power: number
 }
 
 export interface GradientStep {
@@ -78,6 +80,8 @@ export interface AppData {
     preTreatmentReagents: PreTreatmentReagent[]
     mobilePhaseA: Reagent[]
     mobilePhaseB: Reagent[]
+    // Power Factor (P) calculation parameters
+    instrumentType?: 'low' | 'standard' | 'high'  // 仪器平台类型
   }
   factors: ReagentFactor[]
   gradient: GradientStep[]
@@ -114,7 +118,8 @@ const getDefaultData = (): AppData => ({
     sampleCount: null,
     preTreatmentReagents: [{ id: Date.now().toString(), name: '', volume: 0 }],
     mobilePhaseA: [{ id: Date.now().toString() + '1', name: '', percentage: 0 }],
-    mobilePhaseB: [{ id: Date.now().toString() + '2', name: '', percentage: 0 }]
+    mobilePhaseB: [{ id: Date.now().toString() + '2', name: '', percentage: 0 }],
+    instrumentType: 'standard'
   },
   factors: [],
   gradient: []

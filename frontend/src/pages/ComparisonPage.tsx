@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+﻿import React, { useState, useEffect, useRef } from 'react'
 import { Card, Typography, Button, Upload, message, Row, Col, Table, Empty, Modal, Input } from 'antd'
 import { UploadOutlined, DeleteOutlined, SwapOutlined, LockOutlined } from '@ant-design/icons'
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
@@ -140,9 +140,9 @@ const ComparisonPage: React.FC = () => {
           totalScores.S += mass * factor.safetyScore
           totalScores.H += mass * factor.healthScore
           totalScores.E += mass * factor.envScore
-          totalScores.R += mass * factor.recycleScore
+          totalScores.R += mass * (factor.regeneration || 0)
           totalScores.D += mass * factor.disposal
-          totalScores.P += mass * factor.power
+          // P is method-level, not reagent-level
         })
       }
 
@@ -158,9 +158,9 @@ const ComparisonPage: React.FC = () => {
             totalScores.S += mass * factor.safetyScore
             totalScores.H += mass * factor.healthScore
             totalScores.E += mass * factor.envScore
-            totalScores.R += mass * factor.recycleScore
+            totalScores.R += mass * (factor.regeneration || 0)
             totalScores.D += mass * factor.disposal
-            totalScores.P += mass * factor.power
+            // P is method-level, not reagent-level
           })
         }
         
@@ -173,9 +173,9 @@ const ComparisonPage: React.FC = () => {
             totalScores.S += mass * factor.safetyScore
             totalScores.H += mass * factor.healthScore
             totalScores.E += mass * factor.envScore
-            totalScores.R += mass * factor.recycleScore
+            totalScores.R += mass * (factor.regeneration || 0)
             totalScores.D += mass * factor.disposal
-            totalScores.P += mass * factor.power
+            // P is method-level, not reagent-level
           })
         }
       }
@@ -244,9 +244,9 @@ const ComparisonPage: React.FC = () => {
           totalScores.S += mass * factor.safetyScore
           totalScores.H += mass * factor.healthScore
           totalScores.E += mass * factor.envScore
-          totalScores.R += mass * factor.recycleScore
+          totalScores.R += mass * (factor.regeneration || 0)
           totalScores.D += mass * factor.disposal
-          totalScores.P += mass * factor.power
+          // P is method-level, not reagent-level
         })
       }
 
@@ -262,9 +262,9 @@ const ComparisonPage: React.FC = () => {
             totalScores.S += mass * factor.safetyScore
             totalScores.H += mass * factor.healthScore
             totalScores.E += mass * factor.envScore
-            totalScores.R += mass * factor.recycleScore
+            totalScores.R += mass * (factor.regeneration || 0)
             totalScores.D += mass * factor.disposal
-            totalScores.P += mass * factor.power
+            // P is method-level, not reagent-level
           })
         }
         
@@ -277,9 +277,9 @@ const ComparisonPage: React.FC = () => {
             totalScores.S += mass * factor.safetyScore
             totalScores.H += mass * factor.healthScore
             totalScores.E += mass * factor.envScore
-            totalScores.R += mass * factor.recycleScore
+            totalScores.R += mass * (factor.regeneration || 0)
             totalScores.D += mass * factor.disposal
-            totalScores.P += mass * factor.power
+            // P is method-level, not reagent-level
           })
         }
       }

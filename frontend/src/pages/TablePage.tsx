@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+﻿import React, { useState, useEffect } from 'react'
 import { Card, Typography, Table, Descriptions, Alert, Tabs, Statistic, Row, Col } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 
@@ -12,9 +12,9 @@ interface ReagentFactor {
   safetyScore: number
   healthScore: number
   envScore: number
+  regeneration?: number
   recycleScore: number
   disposal: number
-  power: number
 }
 
 interface ReagentDetail {
@@ -27,7 +27,6 @@ interface ReagentDetail {
   E: number
   R: number
   D: number
-  P: number
   source: string
 }
 
@@ -104,9 +103,8 @@ const TablePage: React.FC = () => {
           const S = mass * factor.safetyScore
           const H = mass * factor.healthScore
           const E = mass * factor.envScore
-          const R = mass * factor.recycleScore
+          const R = mass * (factor.regeneration || 0)
           const D = mass * factor.disposal
-          const P = mass * factor.power
 
           preTreatmentDetails.push({
             reagentName: reagent.name,
@@ -118,7 +116,6 @@ const TablePage: React.FC = () => {
             E: E,
             R: R,
             D: D,
-            P: P,
             source: 'Sample PreTreatment'
           })
         })
@@ -137,9 +134,8 @@ const TablePage: React.FC = () => {
           const S = mass * factor.safetyScore
           const H = mass * factor.healthScore
           const E = mass * factor.envScore
-          const R = mass * factor.recycleScore
+          const R = mass * (factor.regeneration || 0)
           const D = mass * factor.disposal
-          const P = mass * factor.power
 
           phaseADetails.push({
             reagentName: component.reagentName,
@@ -151,7 +147,6 @@ const TablePage: React.FC = () => {
             E: E,
             R: R,
             D: D,
-            P: P,
             source: 'Mobile Phase A'
           })
         })
@@ -170,9 +165,8 @@ const TablePage: React.FC = () => {
           const S = mass * factor.safetyScore
           const H = mass * factor.healthScore
           const E = mass * factor.envScore
-          const R = mass * factor.recycleScore
+          const R = mass * (factor.regeneration || 0)
           const D = mass * factor.disposal
-          const P = mass * factor.power
 
           phaseBDetails.push({
             reagentName: component.reagentName,
@@ -184,7 +178,6 @@ const TablePage: React.FC = () => {
             E: E,
             R: R,
             D: D,
-            P: P,
             source: 'Mobile Phase B'
           })
         })
@@ -199,11 +192,16 @@ const TablePage: React.FC = () => {
         H: allDetails.reduce((sum, r) => sum + r.H, 0),
         E: allDetails.reduce((sum, r) => sum + r.E, 0),
         R: allDetails.reduce((sum, r) => sum + r.R, 0),
-        D: allDetails.reduce((sum, r) => sum + r.D, 0),
-        P: allDetails.reduce((sum, r) => sum + r.P, 0)
+        D: allDetails.reduce((sum, r) => sum + r.D, 0)
       }
-      // 计算总分：(S+H+E+R+D+P) / sampleCount
-      const totalSum = totals.S + totals.H + totals.E + totals.R + totals.D + totals.P
+      
+      // 从 Methods 页面获取 P 值
+      const pScoreStr = localStorage.getItem('hplc_power_score')
+      const P = pScoreStr ? parseFloat(pScoreStr) : 0
+      
+      // 计算总分：((S+H+E+R+D) + P) / sampleCount
+      // 注意：S/H/E/R/D 已经是与质量相乘后的总和，P是方法级别的因子不乘质量
+      const totalSum = totals.S + totals.H + totals.E + totals.R + totals.D + P
       const totalScore = sampleCount > 0 ? totalSum / sampleCount : 0
 
       setPreTreatmentData(preTreatmentDetails)
@@ -281,13 +279,6 @@ const TablePage: React.FC = () => {
       dataIndex: 'D',
       key: 'D',
       width: 120,
-      render: (val) => val.toFixed(3)
-    },
-    {
-      title: 'Energy Consumption (P)',
-      dataIndex: 'P',
-      key: 'P',
-      width: 100,
       render: (val) => val.toFixed(3)
     }
   ]
@@ -414,7 +405,7 @@ const TablePage: React.FC = () => {
               </Col>
               <Col span={4}>
                 <Statistic 
-                  title="Recyclability (R)" 
+                  title="Regeneration (R)" 
                   value={totalScores?.R || 0} 
                   precision={3}
                   valueStyle={{ color: '#faad14' }}
@@ -422,7 +413,7 @@ const TablePage: React.FC = () => {
               </Col>
               <Col span={4}>
                 <Statistic 
-                  title="Disposal Difficulty (D)" 
+                  title="Disposal (D)" 
                   value={totalScores?.D || 0} 
                   precision={3}
                   valueStyle={{ color: '#722ed1' }}
@@ -430,8 +421,8 @@ const TablePage: React.FC = () => {
               </Col>
               <Col span={4}>
                 <Statistic 
-                  title="Energy Consumption (P)" 
-                  value={totalScores?.P || 0} 
+                  title="Power (P)" 
+                  value={(localStorage.getItem('hplc_power_score') ? parseFloat(localStorage.getItem('hplc_power_score')!) : 0).toFixed(3)} 
                   precision={3}
                   valueStyle={{ color: '#eb2f96' }}
                 />
@@ -473,9 +464,6 @@ const TablePage: React.FC = () => {
                       </Table.Summary.Cell>
                       <Table.Summary.Cell index={8}>
                         {preTreatmentData.reduce((sum, r) => sum + r.D, 0).toFixed(3)}
-                      </Table.Summary.Cell>
-                      <Table.Summary.Cell index={9}>
-                        {preTreatmentData.reduce((sum, r) => sum + r.P, 0).toFixed(3)}
                       </Table.Summary.Cell>
                     </Table.Summary.Row>
                   </Table.Summary>
@@ -528,9 +516,6 @@ const TablePage: React.FC = () => {
                       <Table.Summary.Cell index={8}>
                         {phaseAData.reduce((sum, r) => sum + r.D, 0).toFixed(3)}
                       </Table.Summary.Cell>
-                      <Table.Summary.Cell index={9}>
-                        {phaseAData.reduce((sum, r) => sum + r.P, 0).toFixed(3)}
-                      </Table.Summary.Cell>
                     </Table.Summary.Row>
                   </Table.Summary>
                 )}
@@ -582,9 +567,6 @@ const TablePage: React.FC = () => {
                       <Table.Summary.Cell index={8}>
                         {phaseBData.reduce((sum, r) => sum + r.D, 0).toFixed(3)}
                       </Table.Summary.Cell>
-                      <Table.Summary.Cell index={9}>
-                        {phaseBData.reduce((sum, r) => sum + r.P, 0).toFixed(3)}
-                      </Table.Summary.Cell>
                     </Table.Summary.Row>
                   </Table.Summary>
                 )}
@@ -632,9 +614,6 @@ const TablePage: React.FC = () => {
                       </Table.Summary.Cell>
                       <Table.Summary.Cell index={8}>
                         {totalScores?.D.toFixed(3)}
-                      </Table.Summary.Cell>
-                      <Table.Summary.Cell index={9}>
-                        {totalScores?.P.toFixed(3)}
                       </Table.Summary.Cell>
                     </Table.Summary.Row>
                   </Table.Summary>

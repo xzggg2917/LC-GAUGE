@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react'
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react'
+import { StorageHelper, STORAGE_KEYS } from '../utils/storage'
 
 interface User {
   username: string
@@ -17,32 +18,39 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // 初始化时直接从localStorage读取,避免闪现登录页面
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    const savedUser = localStorage.getItem('hplc_current_user')
-    return !!savedUser
-  })
-  
-  const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    const savedUser = localStorage.getItem('hplc_current_user')
-    if (savedUser) {
+  // 初始化时直接从存储读取,避免闪现登录页面
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const [isInitialized, setIsInitialized] = useState(false)
+
+  // 异步初始化用户状态
+  useEffect(() => {
+    const initAuth = async () => {
       try {
-        return JSON.parse(savedUser)
+        const savedUser = await StorageHelper.getCurrentUser()
+        if (savedUser) {
+          setCurrentUser(savedUser)
+          setIsAuthenticated(true)
+          console.log('🔒 User restored from storage:', savedUser.username)
+        }
       } catch (error) {
-        console.error('加载用户信息失败:', error)
-        return null
+        console.error('Failed to restore user:', error)
+      } finally {
+        setIsInitialized(true)
       }
     }
-    return null
-  })
+    
+    initAuth()
+  }, [])
 
   console.log('🔒 AuthProvider 渲染 - isAuthenticated:', isAuthenticated, 'currentUser:', currentUser)
 
   const register = async (username: string, password: string): Promise<{ success: boolean; message: string }> => {
     try {
       // 获取已注册用户列表
-      const usersData = localStorage.getItem('hplc_users')
-      const users = usersData ? JSON.parse(usersData) : []
+      const users = await StorageHelper.getUsers()
+      
+      console.log('📝 Register - Current users count:', users.length)
 
       // 检查用户名是否已存在
       if (users.some((u: any) => u.username === username)) {
@@ -57,10 +65,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       users.push(newUser)
-      localStorage.setItem('hplc_users', JSON.stringify(users))
+      await StorageHelper.setUsers(users)
 
       return { success: true, message: 'Registration successful! Please login' }
     } catch (error) {
+      console.error('Registration error:', error)
       return { success: false, message: 'Registration failed, please try again' }
     }
   }
@@ -68,16 +77,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (username: string, password: string): Promise<{ success: boolean; message: string }> => {
     try {
       // 获取用户列表
-      const usersData = localStorage.getItem('hplc_users')
-      if (!usersData) {
-        return { success: false, message: 'User does not exist' }
+      const users = await StorageHelper.getUsers()
+      console.log('🔍 Login - Users data:', users)
+      
+      if (!users || users.length === 0) {
+        console.log('❌ No users data found in storage')
+        return { success: false, message: 'User does not exist. Please register first.' }
       }
 
-      const users = JSON.parse(usersData)
       const user = users.find((u: any) => u.username === username && u.password === password)
+      console.log('👥 Login - Total users:', users.length)
+      console.log('🔑 Login - Attempting login for:', username)
 
       if (!user) {
-        return { success: false, message: 'Incorrect username or password' }
+        // 检查用户名是否存在
+        const usernameExists = users.some((u: any) => u.username === username)
+        if (usernameExists) {
+          console.log('❌ User exists but password incorrect')
+          return { success: false, message: 'Incorrect password' }
+        } else {
+          console.log('❌ User does not exist')
+          return { success: false, message: 'User does not exist. Please register first.' }
+        }
       }
 
       // 保存登录状态
@@ -88,10 +109,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       setCurrentUser(currentUser)
       setIsAuthenticated(true)
-      localStorage.setItem('hplc_current_user', JSON.stringify(currentUser))
+      await StorageHelper.setCurrentUser(currentUser)
 
       return { success: true, message: 'Login successful' }
     } catch (error) {
+      console.error('Login error:', error)
       return { success: false, message: 'Login failed, please try again' }
     }
   }
@@ -101,30 +123,31 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsAuthenticated(false)
     
     // 清理用户登录信息
-    localStorage.removeItem('hplc_current_user')
+    StorageHelper.clearCurrentUser()
     
     // 清理所有应用数据（可选：如果希望退出时保留数据，可以注释掉下面这些）
-    localStorage.removeItem('hplc_methods_raw')
-    localStorage.removeItem('hplc_factors_data')
-    localStorage.removeItem('hplc_gradient_data')
+    // 注意：使用文件存储后，这些数据不会因为清除浏览器缓存而丢失
   }
 
   // 验证用户密码（用于文件访问权限验证）
   const verifyUser = async (username: string, password: string): Promise<boolean> => {
     try {
-      const usersData = localStorage.getItem('hplc_users')
-      if (!usersData) {
+      const users = await StorageHelper.getUsers()
+      if (!users || users.length === 0) {
         return false
       }
 
-      const users = JSON.parse(usersData)
       const user = users.find((u: any) => u.username === username && u.password === password)
-
       return !!user
     } catch (error) {
       console.error('验证用户失败:', error)
       return false
     }
+  }
+
+  // 在初始化完成前显示加载状态
+  if (!isInitialized) {
+    return null
   }
 
   return (

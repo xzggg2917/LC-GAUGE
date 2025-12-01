@@ -1,14 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react'
+﻿import React, { useEffect, useRef, useState } from 'react'
 
 interface FanChartProps {
-  scores: {
-    S: number
-    H: number
-    E: number
-    R: number
-    D: number
-    P: number
-  }
+  scores: { S: number; H: number; E: number; R: number; D: number; P: number }
   width?: number
   height?: number
 }
@@ -269,8 +262,8 @@ const FanChart: React.FC<FanChartProps> = ({ scores, width, height }) => {
 
     const scale = Math.min(canvasWidth, canvasHeight) / 3.5  // 与绘制时保持一致
     const centerX = canvasWidth / 2
-    const centerY = canvasHeight * 0.69
-    const fanRadius = 1.5 * scale
+    const centerY = canvasHeight * 0.77  // 修正为与绘制一致
+    const fanRadius = 2 * scale  // 修正为与绘制一致
     const innerRadius = 0.5 * scale
     const startAngle = 30
     const anglePerSection = 120 / 6

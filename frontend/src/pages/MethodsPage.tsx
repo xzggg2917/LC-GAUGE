@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useLayoutEffect, useCallback } from 'react'
-import { Card, Typography, InputNumber, Select, Button, Row, Col, message } from 'antd'
-import { PlusOutlined, DeleteOutlined } from '@ant-design/icons'
+import { Card, Typography, InputNumber, Select, Button, Row, Col, message, Tooltip } from 'antd'
+import { PlusOutlined, DeleteOutlined, QuestionCircleOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts'
 import { useAppContext } from '../contexts/AppContext'
 import type { Reagent, PreTreatmentReagent, ReagentFactor } from '../contexts/AppContext'
 import './MethodsPage.css'
@@ -20,6 +20,10 @@ const MethodsPage: React.FC = () => {
   const [preTreatmentReagents, setPreTreatmentReagents] = useState<PreTreatmentReagent[]>(data.methods.preTreatmentReagents)
   const [mobilePhaseA, setMobilePhaseA] = useState<Reagent[]>(data.methods.mobilePhaseA)
   const [mobilePhaseB, setMobilePhaseB] = useState<Reagent[]>(data.methods.mobilePhaseB)
+  
+  // Power Factor (P) calculation states
+  const [instrumentType, setInstrumentType] = useState<'low' | 'standard' | 'high'>(data.methods.instrumentType || 'standard')
+  const [weightScheme, setWeightScheme] = useState<string>('balanced')
 
   // 从 Factors 页面加载试剂列表
   const [availableReagents, setAvailableReagents] = useState<string[]>([])
@@ -168,6 +172,7 @@ const MethodsPage: React.FC = () => {
     setPreTreatmentReagents(data.methods.preTreatmentReagents)
     setMobilePhaseA(data.methods.mobilePhaseA)
     setMobilePhaseB(data.methods.mobilePhaseB)
+    setInstrumentType(data.methods.instrumentType || 'standard')
     
     // 立即刷新图表（特别是在新建文件或打开文件时）
     console.log('🔄 立即刷新图表')
@@ -184,7 +189,8 @@ const MethodsPage: React.FC = () => {
       sampleCount,
       preTreatmentReagents,
       mobilePhaseA,
-      mobilePhaseB
+      mobilePhaseB,
+      instrumentType
     }
     
     const currentLocalDataStr = JSON.stringify(dataToSave)
@@ -423,9 +429,9 @@ const MethodsPage: React.FC = () => {
         S: Number((mass * factor.safetyScore).toFixed(3)),
         H: Number((mass * factor.healthScore).toFixed(3)),
         E: Number((mass * factor.envScore).toFixed(3)),
-        R: Number((mass * factor.recycleScore).toFixed(3)),
+        R: Number((mass * (factor.regeneration || 0)).toFixed(3)),
         D: Number((mass * factor.disposal).toFixed(3)),
-        P: Number((mass * factor.power).toFixed(3))
+        P: 0  // P is a method-level factor, not reagent property
       })
     })
     
@@ -488,9 +494,9 @@ const MethodsPage: React.FC = () => {
           S: Number((mass * factor.safetyScore).toFixed(3)),
           H: Number((mass * factor.healthScore).toFixed(3)),
           E: Number((mass * factor.envScore).toFixed(3)),
-          R: Number((mass * factor.recycleScore).toFixed(3)),
+          R: Number((mass * (factor.regeneration || 0)).toFixed(3)),
           D: Number((mass * factor.disposal).toFixed(3)),
-          P: Number((mass * factor.power).toFixed(3))
+          P: 0  // P is a method-level factor, not reagent property
         })
       })
       
@@ -515,7 +521,36 @@ const MethodsPage: React.FC = () => {
     const data = calculatePhaseChartData('B')
     console.log('📈 Phase B 图表数据:', data)
     return data
-  }, [factorsData, chartRefreshKey])  // 确认提交
+  }, [factorsData, chartRefreshKey])  
+  
+  // Calculate Power Factor (P) score
+  const calculatePowerScore = (): number => {
+    try {
+      // Get instrument power in kW
+      const powerMap = { low: 0.5, standard: 1.0, high: 2.0 }
+      const P_inst = powerMap[instrumentType]
+      
+      // Get T_run from gradient data (totalTime)
+      const gradientDataStr = localStorage.getItem('hplc_gradient_data')
+      if (!gradientDataStr) return 0
+      
+      const gradientData = JSON.parse(gradientDataStr)
+      const T_run = gradientData.calculations?.totalTime || 0
+      
+      // Calculate energy consumption E_sample (kWh)
+      const E_sample = P_inst * T_run / 60
+      
+      // Map E_sample to P score (0-100)
+      if (E_sample <= 0.1) return 0
+      if (E_sample >= 1.5) return 100
+      return ((E_sample - 0.1) / 1.4) * 100
+    } catch (error) {
+      console.error('Error calculating P score:', error)
+      return 0
+    }
+  }
+  
+  // 确认提交
   const handleConfirm = () => {
     // 验证样品数
     if (!sampleCount || sampleCount <= 0 || !Number.isInteger(sampleCount)) {
@@ -601,8 +636,19 @@ const MethodsPage: React.FC = () => {
       sampleCount,
       preTreatmentReagents,
       mobilePhaseA,
-      mobilePhaseB
+      mobilePhaseB,
+      instrumentType
     }))
+
+    // 更新 Context
+    updateMethodsData({
+      sampleCount,
+      preTreatmentReagents,
+      mobilePhaseA,
+      mobilePhaseB,
+      instrumentType
+    })
+    setIsDirty(true)
 
     message.success('Data saved, navigating to HPLC Gradient Prg')
     
@@ -771,28 +817,185 @@ const MethodsPage: React.FC = () => {
     <div className="methods-page">
       <Title level={2}>Methods</Title>
 
-      {/* 输入处理样品数 */}
+      {/* 上半部分：样品数 + 能源计算 */}
       <Card style={{ marginBottom: 24 }}>
-        <Row align="middle" gutter={16}>
-          <Col>
-            <span style={{ fontSize: 16, fontWeight: 500 }}>Enter Number of Samples to Process:</span>
+        <Row gutter={24}>
+          {/* 左侧：样品数 + 问题区 */}
+          <Col span={12}>
+            {/* 样品数输入 */}
+            <div style={{ marginBottom: 20, padding: 16, background: '#fafafa', borderRadius: 8, border: '1px solid #d9d9d9' }}>
+              <div style={{ marginBottom: 8, fontSize: 14, fontWeight: 500 }}>
+                单个样品所含物质数:
+              </div>
+              <InputNumber
+                min={1}
+                step={1}
+                placeholder="Basic usage"
+                value={sampleCount}
+                onChange={handleSampleCountChange}
+                style={{ width: '100%' }}
+                precision={0}
+                size="large"
+              />
+              {sampleCountError && (
+                <div style={{ marginTop: 8, color: '#ff4d4f', fontSize: 13 }}>{sampleCountError}</div>
+              )}
+            </div>
+
+            {/* 问题一 */}
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ marginBottom: 8, fontSize: 14, fontWeight: 500 }}>
+                <span style={{ color: '#1890ff' }}>问题一：</span> 仪器平台类型 (P<sub>inst</sub>)
+                <Tooltip title={
+                  <div>
+                    <div><strong>A. 低能耗/微型化系统 (0.5 kW)</strong></div>
+                    <div>• 适用仪器：UPLC/UHPLC (UVPDA)、毛细管电泳 (CE)、Nano-LC</div>
+                    <div>• GEMAM 依据：对应 GEMAM 中评分较高的低能耗仪器 (Score 0.75-1.0)</div>
+                    <div style={{ marginTop: 8 }}><strong>B. 标准能耗系统 (1.0 kW)</strong></div>
+                    <div>• 适用仪器：常规 HPLC (UV/RI/FLD)、气相色谱 GC (FID/TCD)、离子色谱 (IC)</div>
+                    <div>• GEMAM 依据：对应 GEMAM 中评分中等的仪器 (Score 0.5)</div>
+                    <div style={{ marginTop: 8 }}><strong>C. 高能耗/制备型系统 (2.0 kW)</strong></div>
+                    <div>• 适用仪器：液质联用 (LC-MS/MS)、气质联用 (GC-MS)、ICP-MS、ICP-OES</div>
+                    <div>• GEMAM 依据：对应 GEMAM 中评分最低的仪器 (Score 0.0-0.25)，明确指出了 LC、GC-四极杆检测器及高能耗的 ICP-MS</div>
+                  </div>
+                }>
+                  <QuestionCircleOutlined style={{ marginLeft: 8, color: '#1890ff', cursor: 'pointer' }} />
+                </Tooltip>
+              </div>
+              <Select
+                style={{ width: '100%' }}
+                value={instrumentType}
+                onChange={(value) => setInstrumentType(value)}
+              >
+                <Option value="low">A. 低能耗/微型化系统 (Low Energy / Miniaturized) - 0.5 kW</Option>
+                <Option value="standard">B. 标准能耗系统 (Standard Energy) - 1.0 kW</Option>
+                <Option value="high">C. 高能耗/制备型系统 (High Energy / Hyphenated) - 2.0 kW</Option>
+              </Select>
+            </div>
+
+            {/* 问题二 */}
+            <div>
+              <div style={{ marginBottom: 8, fontSize: 14, fontWeight: 500 }}>
+                <span style={{ color: '#1890ff' }}>问题二：</span> 分析运行时间 (T<sub>run</sub>)
+                <Tooltip title={
+                  <div>
+                    <div><strong>T<sub>run</sub></strong>：样品分析运行时间</div>
+                    <div style={{ marginTop: 8 }}>由 HPLC Gradient 页面根据梯度步骤自动计算得出</div>
+                    <div style={{ marginTop: 8 }}>用于计算单次样品的能源消耗</div>
+                  </div>
+                }>
+                  <QuestionCircleOutlined style={{ marginLeft: 8, color: '#1890ff', cursor: 'pointer' }} />
+                </Tooltip>
+              </div>
+              <div style={{ 
+                padding: '8px 12px', 
+                background: '#fff',
+                border: '1px solid #d9d9d9',
+                borderRadius: 6,
+                marginBottom: 8
+              }}>
+                <span style={{ fontSize: 13, marginRight: 8, color: '#666' }}><strong>T<sub>run</sub></strong>:</span>
+                {(() => {
+                  try {
+                    const gradientDataStr = localStorage.getItem('hplc_gradient_data')
+                    const gradientData = gradientDataStr ? JSON.parse(gradientDataStr) : null
+                    const T_run = gradientData?.calculations?.totalTime || 0
+                    return <span style={{ color: '#1890ff', fontWeight: 600, fontSize: 16 }}>{T_run.toFixed(2)} min</span>
+                  } catch {
+                    return <span style={{ color: '#999', fontSize: 16 }}>0.00 min</span>
+                  }
+                })()}
+              </div>
+              <div style={{ fontSize: 11, color: '#999' }}>
+                ↑ 由 HPLC Gradient 页面自动计算得出
+              </div>
+            </div>
           </Col>
-          <Col>
-            <InputNumber
-              min={1}
-              step={1}
-              placeholder="Basic usage"
-              value={sampleCount}
-              onChange={handleSampleCountChange}
-              style={{ width: 200 }}
-              precision={0}
-            />
+
+          {/* 右侧：计算结果 */}
+          <Col span={12}>
+            <div style={{ 
+              background: 'linear-gradient(135deg, #f0f5ff 0%, #e6f0ff 100%)', 
+              padding: 16, 
+              borderRadius: 8, 
+              height: '100%',
+              border: '1px solid #d6e4ff'
+            }}>
+              {/* 权重配置 */}
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ marginBottom: 8, fontSize: 13, fontWeight: 500, color: '#1890ff' }}>
+                  ⚡ 权重配置方案
+                  <Tooltip title={
+                    <div>
+                      <div><strong>不同权重方案的分配逻辑：</strong></div>
+                      <div style={{ marginTop: 8 }}>• <strong>均衡型</strong>：S=0.15, H=0.15, E=0.15, R=0.15, D=0.15, P=0.25</div>
+                      <div>• <strong>安全优先</strong>：S=0.30, H=0.30, E=0.10, R=0.10, D=0.10, P=0.10</div>
+                      <div>• <strong>环保优先</strong>：S=0.10, H=0.10, E=0.30, R=0.25, D=0.15, P=0.10</div>
+                      <div>• <strong>能效优先</strong>：S=0.10, H=0.10, E=0.15, R=0.15, D=0.10, P=0.40</div>
+                      <div style={{ marginTop: 8, fontSize: 11, color: '#bbb' }}>总分 = S×w₁ + H×w₂ + E×w₃ + R×w₄ + D×w₅ + P×w₆</div>
+                    </div>
+                  }>
+                    <QuestionCircleOutlined style={{ marginLeft: 6, cursor: 'pointer' }} />
+                  </Tooltip>
+                </div>
+                <Select
+                  value={weightScheme}
+                  onChange={setWeightScheme}
+                  style={{ width: '100%' }}
+                  size="middle"
+                >
+                  <Option value="balanced">📦 均衡型 (Balanced) - 全面衡量各项指标</Option>
+                  <Option value="safety">🛡️ 安全优先 (Safety First) - 关注安全性与健康</Option>
+                  <Option value="environmental">🌱 环保优先 (Eco-Friendly) - 关注环境影响</Option>
+                  <Option value="efficiency">⚡ 能效优先 (Energy Efficient) - 关注能源消耗</Option>
+                </Select>
+              </div>
+
+              <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#1890ff', borderBottom: '2px solid #1890ff', paddingBottom: 6 }}>
+                📊 计算结果
+              </div>
+              {(() => {
+                try {
+                  const gradientDataStr = localStorage.getItem('hplc_gradient_data')
+                  const gradientData = gradientDataStr ? JSON.parse(gradientDataStr) : null
+                  const T_run = gradientData?.calculations?.totalTime || 0
+                  const powerMap = { low: 0.5, standard: 1.0, high: 2.0 }
+                  const P_inst = powerMap[instrumentType]
+                  const E_sample = P_inst * T_run / 60
+                  const P_score = calculatePowerScore()
+
+                  return (
+                    <div style={{ fontSize: 13 }}>
+                      <div style={{ 
+                        padding: 16, 
+                        background: '#1890ff',
+                        borderRadius: 6,
+                        textAlign: 'center'
+                      }}>
+                        <div style={{ color: '#fff', fontSize: 12, marginBottom: 6 }}>P 分数 (P<sub>score</sub>)</div>
+                        <div style={{ fontSize: 32, fontWeight: 700, color: '#fff', lineHeight: 1.2 }}>
+                          {P_score.toFixed(2)}
+                        </div>
+                        <div style={{ fontSize: 10, color: '#e6f7ff', marginTop: 6 }}>
+                          {E_sample <= 0.1 ? '(绿色基线：≤0.1 kWh)' : 
+                           E_sample >= 1.5 ? '(红色警戒：≥1.5 kWh)' : 
+                           '(线性区间：0.1~1.5 kWh)'}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                } catch (error) {
+                  return (
+                    <div style={{ textAlign: 'center', padding: 30, color: '#999' }}>
+                      <div style={{ fontSize: 40, marginBottom: 10 }}>⚠️</div>
+                      <div style={{ fontSize: 13 }}>请先完成 HPLC Gradient 设置</div>
+                      <div style={{ fontSize: 11, marginTop: 6 }}>才能计算 T<sub>run</sub> 和 P 分数</div>
+                    </div>
+                  )
+                }
+              })()}
+            </div>
           </Col>
-          {sampleCountError && (
-            <Col>
-              <span style={{ color: '#ff4d4f', fontSize: 14 }}>{sampleCountError}</span>
-            </Col>
-          )}
         </Row>
       </Card>
 
@@ -895,7 +1098,7 @@ const MethodsPage: React.FC = () => {
                               <CartesianGrid strokeDasharray="3 3" />
                               <XAxis dataKey="reagent" hide />
                               <YAxis hide domain={[0, currentMax]} allowDataOverflow={true} type="number" />
-                              <Tooltip 
+                              <RechartsTooltip 
                                 contentStyle={{ fontSize: 12 }}
                                 formatter={(value: any) => value.toFixed(4)}
                               />
@@ -1121,7 +1324,7 @@ const MethodsPage: React.FC = () => {
                               <CartesianGrid strokeDasharray="3 3" />
                               <XAxis dataKey="reagent" hide />
                               <YAxis hide domain={[0, currentMax]} allowDataOverflow={true} type="number" />
-                              <Tooltip 
+                              <RechartsTooltip 
                                 contentStyle={{ fontSize: 12 }}
                                 formatter={(value: any) => value.toFixed(4)}
                               />
@@ -1335,7 +1538,7 @@ const MethodsPage: React.FC = () => {
                               <CartesianGrid strokeDasharray="3 3" />
                               <XAxis dataKey="reagent" hide />
                               <YAxis hide domain={[0, currentMax]} allowDataOverflow={true} type="number" />
-                              <Tooltip 
+                              <RechartsTooltip 
                                 contentStyle={{ fontSize: 12 }}
                                 formatter={(value: any) => value.toFixed(4)}
                               />

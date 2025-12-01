@@ -13,8 +13,6 @@ const LoginPage: React.FC = () => {
   const [registerForm] = Form.useForm()
   const [loading, setLoading] = useState(false)
 
-  console.log('🔐 LoginPage Render')
-
   const handleLogin = async (values: any) => {
     setLoading(true)
     try {

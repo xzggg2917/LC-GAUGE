@@ -95,9 +95,9 @@ const PolarBarChart: React.FC<PolarBarChartProps> = ({ scores }) => {
             'S': 'Safety',
             'H': 'Health Hazard',
             'E': 'Environmental Impact',
-            'R': 'Recyclability',
-            'D': 'Disposal Difficulty',
-            'P': 'Energy Consumption'
+            'R': 'Regeneration',
+            'D': 'Disposal',
+            'P': 'Power'
           }
           const colorMap: { [key: string]: string } = {
             'S': '#52c41a',

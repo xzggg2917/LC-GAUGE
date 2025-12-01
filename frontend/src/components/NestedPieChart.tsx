@@ -104,31 +104,92 @@ const NestedPieChart: React.FC<NestedPieChartProps> = ({ mainFactors, subFactors
         right: 20,
         containLabel: true
       },
+      labelLayout: function (params: any) {
+        // 只对内圈饼图（seriesIndex = 0）进行标签位置调整
+        if (params.seriesIndex === 0) {
+          const isLeft = params.labelRect.x < chart.getWidth() / 2
+          const points = params.labelLinePoints as number[][]
+          
+          // 计算扇形中心角度
+          const midAngle = ((params.startAngle || 0) + (params.endAngle || 0)) / 2
+          const radius = params.seriesModel.getData().getItemLayout(params.dataIndex).r || 0
+          const center = params.seriesModel.get('center')
+          
+          // 计算中心点坐标（处理百分比）
+          const cx = typeof center[0] === 'string' ? 
+            parseFloat(center[0]) / 100 * chart.getWidth() : center[0]
+          const cy = typeof center[1] === 'string' ? 
+            parseFloat(center[1]) / 100 * chart.getHeight() : center[1]
+          
+          // 将标签推到半径的85%位置
+          const targetRadius = radius * 0.85
+          const radian = midAngle * Math.PI / 180
+          
+          return {
+            x: cx + Math.cos(radian) * targetRadius,
+            y: cy + Math.sin(radian) * targetRadius,
+            labelLinePoints: points
+          }
+        }
+      },
       series: [
         // 内圈：6个大因子
         {
           name: 'Main Factors',
           type: 'pie',
           selectedMode: 'single',
-          radius: [0, '30%'],
+          radius: [0, '35%'],  // 从30%增加到35%，饼图更大，标签更靠近绝对边缘
           center: ['50%', '45%'],
           label: {
-            position: 'inner',
+            show: true,
+            position: 'inside',
             fontSize: 13,
             fontWeight: 'bold',
             color: '#fff',
             formatter: (params: any) => {
-              // 当扇区角度太小时不显示标签（小于5%）
-              if (params.percent < 5) {
-                return ''
-              }
               return params.name
             }
           },
           labelLine: {
             show: false
           },
-          data: mainFactorData
+          emphasis: {
+            label: {
+              show: true,
+              fontSize: 15,
+              fontWeight: 'bold'
+            }
+          },
+          data: mainFactorData.map((item, index) => {
+            const total = mainFactorData.reduce((sum, d) => sum + d.value, 0)
+            const percent = (item.value / total) * 100
+            
+            // 计算该扇形的中间角度
+            let startAngle = -90  // 从-90度开始（12点钟方向）
+            for (let i = 0; i < index; i++) {
+              startAngle += (mainFactorData[i].value / total) * 360
+            }
+            const endAngle = startAngle + (item.value / total) * 360
+            const midAngle = (startAngle + endAngle) / 2
+            const radian = midAngle * Math.PI / 180
+            
+            // 计算标签的径向偏移（向外移动到80%半径位置）
+            const baseRadius = 0.35  // 对应radius的35%
+            const targetRadiusRatio = 0.80  // 移动到半径的80%位置
+            const offsetDistance = baseRadius * targetRadiusRatio * 100  // 转换为百分比坐标
+            
+            return {
+              ...item,
+              label: {
+                fontSize: percent < 3 ? 9 : percent < 5 ? 11 : percent < 10 ? 12 : 14,
+                // 使用position数组直接指定标签偏移量（相对于扇形中心）
+                offset: [
+                  Math.cos(radian) * offsetDistance * 0.8,  // x方向偏移
+                  Math.sin(radian) * offsetDistance * 0.8   // y方向偏移
+                ]
+              }
+            }
+          })
         },
         // 外圈：9个小因子
         {

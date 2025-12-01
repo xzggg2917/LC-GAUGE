@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react'
 import { Card, Typography, Alert, Row, Col } from 'antd'
-import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend, Tooltip, ResponsiveContainer } from 'recharts'
+import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Tooltip, ResponsiveContainer } from 'recharts'
 import FanChart from '../components/FanChart'
 import PolarBarChart from '../components/PolarBarChart'
 import NestedPieChart from '../components/NestedPieChart'
@@ -25,9 +25,8 @@ interface ReagentFactor {
   safetyScore: number
   healthScore: number
   envScore: number
-  recycleScore: number
+  regeneration?: number
   disposal: number
-  power: number
 }
 
 const GraphPage: React.FC = () => {
@@ -175,9 +174,8 @@ const GraphPage: React.FC = () => {
           totalScores.S += mass * factor.safetyScore
           totalScores.H += mass * factor.healthScore
           totalScores.E += mass * factor.envScore
-          totalScores.R += mass * factor.recycleScore
+          totalScores.R += mass * (factor.regeneration || 0)
           totalScores.D += mass * factor.disposal
-          totalScores.P += mass * factor.power
           
           // Sub-factors
           totalScores.releasePotential += mass * (factor.releasePotential || 0)
@@ -206,9 +204,9 @@ const GraphPage: React.FC = () => {
             totalScores.S += mass * factor.safetyScore
             totalScores.H += mass * factor.healthScore
             totalScores.E += mass * factor.envScore
-            totalScores.R += mass * factor.recycleScore
+            totalScores.R += mass * (factor.regeneration || 0)
             totalScores.D += mass * factor.disposal
-            totalScores.P += mass * factor.power
+            // P is method-level, not reagent-level
             
             // Sub-factors
             totalScores.releasePotential += mass * (factor.releasePotential || 0)
@@ -235,9 +233,9 @@ const GraphPage: React.FC = () => {
             totalScores.S += mass * factor.safetyScore
             totalScores.H += mass * factor.healthScore
             totalScores.E += mass * factor.envScore
-            totalScores.R += mass * factor.recycleScore
+            totalScores.R += mass * (factor.regeneration || 0)
             totalScores.D += mass * factor.disposal
-            totalScores.P += mass * factor.power
+            // P is method-level, not reagent-level
             
             // Sub-factors
             totalScores.releasePotential += mass * (factor.releasePotential || 0)
@@ -253,7 +251,11 @@ const GraphPage: React.FC = () => {
         }
       }
 
-      const sumOfAllScores = totalScores.S + totalScores.H + totalScores.E + totalScores.R + totalScores.D + totalScores.P
+      // 从 Methods 页面获取 P 值
+      const pScoreStr = localStorage.getItem('hplc_power_score')
+      const P = pScoreStr ? parseFloat(pScoreStr) : 0
+      
+      const sumOfAllScores = totalScores.S + totalScores.H + totalScores.E + totalScores.R + totalScores.D + P
       const calculatedTotalScore = sampleCountValue > 0 ? sumOfAllScores / sampleCountValue : 0
       setTotalScore(calculatedTotalScore)
       
@@ -264,7 +266,7 @@ const GraphPage: React.FC = () => {
         E: totalScores.E,
         R: totalScores.R,
         D: totalScores.D,
-        P: totalScores.P
+        P: P
       })
 
       // 保存小因子数据供 NestedPieChart 使用
@@ -367,7 +369,7 @@ const GraphPage: React.FC = () => {
               <div style={{ fontSize: 24, fontWeight: 'bold', color: '#1890ff' }}>{mainFactorScores.E.toFixed(3)}</div>
             </div>
             <div style={{ textAlign: 'center', minWidth: '120px' }}>
-              <div style={{ fontSize: 14, color: '#666', marginBottom: 8, fontWeight: 500 }}>Recycle (R)</div>
+              <div style={{ fontSize: 14, color: '#666', marginBottom: 8, fontWeight: 500 }}>Regeneration (R)</div>
               <div style={{ fontSize: 24, fontWeight: 'bold', color: '#f5222d' }}>{mainFactorScores.R.toFixed(3)}</div>
             </div>
             <div style={{ textAlign: 'center', minWidth: '120px' }}>
@@ -376,7 +378,9 @@ const GraphPage: React.FC = () => {
             </div>
             <div style={{ textAlign: 'center', minWidth: '120px' }}>
               <div style={{ fontSize: 14, color: '#666', marginBottom: 8, fontWeight: 500 }}>Power (P)</div>
-              <div style={{ fontSize: 24, fontWeight: 'bold', color: '#eb2f96' }}>{mainFactorScores.P.toFixed(3)}</div>
+              <div style={{ fontSize: 24, fontWeight: 'bold', color: '#eb2f96' }}>
+                {(localStorage.getItem('hplc_power_score') ? parseFloat(localStorage.getItem('hplc_power_score')!) : 0).toFixed(3)}
+              </div>
             </div>
           </div>
         </Card>
@@ -396,7 +400,7 @@ const GraphPage: React.FC = () => {
             <div style={{ fontSize: 16, opacity: 0.9, marginBottom: 8 }}>Overall Total Score</div>
             <div style={{ fontSize: 48, fontWeight: 'bold', marginBottom: 8 }}>{totalScore.toFixed(3)}</div>
             <div style={{ fontSize: 14, opacity: 0.85 }}>
-              Formula: (S + H + E + R + D + P) / Sample Count ({sampleCount})
+              Formula: ((S + H + E + R + D) + P) / Sample Count ({sampleCount})
             </div>
           </div>
         </Card>
