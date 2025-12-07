@@ -1121,6 +1121,8 @@ const MethodsPage: React.FC = () => {
 
   // 自动计算评分（数据变化时触发）
   useEffect(() => {
+    console.log('📌 自动计算useEffect触发，前处理试剂数:', preTreatmentReagents.length)
+    
     // 防抖计时器
     const debounceTimer = setTimeout(async () => {
       // 检查是否有必要的数据
@@ -1130,6 +1132,7 @@ const MethodsPage: React.FC = () => {
       // 只有当梯度数据和因子数据都存在时才自动计算
       if (gradientData && factors && factors.length > 0) {
         console.log('🔄 数据已变化，自动触发评分计算')
+        console.log('  前处理试剂详情:', preTreatmentReagents)
         calculateFullScoreAPI()
       }
     }, 1000) // 1秒防抖
