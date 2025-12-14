@@ -98,14 +98,14 @@ const PretreatmentAnalysisPage: React.FC = () => {
       setRadarData(chartData)
       setRadarColor(radarColorData.color)
 
-      // 设置大因子（前处理没有P，所以P=0）
+      // 设置大因子（包括前处理阶段的P因子）
       setMainFactorScores({
         S: prepMajor.S || 0,
         H: prepMajor.H || 0,
         E: prepMajor.E || 0,
         R: additionalFactors.pretreatment_R || 0,
         D: additionalFactors.pretreatment_D || 0,
-        P: 0 // 前处理阶段没有能耗因子
+        P: additionalFactors.pretreatment_P || 0 // 前处理阶段的能耗因子
       })
 
       // 设置小因子
@@ -259,6 +259,12 @@ const PretreatmentAnalysisPage: React.FC = () => {
             <div style={{ fontSize: 14, color: '#666', marginBottom: 8, fontWeight: 500 }}>Disposal (D)</div>
             <div style={{ fontSize: 24, fontWeight: 'bold', color: getColorHex(mainFactorScores.D) }}>
               {mainFactorScores.D.toFixed(2)}
+            </div>
+          </div>
+          <div style={{ textAlign: 'center', minWidth: '120px' }}>
+            <div style={{ fontSize: 14, color: '#666', marginBottom: 8, fontWeight: 500 }}>Power (P)</div>
+            <div style={{ fontSize: 24, fontWeight: 'bold', color: getColorHex(mainFactorScores.P) }}>
+              {mainFactorScores.P.toFixed(2)}
             </div>
           </div>
         </div>

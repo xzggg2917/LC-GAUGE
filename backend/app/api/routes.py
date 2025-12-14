@@ -200,11 +200,12 @@ async def calculate_full_score(request: FullScoreRequest):
         # 🔥 首先打印接收到的原始数据
         print("\n" + "=" * 80)
         print("🔍 后端接收到的P/R/D因子（分阶段）:")
-        print(f"  p_factor = {request.p_factor}")
         print(f"  仪器分析阶段:")
+        print(f"    p_factor = {request.p_factor}")
         print(f"    instrument_r_factor = {request.instrument_r_factor}")
         print(f"    instrument_d_factor = {request.instrument_d_factor}")
         print(f"  前处理阶段:")
+        print(f"    pretreatment_p_factor = {request.pretreatment_p_factor}")
         print(f"    pretreatment_r_factor = {request.pretreatment_r_factor}")
         print(f"    pretreatment_d_factor = {request.pretreatment_d_factor}")
         print("=" * 80 + "\n")
@@ -227,11 +228,12 @@ async def calculate_full_score(request: FullScoreRequest):
         # 🔍 调试：打印接收到的因子矩阵
         print("\n" + "=" * 80)
         print("🔍 后端接收到的数据：")
-        print(f"📊 P因子 (能耗): {request.p_factor}")
-        print(f"📊 仪器分析阶段 R/D因子:")
+        print(f"📊 仪器分析阶段:")
+        print(f"   P因子 (能耗): {request.p_factor}")
         print(f"   R因子 (可回收性): {request.instrument_r_factor}")
         print(f"   D因子 (可降解性): {request.instrument_d_factor}")
-        print(f"📊 前处理阶段 R/D因子:")
+        print(f"📊 前处理阶段:")
+        print(f"   P因子 (能耗): {request.pretreatment_p_factor}")
         print(f"   R因子 (可回收性): {request.pretreatment_r_factor}")
         print(f"   D因子 (可降解性): {request.pretreatment_d_factor}")
         print("📋 仪器分析试剂:")
@@ -259,6 +261,7 @@ async def calculate_full_score(request: FullScoreRequest):
             
             # P/R/D因子（分阶段）
             p_factor=request.p_factor,
+            pretreatment_p_factor=request.pretreatment_p_factor,
             instrument_r_factor=request.instrument_r_factor,
             instrument_d_factor=request.instrument_d_factor,
             pretreatment_r_factor=request.pretreatment_r_factor,

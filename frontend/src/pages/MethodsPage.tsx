@@ -24,8 +24,8 @@ const MethodsPage: React.FC = () => {
   const [mobilePhaseB, setMobilePhaseB] = useState<Reagent[]>(data.methods.mobilePhaseB)
   
   // Power Factor (P) calculation states
-  const [instrumentType, setInstrumentType] = useState<'low' | 'standard' | 'high'>(data.methods.instrumentType || 'standard')
-  const [weightScheme, setWeightScheme] = useState<string>('balanced')
+  const [instrumentEnergy, setInstrumentEnergy] = useState<number>(data.methods.instrumentEnergy || 0)  // 仪器分析能耗 (kWh)
+  const [pretreatmentEnergy, setPretreatmentEnergy] = useState<number>(data.methods.pretreatmentEnergy || 0)  // 前处理能耗 (kWh)
 
   // 权重方案选择状态
   const [safetyScheme, setSafetyScheme] = useState<string>('PBT_Balanced')
@@ -43,6 +43,7 @@ const MethodsPage: React.FC = () => {
   // 从 Factors 页面加载试剂列表
   const [availableReagents, setAvailableReagents] = useState<string[]>([])
   const [factorsData, setFactorsData] = useState<ReagentFactor[]>([])
+  const [forceRenderKey, setForceRenderKey] = useState(0)  // 强制刷新用
   
   // 梯度计算数据状态（用于UI显示）
   const [gradientCalculations, setGradientCalculations] = useState<any>(null)
@@ -58,10 +59,6 @@ const MethodsPage: React.FC = () => {
   // 图表数据缓存（使用state而非useMemo，因为计算是异步的）
   const [phaseAChartData, setPhaseAChartData] = useState<any>([])
   const [phaseBChartData, setPhaseBChartData] = useState<any>([])
-  
-  // 功率因子和R/D因子缓存
-  const [powerScore, setPowerScore] = useState<number>(0)
-  const [rdFactors, setRdFactors] = useState<{ instrument_r: number, instrument_d: number, pretreatment_r: number, pretreatment_d: number }>({ instrument_r: 0, instrument_d: 0, pretreatment_r: 0, pretreatment_d: 0 })
 
   // 使用 useMemo 缓存 filterOption 函数，避免每次渲染都创建新函数
   const selectFilterOption = React.useMemo(
@@ -81,6 +78,7 @@ const MethodsPage: React.FC = () => {
         console.log('  - 存储中的factors:', factors ? `存在(${factors.length}个)` : '不存在')
         if (factors && factors.length > 0) {
           console.log(`  - 解析出${factors.length}个试剂`)
+          console.log('  - 第一个试剂样例:', factors[0])
           setFactorsData(factors)
           
           // 提取试剂名称，去重并排序，确保数组稳定
@@ -88,17 +86,18 @@ const MethodsPage: React.FC = () => {
             new Set(factors.map((f: any) => f.name).filter((n: string) => n && n.trim()))
           ).sort()
           
-          console.log(`  - 提取出${reagentNames.length}个试剂名称:`, reagentNames.slice(0, 3))
+          console.log(`  - 提取出${reagentNames.length}个试剂名称:`, reagentNames.slice(0, 5))
+          console.log('  - 完整试剂列表:', reagentNames)
           
-          // 只有在试剂列表真正改变时才更新
-          setAvailableReagents(prev => {
-            if (JSON.stringify(prev) === JSON.stringify(reagentNames)) {
-              console.log('  - 试剂列表未变化，跳过更新')
-              return prev // 返回旧引用，避免触发重渲染
-            }
-            console.log('  - 更新试剂列表')
-            return reagentNames as string[]
-          })
+          // 直接更新，不做比较（避免初始化时的问题）
+          console.log('  ✅ 更新availableReagents状态')
+          setAvailableReagents(reagentNames as string[])
+          
+          // 强制触发重新渲染
+          setTimeout(() => {
+            setForceRenderKey(prev => prev + 1)
+            console.log('  🔄 触发强制刷新')
+          }, 100)
         } else {
           console.log('  ⚠️ 存储中没有factors数据，清空试剂列表')
           setFactorsData([])
@@ -125,25 +124,8 @@ const MethodsPage: React.FC = () => {
       }
     }
 
-    // 加载 P 分数
-    const loadPowerScore = async () => {
-      console.log('🔄 MethodsPage: 开始加载P分数')
-      try {
-        const savedPowerScore = await StorageHelper.getJSON(STORAGE_KEYS.POWER_SCORE)
-        if (savedPowerScore !== null && savedPowerScore !== undefined) {
-          console.log('✅ P分数加载成功:', savedPowerScore)
-          setPowerScore(savedPowerScore)
-        } else {
-          console.log('  ℹ️ 存储中没有P分数')
-        }
-      } catch (error) {
-        console.error('❌ 加载P分数失败:', error)
-      }
-    }
-
     loadFactorsData()
     loadScoreResults()
-    loadPowerScore() // 新增：加载P分数
 
     // 监听 HPLC Gradient 数据更新
     const handleGradientDataUpdated = async () => {
@@ -208,22 +190,11 @@ const MethodsPage: React.FC = () => {
       loadScoreResults()
     }
     
-    // 监听P分数更新事件
-    const handlePowerScoreUpdated = async () => {
-      console.log('📢 MethodsPage: 检测到P分数更新')
-      const savedPowerScore = await StorageHelper.getJSON(STORAGE_KEYS.POWER_SCORE)
-      if (savedPowerScore !== null && savedPowerScore !== undefined) {
-        console.log('✅ 重新加载P分数:', savedPowerScore)
-        setPowerScore(savedPowerScore)
-      }
-    }
-
     // 自定义事件监听(同页面内的更新)
     window.addEventListener('factorsDataUpdated', loadFactorsData as EventListener)
     window.addEventListener('gradientDataUpdated', handleGradientDataUpdated)
     window.addEventListener('fileDataChanged', handleFileDataChanged)
     window.addEventListener('scoreDataUpdated', handleScoreDataUpdated)
-    window.addEventListener('powerScoreUpdated', handlePowerScoreUpdated)
 
     return () => {
       clearTimeout(checkTimer)
@@ -231,36 +202,42 @@ const MethodsPage: React.FC = () => {
       window.removeEventListener('gradientDataUpdated', handleGradientDataUpdated)
       window.removeEventListener('fileDataChanged', handleFileDataChanged)
       window.removeEventListener('scoreDataUpdated', handleScoreDataUpdated)
-      window.removeEventListener('powerScoreUpdated', handlePowerScoreUpdated)
     }
   }, [])
 
-  // 监听Context数据变化，立即更新本地状态（使用useLayoutEffect确保同步更新）
+  // 监听Context数据变化，更新本地状态（只更新必要的字段）
   const lastSyncedData = React.useRef<string>('')
   
-  useLayoutEffect(() => {
-    const currentDataStr = JSON.stringify(data.methods)
+  useEffect(() => {
+    const currentDataStr = JSON.stringify({
+      sampleCount: data.methods.sampleCount,
+      preTreatmentReagents: data.methods.preTreatmentReagents,
+      mobilePhaseA: data.methods.mobilePhaseA,
+      mobilePhaseB: data.methods.mobilePhaseB
+    })
     
     // 如果数据没有变化，跳过更新
     if (lastSyncedData.current === currentDataStr) {
-      console.log('⏭️ MethodsPage: Context数据未变化，跳过更新')
       return
     }
     
-    console.log('🔄 MethodsPage: Context数据变化，立即更新本地状态')
+    console.log('🔄 MethodsPage: Context数据变化，更新本地状态')
     lastSyncedData.current = currentDataStr
     
-    // 立即更新所有状态
+    // 只更新试剂数据，不更新能耗（避免循环）
     setSampleCount(data.methods.sampleCount)
     setPreTreatmentReagents(data.methods.preTreatmentReagents)
     setMobilePhaseA(data.methods.mobilePhaseA)
     setMobilePhaseB(data.methods.mobilePhaseB)
-    setInstrumentType(data.methods.instrumentType || 'standard')
     
-    // 立即刷新图表（特别是在新建文件或打开文件时）
-    console.log('🔄 立即刷新图表')
+    // 刷新图表
     setChartRefreshKey(prev => prev + 1)
-  }, [data.methods])
+  }, [data.methods.sampleCount, data.methods.preTreatmentReagents, data.methods.mobilePhaseA, data.methods.mobilePhaseB])
+
+  // 监听 availableReagents 变化
+  useEffect(() => {
+    console.log('👀 availableReagents 状态变化:', availableReagents.length, availableReagents)
+  }, [availableReagents])
 
   // 自动保存数据到 Context 和 localStorage (每次状态变化时)
   // 使用 ref 来避免初始化时触发 dirty
@@ -279,7 +256,8 @@ const MethodsPage: React.FC = () => {
         preTreatmentReagents: validPreTreatmentReagents,
         mobilePhaseA: validMobilePhaseA,
         mobilePhaseB: validMobilePhaseB,
-        instrumentType
+        instrumentEnergy,
+        pretreatmentEnergy
       }
       
       const currentLocalDataStr = JSON.stringify(dataToSave)
@@ -313,7 +291,7 @@ const MethodsPage: React.FC = () => {
     }
     
     saveData()
-  }, [sampleCount, preTreatmentReagents, mobilePhaseA, mobilePhaseB, instrumentType, updateMethodsData, setIsDirty])
+  }, [sampleCount, preTreatmentReagents, mobilePhaseA, mobilePhaseB, instrumentEnergy, pretreatmentEnergy, updateMethodsData, setIsDirty])
 
   // 处理样品数变化
   const handleSampleCountChange = (value: number | null) => {
@@ -620,71 +598,27 @@ const MethodsPage: React.FC = () => {
     loadPhaseBChartData()
   }, [factorsData, chartRefreshKey, mobilePhaseB])
   
-  // 计算功率因子（当gradient或instrumentType变化时）
-  useEffect(() => {
-    const loadPowerScore = async () => {
-      const score = await calculatePowerScore()
-      setPowerScore(score)
-      // 保存到存储供其他页面使用（如TablePage）
-      await StorageHelper.setJSON(STORAGE_KEYS.POWER_SCORE, score)
-      console.log('💾 MethodsPage: 已保存P分数到存储:', score)
-      // 触发事件通知TablePage等页面更新
-      window.dispatchEvent(new CustomEvent('powerScoreUpdated', { detail: score }))
-    }
-    loadPowerScore()
-  }, [gradientCalculations, instrumentType])
-  
-  // 计算R/D因子（当gradient, factors, mobile phase, pre-treatment变化时）
-  useEffect(() => {
-    const loadRDFactors = async () => {
-      const factors = await calculateRDFactors()
-      setRdFactors(factors)
-    }
-    loadRDFactors()
-  }, [factorsData, gradientCalculations, mobilePhaseA, mobilePhaseB, preTreatmentReagents, sampleCount])
-  
   // Calculate Power Factor (P) score
-  const calculatePowerScore = async (): Promise<number> => {
-    try {
-      // Get instrument power in kW
-      const powerMap = { low: 0.5, standard: 1.0, high: 2.0 }
-      const P_inst = powerMap[instrumentType]
-      
-      console.log('⚡ 计算P因子 - 仪器类型:', instrumentType, '功率:', P_inst, 'kW')
-      
-      // Get T_run from gradient data (totalTime)
-      const gradientData = await StorageHelper.getJSON(STORAGE_KEYS.GRADIENT)
-      if (!gradientData) {
-        console.log('❌ P因子计算失败: 没有gradient数据')
-        return 0
-      }
-      
-      const T_run = gradientData.calculations?.totalTime || 0
-      
-      console.log('⚡ 运行时间 T_run:', T_run, 'min')
-      
-      // Calculate energy consumption E_sample (kWh)
-      const E_sample = P_inst * T_run / 60
-      
-      console.log('⚡ 能耗 E_sample:', E_sample, 'kWh')
-      
-      // Map E_sample to P score (0-100)
-      let p_score = 0
-      if (E_sample <= 0.1) {
-        p_score = 0
-      } else if (E_sample >= 1.5) {
-        p_score = 100
-      } else {
-        p_score = ((E_sample - 0.1) / 1.4) * 100
-      }
-      
-      console.log('⚡ P因子得分:', p_score)
-      
-      return p_score
-    } catch (error) {
-      console.error('❌ Error calculating P score:', error)
+  // 计算P因子（使用用户输入的能耗值）
+  const calculatePowerScore = (energy_kwh: number): number => {
+    // 新公式: 
+    // 如果 E < 1.5 kWh: P = 100 × (E/1.5)^0.235
+    // 如果 E ≥ 1.5 kWh: P = 100
+    
+    if (energy_kwh <= 0) {
       return 0
     }
+    
+    if (energy_kwh >= 1.5) {
+      return 100
+    }
+    
+    // 使用幂函数公式
+    const p_score = 100 * Math.pow(energy_kwh / 1.5, 0.235)
+    
+    console.log(`⚡ P因子计算: E=${energy_kwh.toFixed(4)} kWh, P=${p_score.toFixed(2)}`)
+    
+    return p_score
   }
 
   // Calculate R (Regeneration) and D (Disposal) factors using normalization
@@ -764,11 +698,12 @@ const MethodsPage: React.FC = () => {
         }
       })
 
-      // 分别归一化两个阶段
-      const instrument_r = instrument_r_sum > 0 ? Math.min(100, 33.3 * Math.log10(1 + instrument_r_sum)) : 0
-      const instrument_d = instrument_d_sum > 0 ? Math.min(100, 33.3 * Math.log10(1 + instrument_d_sum)) : 0
-      const pretreatment_r = pretreatment_r_sum > 0 ? Math.min(100, 33.3 * Math.log10(1 + pretreatment_r_sum)) : 0
-      const pretreatment_d = pretreatment_d_sum > 0 ? Math.min(100, 33.3 * Math.log10(1 + pretreatment_d_sum)) : 0
+      // 分别归一化两个阶段（使用新公式）
+      // 新公式: Score = min{45 × log₁₀(1 + 14 × Σ), 100}
+      const instrument_r = instrument_r_sum > 0 ? Math.min(100, 45.0 * Math.log10(1 + 14 * instrument_r_sum)) : 0
+      const instrument_d = instrument_d_sum > 0 ? Math.min(100, 45.0 * Math.log10(1 + 14 * instrument_d_sum)) : 0
+      const pretreatment_r = pretreatment_r_sum > 0 ? Math.min(100, 45.0 * Math.log10(1 + 14 * pretreatment_r_sum)) : 0
+      const pretreatment_d = pretreatment_d_sum > 0 ? Math.min(100, 45.0 * Math.log10(1 + 14 * pretreatment_d_sum)) : 0
 
       console.log('📊 R/D因子计算结果（分阶段）:', {
         仪器分析: {
@@ -969,21 +904,35 @@ const MethodsPage: React.FC = () => {
       // 6. 构建前处理数据
       const prepReagents = preTreatmentReagents.map(r => r.name).filter(Boolean)
       
+      console.log('📋 前处理试剂验证:', {
+        原始数据: preTreatmentReagents,
+        提取的试剂名: prepReagents,
+        试剂数量: prepReagents.length
+      })
+      
       // 如果没有前处理试剂，使用空对象
       const prepVolumes: any = {}
       const prepDensities: any = {}
       const prepFactorMatrix: any = {}
       
       if (prepReagents.length > 0) {
+        console.log('  ✅ 有前处理试剂，开始构建数据...')
         preTreatmentReagents.forEach(r => {
           if (r.name) {
-            prepVolumes[r.name] = cleanNumber(r.volume, 0)
+            const volume = cleanNumber(r.volume, 0)
+            prepVolumes[r.name] = volume
+            console.log(`  📌 前处理试剂: ${r.name}, 原始体积: ${r.volume}, 清理后: ${volume} ml`)
           }
         })
         
         Object.assign(prepDensities, getDensities(prepReagents))
         Object.assign(prepFactorMatrix, buildFactorMatrix(prepReagents))
+        
+        console.log('  ✅ 前处理体积:', prepVolumes)
+        console.log('  ✅ 前处理密度:', prepDensities)
+        console.log('  ✅ 前处理因子矩阵:', prepFactorMatrix)
       } else {
+        console.log('  ⚠️ 没有前处理试剂，使用Water作为占位符')
         // 如果没有前处理试剂，创建一个虚拟试剂避免空数据错误
         prepVolumes['Water'] = 0.001  // 使用极小值
         prepDensities['Water'] = 1.0
@@ -1023,8 +972,9 @@ const MethodsPage: React.FC = () => {
         densities: prepDensities
       })
 
-      // 7. 计算P因子
-      const p_factor = cleanNumber(await calculatePowerScore(), 0)
+      // 7. 计算P因子（分阶段，使用用户输入的能耗）
+      const instrument_p_factor = cleanNumber(calculatePowerScore(instrumentEnergy), 0)
+      const pretreatment_p_factor = cleanNumber(calculatePowerScore(pretreatmentEnergy), 0)
 
       // 8. 计算R和D因子（分阶段）
       const rdFactors = await calculateRDFactors()
@@ -1034,12 +984,13 @@ const MethodsPage: React.FC = () => {
       const pretreatment_d = cleanNumber(rdFactors.pretreatment_d, 0)
 
       console.log('🎯 P/R/D因子计算结果（分阶段）:', {
-        P: p_factor,
         仪器分析: {
+          P: instrument_p_factor,
           R: instrument_r,
           D: instrument_d
         },
         前处理: {
+          P: pretreatment_p_factor,
           R: pretreatment_r,
           D: pretreatment_d
         }
@@ -1049,7 +1000,8 @@ const MethodsPage: React.FC = () => {
       const requestData = {
         instrument: instrumentData,
         preparation: prepData,
-        p_factor: p_factor,
+        p_factor: instrument_p_factor,  // 仪器分析P因子
+        pretreatment_p_factor: pretreatment_p_factor,  // 前处理P因子
         instrument_r_factor: instrument_r,
         instrument_d_factor: instrument_d,
         pretreatment_r_factor: pretreatment_r,
@@ -1131,9 +1083,12 @@ const MethodsPage: React.FC = () => {
 
   // 自动计算评分（数据变化时触发）
   useEffect(() => {
-    console.log('📌 自动计算useEffect触发，前处理试剂数:', preTreatmentReagents.length)
+    console.log('📌 自动计算useEffect触发')
+    console.log('  - 前处理试剂数:', preTreatmentReagents.length)
+    console.log('  - 仪器能耗:', instrumentEnergy, 'kWh')
+    console.log('  - 前处理能耗:', pretreatmentEnergy, 'kWh')
     
-    // 防抖计时器
+    // 防抖计时器 - 增加到3秒避免频繁计算
     const debounceTimer = setTimeout(async () => {
       // 检查是否有必要的数据
       const gradientData = await StorageHelper.getJSON(STORAGE_KEYS.GRADIENT)
@@ -1143,9 +1098,14 @@ const MethodsPage: React.FC = () => {
       if (gradientData && factors && factors.length > 0) {
         console.log('🔄 数据已变化，自动触发评分计算')
         console.log('  前处理试剂详情:', preTreatmentReagents)
-        calculateFullScoreAPI()
+        calculateFullScoreAPI({ silent: true })  // 静默计算，不显示错误
+      } else {
+        console.log('⚠️ 跳过自动计算 - 缺少必要数据', {
+          hasGradient: !!gradientData,
+          hasFactors: !!(factors && factors.length > 0)
+        })
       }
-    }, 1000) // 1秒防抖
+    }, 3000) // 3秒防抖
 
     return () => clearTimeout(debounceTimer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1160,9 +1120,10 @@ const MethodsPage: React.FC = () => {
     mobilePhaseA,
     mobilePhaseB,
     preTreatmentReagents,
-    instrumentType,
     sampleCount,
-    gradientCalculations
+    gradientCalculations,
+    instrumentEnergy,
+    pretreatmentEnergy
     // 注意：不监听factorsData，而是每次从Storage动态读取最新数据
   ])
 
@@ -1291,7 +1252,8 @@ const MethodsPage: React.FC = () => {
       preTreatmentReagents: validPreTreatmentReagents,
       mobilePhaseA: validMobilePhaseA,
       mobilePhaseB: validMobilePhaseB,
-      instrumentType
+      instrumentEnergy,
+      pretreatmentEnergy
     })
 
     // 更新 Context
@@ -1300,7 +1262,8 @@ const MethodsPage: React.FC = () => {
       preTreatmentReagents: validPreTreatmentReagents,
       mobilePhaseA: validMobilePhaseA,
       mobilePhaseB: validMobilePhaseB,
-      instrumentType
+      instrumentEnergy,
+      pretreatmentEnergy
     })
     setIsDirty(true)
 
@@ -1312,7 +1275,8 @@ const MethodsPage: React.FC = () => {
       preTreatmentReagents: validPreTreatmentReagents,
       mobilePhaseA: validMobilePhaseA,
       mobilePhaseB: validMobilePhaseB,
-      instrumentType
+      instrumentEnergy,
+      pretreatmentEnergy
     } }))
     
     // 跳转到下一页
@@ -1322,6 +1286,8 @@ const MethodsPage: React.FC = () => {
   // 渲染 Sample PreTreatment 试剂组(使用体积)
   const renderPreTreatmentGroup = () => {
     const totalVolume = calculateTotalVolume(preTreatmentReagents)
+    
+    console.log('🎨 renderPreTreatmentGroup - availableReagents:', availableReagents.length, availableReagents)
     
     return (
       <div className="reagent-section">
@@ -1337,7 +1303,7 @@ const MethodsPage: React.FC = () => {
                 showSearch
                 allowClear
                 filterOption={selectFilterOption}
-                notFoundContent="No reagent found"
+                notFoundContent={`No reagent found (available: ${availableReagents.length})`}
                 optionFilterProp="children"
                 getPopupContainer={(trigger) => trigger.parentElement || document.body}
               >
@@ -1475,13 +1441,41 @@ const MethodsPage: React.FC = () => {
 
   return (
     <div className="methods-page">
-      <Title level={2}>Methods</Title>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <Title level={2} style={{ margin: 0 }}>Methods</Title>
+        <div>
+          <Button 
+            onClick={async () => {
+              console.log('🔄 手动加载Factors数据...')
+              const factors = await StorageHelper.getJSON<any[]>(STORAGE_KEYS.FACTORS)
+              console.log('  - Factors数据:', factors?.length, factors)
+              if (factors && factors.length > 0) {
+                const names = Array.from(new Set(factors.map((f: any) => f.name).filter(Boolean))).sort()
+                console.log('  - 提取的试剂名:', names)
+                setAvailableReagents(names as string[])
+                setFactorsData(factors)
+                message.success(`已加载 ${names.length} 个试剂`)
+              } else {
+                message.error('Factors数据为空，请先进入Factors页面')
+              }
+            }}
+            style={{ marginRight: 8 }}
+          >
+            🔧 加载试剂列表
+          </Button>
+          <Button 
+            type="primary" 
+            onClick={() => navigate(0)}
+          >
+            🔄 刷新
+          </Button>
+        </div>
+      </div>
 
-      {/* 上半部分：样品数 + 能源计算 */}
+      {/* 上半部分：样品数输入 */}
       <Card style={{ marginBottom: 24 }}>
         <Row gutter={24}>
-          {/* 左侧：样品数 + 问题区 */}
-          <Col span={12}>
+          <Col span={24}>
             {/* 样品数输入 */}
             <div style={{ marginBottom: 20, padding: 16, background: '#fafafa', borderRadius: 8, border: '1px solid #d9d9d9' }}>
               <div style={{ marginBottom: 8, fontSize: 14, fontWeight: 500 }}>
@@ -1500,158 +1494,6 @@ const MethodsPage: React.FC = () => {
               {sampleCountError && (
                 <div style={{ marginTop: 8, color: '#ff4d4f', fontSize: 13 }}>{sampleCountError}</div>
               )}
-            </div>
-
-            {/* 问题一 */}
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ marginBottom: 8, fontSize: 14, fontWeight: 500 }}>
-                <span style={{ color: '#1890ff' }}>问题一：</span> 仪器平台类型 (P<sub>inst</sub>)
-                <Tooltip title={
-                  <div>
-                    <div><strong>A. 低能耗/微型化系统 (0.5 kW)</strong></div>
-                    <div>• 适用仪器：UPLC/UHPLC (UVPDA)、毛细管电泳 (CE)、Nano-LC</div>
-                    <div>• GEMAM 依据：对应 GEMAM 中评分较高的低能耗仪器 (Score 0.75-1.0)</div>
-                    <div style={{ marginTop: 8 }}><strong>B. 标准能耗系统 (1.0 kW)</strong></div>
-                    <div>• 适用仪器：常规 HPLC (UV/RI/FLD)、气相色谱 GC (FID/TCD)、离子色谱 (IC)</div>
-                    <div>• GEMAM 依据：对应 GEMAM 中评分中等的仪器 (Score 0.5)</div>
-                    <div style={{ marginTop: 8 }}><strong>C. 高能耗/制备型系统 (2.0 kW)</strong></div>
-                    <div>• 适用仪器：液质联用 (LC-MS/MS)、气质联用 (GC-MS)、ICP-MS、ICP-OES</div>
-                    <div>• GEMAM 依据：对应 GEMAM 中评分最低的仪器 (Score 0.0-0.25)，明确指出了 LC、GC-四极杆检测器及高能耗的 ICP-MS</div>
-                  </div>
-                }>
-                  <QuestionCircleOutlined style={{ marginLeft: 8, color: '#1890ff', cursor: 'pointer' }} />
-                </Tooltip>
-              </div>
-              <Select
-                style={{ width: '100%' }}
-                value={instrumentType}
-                onChange={(value) => setInstrumentType(value)}
-              >
-                <Option value="low">A. 低能耗/微型化系统 (Low Energy / Miniaturized) - 0.5 kW</Option>
-                <Option value="standard">B. 标准能耗系统 (Standard Energy) - 1.0 kW</Option>
-                <Option value="high">C. 高能耗/制备型系统 (High Energy / Hyphenated) - 2.0 kW</Option>
-              </Select>
-            </div>
-
-            {/* 问题二 */}
-            <div>
-              <div style={{ marginBottom: 8, fontSize: 14, fontWeight: 500 }}>
-                <span style={{ color: '#1890ff' }}>问题二：</span> 分析运行时间 (T<sub>run</sub>)
-                <Tooltip title={
-                  <div>
-                    <div><strong>T<sub>run</sub></strong>：样品分析运行时间</div>
-                    <div style={{ marginTop: 8 }}>由 HPLC Gradient 页面根据梯度步骤自动计算得出</div>
-                    <div style={{ marginTop: 8 }}>用于计算单次样品的能源消耗</div>
-                  </div>
-                }>
-                  <QuestionCircleOutlined style={{ marginLeft: 8, color: '#1890ff', cursor: 'pointer' }} />
-                </Tooltip>
-              </div>
-              <div style={{ 
-                padding: '8px 12px', 
-                background: '#fff',
-                border: '1px solid #d9d9d9',
-                borderRadius: 6,
-                marginBottom: 8
-              }}>
-                <span style={{ fontSize: 13, marginRight: 8, color: '#666' }}><strong>T<sub>run</sub></strong>:</span>
-                {(() => {
-                  try {
-                    // 使用React state中的梯度数据，避免直接读取存储
-                    const T_run = gradientCalculations?.totalTime || 0
-                    return <span style={{ color: '#1890ff', fontWeight: 600, fontSize: 16 }}>{T_run.toFixed(2)} min</span>
-                  } catch {
-                    return <span style={{ color: '#999', fontSize: 16 }}>0.00 min</span>
-                  }
-                })()}
-              </div>
-              <div style={{ fontSize: 11, color: '#999' }}>
-                ↑ 由 HPLC Gradient 页面自动计算得出
-              </div>
-            </div>
-          </Col>
-
-          {/* 右侧：计算结果 */}
-          <Col span={12}>
-            <div style={{ 
-              background: 'linear-gradient(135deg, #f0f5ff 0%, #e6f0ff 100%)', 
-              padding: 16, 
-              borderRadius: 8, 
-              height: '100%',
-              border: '1px solid #d6e4ff'
-            }}>
-              {/* 权重配置 */}
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ marginBottom: 8, fontSize: 13, fontWeight: 500, color: '#1890ff' }}>
-                  ⚡ 权重配置方案
-                  <Tooltip title={
-                    <div>
-                      <div><strong>不同权重方案的分配逻辑：</strong></div>
-                      <div style={{ marginTop: 8 }}>• <strong>均衡型</strong>：S=0.15, H=0.15, E=0.15, R=0.15, D=0.15, P=0.25</div>
-                      <div>• <strong>安全优先</strong>：S=0.30, H=0.30, E=0.10, R=0.10, D=0.10, P=0.10</div>
-                      <div>• <strong>环保优先</strong>：S=0.10, H=0.10, E=0.30, R=0.25, D=0.15, P=0.10</div>
-                      <div>• <strong>能效优先</strong>：S=0.10, H=0.10, E=0.15, R=0.15, D=0.10, P=0.40</div>
-                      <div style={{ marginTop: 8, fontSize: 11, color: '#bbb' }}>总分 = S×w₁ + H×w₂ + E×w₃ + R×w₄ + D×w₅ + P×w₆</div>
-                    </div>
-                  }>
-                    <QuestionCircleOutlined style={{ marginLeft: 6, cursor: 'pointer' }} />
-                  </Tooltip>
-                </div>
-                <Select
-                  value={weightScheme}
-                  onChange={setWeightScheme}
-                  style={{ width: '100%' }}
-                  size="middle"
-                >
-                  <Option value="balanced">📦 均衡型 (Balanced) - 全面衡量各项指标</Option>
-                  <Option value="safety">🛡️ 安全优先 (Safety First) - 关注安全性与健康</Option>
-                  <Option value="environmental">🌱 环保优先 (Eco-Friendly) - 关注环境影响</Option>
-                  <Option value="efficiency">⚡ 能效优先 (Energy Efficient) - 关注能源消耗</Option>
-                </Select>
-              </div>
-
-              <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#1890ff', borderBottom: '2px solid #1890ff', paddingBottom: 6 }}>
-                📊 计算结果
-              </div>
-              {(() => {
-                try {
-                  // 使用React state中的梯度数据，避免直接读取存储
-                  const T_run = gradientCalculations?.totalTime || 0
-                  const powerMap = { low: 0.5, standard: 1.0, high: 2.0 }
-                  const P_inst = powerMap[instrumentType]
-                  const E_sample = P_inst * T_run / 60
-                  // 使用预先计算好的powerScore而非调用async函数
-
-                  return (
-                    <div style={{ fontSize: 13 }}>
-                      <div style={{ 
-                        padding: 16, 
-                        background: '#1890ff',
-                        borderRadius: 6,
-                        textAlign: 'center'
-                      }}>
-                        <div style={{ color: '#fff', fontSize: 12, marginBottom: 6 }}>P 分数 (P<sub>score</sub>)</div>
-                        <div style={{ fontSize: 32, fontWeight: 700, color: '#fff', lineHeight: 1.2 }}>
-                          {powerScore.toFixed(2)}
-                        </div>
-                        <div style={{ fontSize: 10, color: '#e6f7ff', marginTop: 6 }}>
-                          {E_sample <= 0.1 ? '(绿色基线：≤0.1 kWh)' : 
-                           E_sample >= 1.5 ? '(红色警戒：≥1.5 kWh)' : 
-                           '(线性区间：0.1~1.5 kWh)'}
-                        </div>
-                      </div>
-                    </div>
-                  )
-                } catch (error) {
-                  return (
-                    <div style={{ textAlign: 'center', padding: 30, color: '#999' }}>
-                      <div style={{ fontSize: 40, marginBottom: 10 }}>⚠️</div>
-                      <div style={{ fontSize: 13 }}>请先完成 HPLC Gradient 设置</div>
-                      <div style={{ fontSize: 11, marginTop: 6 }}>才能计算 T<sub>run</sub> 和 P 分数</div>
-                    </div>
-                  )
-                }
-              })()}
             </div>
           </Col>
         </Row>
@@ -2456,6 +2298,54 @@ const MethodsPage: React.FC = () => {
         }
         style={{ marginTop: 24 }}
       >
+        {/* 能耗输入部分 */}
+        <Title level={5}>能耗配置 (P因子)</Title>
+        <div style={{ marginBottom: 24, padding: '16px', background: '#f0f5ff', borderRadius: '4px' }}>
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: 8, fontSize: 14, fontWeight: 500 }}>
+              仪器分析能耗 (kWh)
+              <Tooltip title="输入仪器分析阶段的总能耗，单位：千瓦时(kWh)。P因子公式: E<1.5时 P=100×(E/1.5)^0.235，E≥1.5时 P=100">
+                <QuestionCircleOutlined style={{ marginLeft: 8, color: '#1890ff', cursor: 'pointer' }} />
+              </Tooltip>
+            </div>
+            <InputNumber
+              style={{ width: '100%' }}
+              min={0}
+              step={0.01}
+              precision={4}
+              value={instrumentEnergy}
+              onChange={(value) => setInstrumentEnergy(value || 0)}
+              placeholder="输入仪器分析能耗"
+            />
+            <div style={{ marginTop: 4, fontSize: 12, color: '#666' }}>
+              当前P因子得分: {calculatePowerScore(instrumentEnergy).toFixed(2)}
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 0 }}>
+            <div style={{ marginBottom: 8, fontSize: 14, fontWeight: 500 }}>
+              前处理能耗 (kWh)
+              <Tooltip title="输入样品前处理阶段的总能耗，单位：千瓦时(kWh)。P因子公式同上">
+                <QuestionCircleOutlined style={{ marginLeft: 8, color: '#1890ff', cursor: 'pointer' }} />
+              </Tooltip>
+            </div>
+            <InputNumber
+              style={{ width: '100%' }}
+              min={0}
+              step={0.01}
+              precision={4}
+              value={pretreatmentEnergy}
+              onChange={(value) => setPretreatmentEnergy(value || 0)}
+              placeholder="输入前处理能耗"
+            />
+            <div style={{ marginTop: 4, fontSize: 12, color: '#666' }}>
+              当前P因子得分: {calculatePowerScore(pretreatmentEnergy).toFixed(2)}
+            </div>
+          </div>
+        </div>
+
+        <Divider style={{ margin: '24px 0' }} />
+
         <Title level={5}>权重方案配置</Title>
             
             {/* S/H/E因子权重 */}
@@ -2531,8 +2421,8 @@ const MethodsPage: React.FC = () => {
                 value={instrumentStageScheme}
                 onChange={setInstrumentStageScheme}
               >
-                <Option value="Balanced">均衡型 (S:0.15 H:0.15 E:0.15 P:0.25 R:0.15 D:0.15)</Option>
-                <Option value="Safety_First">安全优先型 (S:0.30 H:0.30 E:0.10 P:0.10 R:0.10 D:0.10)</Option>
+                <Option value="Balanced">均衡型 (S:0.18 H:0.18 E:0.18 R:0.18 D:0.18 P:0.10)</Option>
+                <Option value="Safety_First">安全优先型 (S:0.30 H:0.30 E:0.10 R:0.10 D:0.10 P:0.10)</Option>
                 <Option value="Eco_Friendly">环保优先型 (S:0.10 H:0.10 E:0.30 P:0.10 R:0.25 D:0.15)</Option>
                 <Option value="Energy_Efficient">能效优先型 (S:0.10 H:0.10 E:0.15 P:0.40 R:0.15 D:0.10)</Option>
               </Select>
@@ -2540,8 +2430,8 @@ const MethodsPage: React.FC = () => {
 
             <div style={{ marginBottom: 16 }}>
               <div style={{ marginBottom: 8, fontSize: 14, fontWeight: 500 }}>
-                样品前处理阶段权重方案 (5因子无P)
-                <Tooltip title="包含S/H/E/R/D五个因子">
+                样品前处理阶段权重方案 (6因子含P)
+                <Tooltip title="包含S/H/E/R/D/P六个因子">
                   <QuestionCircleOutlined style={{ marginLeft: 8, color: '#1890ff', cursor: 'pointer' }} />
                 </Tooltip>
               </div>
@@ -2550,10 +2440,10 @@ const MethodsPage: React.FC = () => {
                 value={prepStageScheme}
                 onChange={setPrepStageScheme}
               >
-                <Option value="Balanced">均衡型 (S:0.20 H:0.20 E:0.20 R:0.20 D:0.20)</Option>
-                <Option value="Operation_Protection">操作防护型 (S:0.35 H:0.35 E:0.10 R:0.10 D:0.10)</Option>
-                <Option value="Circular_Economy">循环经济型 (S:0.10 H:0.10 E:0.10 R:0.40 D:0.30)</Option>
-                <Option value="Environmental_Tower">环境白塔型 (S:0.15 H:0.15 E:0.40 R:0.15 D:0.15)</Option>
+                <Option value="Balanced">均衡型 (S:0.18 H:0.18 E:0.18 R:0.18 D:0.18 P:0.10)</Option>
+                <Option value="Operation_Protection">操作防护型 (S:0.35 H:0.35 E:0.10 R:0.10 D:0.10 P:0.00)</Option>
+                <Option value="Circular_Economy">循环经济型 (S:0.10 H:0.10 E:0.10 R:0.40 D:0.30 P:0.00)</Option>
+                <Option value="Environmental_Tower">环境白塔型 (S:0.15 H:0.15 E:0.40 R:0.15 D:0.15 P:0.00)</Option>
               </Select>
             </div>
 

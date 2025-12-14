@@ -63,8 +63,9 @@ export interface AppData {
     preTreatmentReagents: PreTreatmentReagent[]
     mobilePhaseA: Reagent[]
     mobilePhaseB: Reagent[]
-    // Power Factor (P) calculation parameters
-    instrumentType?: 'low' | 'standard' | 'high'  // 仪器平台类型
+    // Power Factor (P) calculation parameters (新能耗输入方式)
+    instrumentEnergy?: number  // 仪器分析能耗 (kWh)
+    pretreatmentEnergy?: number  // 前处理能耗 (kWh)
   }
   factors: ReagentFactor[]
   gradient: GradientStep[]
@@ -102,7 +103,8 @@ const getDefaultData = (): AppData => ({
     preTreatmentReagents: [{ id: Date.now().toString(), name: '', volume: 0 }],
     mobilePhaseA: [{ id: Date.now().toString() + '1', name: '', percentage: 0 }],
     mobilePhaseB: [{ id: Date.now().toString() + '2', name: '', percentage: 0 }],
-    instrumentType: 'standard'
+    instrumentEnergy: 0,
+    pretreatmentEnergy: 0
   },
   factors: [],
   gradient: []
@@ -147,7 +149,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setData({
           version: '1.0.0',
           lastModified: new Date().toISOString(),
-          methods: savedMethods || getDefaultData().methods,
+          methods: {
+            ...getDefaultData().methods,
+            ...(savedMethods || {}),
+            // 确保新字段有默认值
+            instrumentEnergy: savedMethods?.instrumentEnergy ?? 0,
+            pretreatmentEnergy: savedMethods?.pretreatmentEnergy ?? 0
+          },
           factors: savedFactors || [],
           gradient: gradientSteps
         })

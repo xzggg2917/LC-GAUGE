@@ -53,18 +53,18 @@ ENVIRONMENT_WEIGHTS = {
 
 # 图6：仪器分析阶段权重方案（4种，6因子含P）
 INSTRUMENT_STAGE_WEIGHTS = {
-    "Balanced": {"S": 0.15, "H": 0.15, "E": 0.15, "R": 0.15, "D": 0.15, "P": 0.25},
+    "Balanced": {"S": 0.18, "H": 0.18, "E": 0.18, "R": 0.18, "D": 0.18, "P": 0.10},
     "Safety_First": {"S": 0.30, "H": 0.30, "E": 0.10, "R": 0.10, "D": 0.10, "P": 0.10},
     "Eco_Friendly": {"S": 0.10, "H": 0.10, "E": 0.30, "R": 0.25, "D": 0.15, "P": 0.10},
     "Energy_Efficient": {"S": 0.10, "H": 0.10, "E": 0.15, "R": 0.15, "D": 0.10, "P": 0.40}
 }
 
-# 图7：样品前处理阶段权重方案（4种，5因子无P）
+# 图7：样品前处理阶段权重方案（4种，6因子含P）
 PREPARATION_STAGE_WEIGHTS = {
-    "Balanced": {"S": 0.20, "H": 0.20, "E": 0.20, "R": 0.20, "D": 0.20},
-    "Operation_Protection": {"S": 0.35, "H": 0.35, "E": 0.10, "R": 0.10, "D": 0.10},
-    "Circular_Economy": {"S": 0.10, "H": 0.10, "E": 0.10, "R": 0.40, "D": 0.30},
-    "Environmental_Tower": {"S": 0.15, "H": 0.15, "E": 0.40, "R": 0.15, "D": 0.15}
+    "Balanced": {"S": 0.18, "H": 0.18, "E": 0.18, "R": 0.18, "D": 0.18, "P": 0.10},
+    "Operation_Protection": {"S": 0.35, "H": 0.35, "E": 0.10, "R": 0.10, "D": 0.10, "P": 0.00},
+    "Circular_Economy": {"S": 0.10, "H": 0.10, "E": 0.10, "R": 0.40, "D": 0.30, "P": 0.00},
+    "Environmental_Tower": {"S": 0.15, "H": 0.15, "E": 0.40, "R": 0.15, "D": 0.15, "P": 0.00}
 }
 
 
@@ -235,7 +235,8 @@ def normalize_sub_factor(
     """
     计算单个小因子的归一化得分（0-100分）
     
-    新公式：Score = min(100, 33.3 × log₁₀(1 + Σ(m_mass × F_factor)))
+    新公式：Score = min{45 × log₁₀(1 + 14 × Σ), 100}
+    其中 Σ = Σ(m × F)
     
     参数：
         reagent_masses: 试剂质量（克），如 {"MeOH": 123.45, "H2O": 234.56}
@@ -259,11 +260,11 @@ def normalize_sub_factor(
         
         weighted_sum += mass * factor_value
     
-    # 使用新的归一化公式：Score = min(100, 33.3 × log₁₀(1 + Σ(m × F)))
+    # 使用新的归一化公式：Score = min{45 × log₁₀(1 + 14 × Σ), 100}
     if weighted_sum <= 0:
         score = 0.0
     else:
-        score = min(100.0, 33.3 * math.log10(1 + weighted_sum))
+        score = min(100.0, 45.0 * math.log10(1 + 14 * weighted_sum))
     
     return score
 
@@ -275,7 +276,8 @@ def calculate_all_sub_factors(
     """
     计算所有9个小因子的归一化得分
     
-    使用新公式：Score = min(100, 33.3 × log₁₀(1 + Σ(m × F)))
+    使用新公式：Score = min{45 × log₁₀(1 + 14 × Σ), 100}
+    其中 Σ = Σ(m × F)
     
     参数：
         reagent_masses: 试剂质量（克）
@@ -442,15 +444,17 @@ def calculate_score2(
     major_factors: Dict[str, float],
     r_factor: float,
     d_factor: float,
+    p_factor: float = 0.0,
     weight_scheme: str = "Balanced"
 ) -> float:
     """
-    计算Score₂（样品前处理阶段，5因子无P）
+    计算Score₂（样品前处理阶段，6因子含P）
     
     参数：
         major_factors: 大因子得分，如 {"S": 78.5, "H": 81.2, "E": 75.6}
         r_factor: R因子（可回收性，0-100分）
         d_factor: D因子（可降解性，0-100分）
+        p_factor: P因子（能耗，0-100分，默认为0）
         weight_scheme: 权重方案（Balanced/Operation_Protection/Circular_Economy/Environmental_Tower）
     
     返回：
@@ -466,7 +470,8 @@ def calculate_score2(
         major_factors["H"] * weights["H"] +
         major_factors["E"] * weights["E"] +
         r_factor * weights["R"] +
-        d_factor * weights["D"]
+        d_factor * weights["D"] +
+        p_factor * weights["P"]
     )
     
     return score2
@@ -523,6 +528,7 @@ def calculate_full_scores(
     
     # P/R/D因子（分阶段）
     p_factor: float,
+    pretreatment_p_factor: float,  # 前处理阶段P因子 (0-100)
     instrument_r_factor: float,  # 仪器分析阶段R因子 (0-100)
     instrument_d_factor: float,  # 仪器分析阶段D因子 (0-100)
     pretreatment_r_factor: float,  # 前处理阶段R因子 (0-100)
@@ -565,11 +571,12 @@ def calculate_full_scores(
     # 打印接收到的P/R/D因子和权重方案
     print("\n" + "=" * 80)
     print("🎯 评分计算开始")
-    print(f"⚡ P因子 (能耗): {p_factor:.2f}")
     print(f"🔬 仪器分析阶段:")
+    print(f"   ⚡ P因子 (能耗): {p_factor:.2f}")
     print(f"   ♻️ R因子 (可回收性): {instrument_r_factor:.2f}")
     print(f"   🗑️ D因子 (可降解性): {instrument_d_factor:.2f}")
     print(f"🧪 前处理阶段:")
+    print(f"   ⚡ P因子 (能耗): {pretreatment_p_factor:.2f}")
     print(f"   ♻️ R因子 (可回收性): {pretreatment_r_factor:.2f}")
     print(f"   🗑️ D因子 (可降解性): {pretreatment_d_factor:.2f}")
     print(f"📋 权重方案:")
@@ -638,12 +645,13 @@ def calculate_full_scores(
     
     print(f"🎯 前处理大因子得分: S={prep_major_S:.2f}, H={prep_major_H:.2f}, E={prep_major_E:.2f}")
     
-    # Layer 4: Score₂（使用前处理阶段的R/D）
+    # Layer 4: Score₂（使用前处理阶段的R/D/P）
     score2 = calculate_score2(
         prep_major_factors,
         pretreatment_r_factor,
         pretreatment_d_factor,
-        prep_stage_scheme
+        p_factor=pretreatment_p_factor,  # 使用传入的前处理阶段P因子
+        weight_scheme=prep_stage_scheme
     )
     
     print(f"📊 前处理阶段 Score₂ = {score2:.2f} (使用权重方案: {prep_stage_scheme})")
@@ -683,7 +691,9 @@ def calculate_full_scores(
             "score3": round(score3, 2)
         },
         "additional_factors": {
-            "P": round(p_factor, 2),  # 能耗因子
+            "P": round(p_factor, 2),  # 能耗因子（兼容旧版，保留仪器分析P）
+            "instrument_P": round(p_factor, 2),  # 仪器分析P因子
+            "pretreatment_P": round(pretreatment_p_factor, 2),  # 前处理P因子
             "instrument_R": round(instrument_r_factor, 2),  # 仪器分析R因子
             "instrument_D": round(instrument_d_factor, 2),  # 仪器分析D因子
             "pretreatment_R": round(pretreatment_r_factor, 2),  # 前处理R因子

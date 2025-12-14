@@ -113,7 +113,8 @@ class FullScoreRequest(BaseModel):
     """完整评分请求"""
     instrument: InstrumentAnalysisData = Field(..., description="仪器分析数据")
     preparation: PreparationData = Field(..., description="样品前处理数据")
-    p_factor: float = Field(..., ge=0, description="P因子-能耗(0-100)")
+    p_factor: float = Field(..., ge=0, description="仪器分析P因子-能耗(0-100)")
+    pretreatment_p_factor: float = Field(0.0, ge=0, description="前处理P因子-能耗(0-100)")
     
     # R/D因子分阶段
     instrument_r_factor: float = Field(..., ge=0, description="仪器分析阶段R因子(0-100)")

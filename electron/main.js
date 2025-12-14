@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron')
+const { app, BrowserWindow, ipcMain, globalShortcut } = require('electron')
 const path = require('path')
 const fs = require('fs').promises
 const isDev = require('electron-is-dev')
@@ -38,6 +38,20 @@ function createWindow() {
 
   mainWindow.on('closed', () => {
     mainWindow = null
+  })
+
+  // 注册刷新快捷键
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    // Ctrl+R 或 F5 刷新
+    if ((input.control && input.key.toLowerCase() === 'r') || input.key === 'F5') {
+      event.preventDefault()
+      mainWindow.webContents.reload()
+    }
+    // Ctrl+Shift+R 强制刷新（清除缓存）
+    if (input.control && input.shift && input.key.toLowerCase() === 'r') {
+      event.preventDefault()
+      mainWindow.webContents.reloadIgnoringCache()
+    }
   })
 }
 

@@ -232,13 +232,27 @@ const MethodEvaluationPage: React.FC = () => {
         const avgR = ((additionalFactors.instrument_R || 0) + (additionalFactors.pretreatment_R || 0)) / 2
         const avgD = ((additionalFactors.instrument_D || 0) + (additionalFactors.pretreatment_D || 0)) / 2
         
+        // P因子使用加权平均（根据最终汇总权重方案）
+        // 从scoreResults获取使用的权重方案
+        const finalWeights = scoreResults.schemes?.final_scheme || 'Standard'
+        const weightMap: Record<string, { instrument: number, preparation: number }> = {
+          'Standard': { instrument: 0.6, preparation: 0.4 },
+          'Complex_Prep': { instrument: 0.3, preparation: 0.7 },
+          'Direct_Online': { instrument: 0.8, preparation: 0.2 },
+          'Equal': { instrument: 0.5, preparation: 0.5 }
+        }
+        const weights = weightMap[finalWeights] || weightMap['Standard']
+        const instP = additionalFactors.instrument_P || 0
+        const prepP = additionalFactors.pretreatment_P || 0
+        const avgP = instP * weights.instrument + prepP * weights.preparation
+        
         setMainFactorScores({
           S: (instMajor.S + prepMajor.S) / 2,
           H: (instMajor.H + prepMajor.H) / 2,
           E: (instMajor.E + prepMajor.E) / 2,
           R: avgR,  // 仪器和前处理的平均值
           D: avgD,  // 仪器和前处理的平均值
-          P: additionalFactors.P || 0
+          P: avgP   // 加权平均（使用最终汇总权重）
         })
         
         // 设置总分（0-100分制）
