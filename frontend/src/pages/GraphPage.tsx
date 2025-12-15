@@ -58,33 +58,35 @@ const GraphPage: React.FC = () => {
   })
 
   useEffect(() => {
+    // 页面挂载时，直接加载已有数据
     calculateTotalScores()
 
     const handleDataUpdate = () => {
-      console.log('GraphPage: Data updated, recalculating...')
-      calculateTotalScores()
-    }
-    
-    const handleFileDataChanged = () => {
-      console.log('GraphPage: File data changed event received')
+      console.log('📊 GraphPage: 数据更新，重新计算')
       calculateTotalScores()
     }
     
     const handleScoreDataUpdated = () => {
-      console.log('GraphPage: Score data updated event received')
+      console.log('✅ GraphPage: 评分数据已更新，刷新显示')
       calculateTotalScores()
     }
+    
+    const handleMethodsDataUpdated = () => {
+      console.log('📢 GraphPage: Methods数据已变化（等待自动计算完成）')
+      // MethodsPage 会自动计算评分，等待 scoreDataUpdated 事件即可
+    }
 
+    // 监听数据更新事件
     window.addEventListener('gradientDataUpdated', handleDataUpdate)
     window.addEventListener('factorsDataUpdated', handleDataUpdate)
-    window.addEventListener('fileDataChanged', handleFileDataChanged)
     window.addEventListener('scoreDataUpdated', handleScoreDataUpdated)
+    window.addEventListener('methodsDataUpdated', handleMethodsDataUpdated)
 
     return () => {
       window.removeEventListener('gradientDataUpdated', handleDataUpdate)
       window.removeEventListener('factorsDataUpdated', handleDataUpdate)
-      window.removeEventListener('fileDataChanged', handleFileDataChanged)
       window.removeEventListener('scoreDataUpdated', handleScoreDataUpdated)
+      window.removeEventListener('methodsDataUpdated', handleMethodsDataUpdated)
     }
   }, [])
 
@@ -136,12 +138,12 @@ const GraphPage: React.FC = () => {
 
   const calculateTotalScores = async () => {
     try {
-      // 优先使用新的评分系统数据
+      console.log('🔍 GraphPage: 读取评分数据')
+      // 使用新的评分系统数据
       const scoreResults = await StorageHelper.getJSON(STORAGE_KEYS.SCORE_RESULTS)
       
       if (scoreResults) {
-        // 使用新的0-100分制评分系统数据
-        console.log('GraphPage: Using new scoring system data (0-100 scale)')
+        console.log('✅ GraphPage: 评分数据加载完成')
         
         // 从评分结果中提取小因子数据（用于雷达图）
         const mergedSubFactors = scoreResults.merged?.sub_factors || {}

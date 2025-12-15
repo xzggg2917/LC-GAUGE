@@ -44,7 +44,7 @@ const FactorsPage: React.FC = () => {
   const [reagents, setReagents] = useState<ReagentFactor[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(true)
   
-  // 异步加载全局试剂库（优先从备份恢复）
+  // 异步加载全局试剂库（永不自动初始化，避免覆盖用户数据）
   useEffect(() => {
     const loadGlobalLibrary = async () => {
       try {
@@ -74,39 +74,19 @@ const FactorsPage: React.FC = () => {
           }
         }
         
-        // 3. 如果还是为空，检查是否首次使用
-        if (!stored || stored.length === 0) {
-          console.log('⚠️ 未找到试剂库数据')
-          
-          const storedVersion = await StorageHelper.getJSON<string>(STORAGE_KEYS.FACTORS_VERSION)
-          const isFirstTime = !storedVersion
-          
-          if (isFirstTime) {
-            // 首次使用：用硬编码模板初始化
-            console.log('🆕 首次使用，初始化模板数据（请编辑为正确数据）')
-            const initial = sortReagentsByName([...PREDEFINED_REAGENTS])
-            await saveToGlobalLibrary(initial) // 使用双重保存
-            await StorageHelper.setJSON(STORAGE_KEYS.FACTORS_VERSION, FACTORS_DATA_VERSION.toString())
-            setReagents(initial)
-            message.warning('Initialized with template data. Please edit to correct values!', 5)
-          } else {
-            // 数据丢失且无备份
-            console.error('❌ 数据丢失且无备份可用！')
-            setReagents([])
-            message.error({
-              content: 'Reagent library data lost and no backup found! Use "Force Restore" to recover template, or re-enter your data.',
-              duration: 10
-            })
-          }
-        } else {
-          // 正常加载已保存的数据
+        // 3. 如果数据存在，正常加载
+        if (stored && stored.length > 0) {
           console.log('📚 从全局试剂库加载', stored.length, '个试剂')
           setReagents(sortReagentsByName(stored))
+        } else {
+          // 数据为空，显示空表（用户需要手动导入或添加）
+          console.log('ℹ️ 试剂库为空，请使用 Add 或 Excel 导入添加数据')
+          setReagents([])
         }
       } catch (error) {
         console.error('❌ 加载全局试剂库失败:', error)
         setReagents([])
-        message.error('Failed to load reagent library. Please check storage or use Force Restore.')
+        message.error('Failed to load reagent library')
       } finally {
         setIsLoading(false)
       }

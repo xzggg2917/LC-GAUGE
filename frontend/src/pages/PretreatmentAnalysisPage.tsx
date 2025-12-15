@@ -35,19 +35,28 @@ const PretreatmentAnalysisPage: React.FC = () => {
   })
 
   useEffect(() => {
+    // 页面挂载时，直接加载已有数据
     loadPretreatmentData()
 
     const handleDataUpdate = () => {
       console.log('PretreatmentAnalysisPage: Data updated, reloading...')
       loadPretreatmentData()
     }
+    
+    const handleMethodsDataUpdated = async () => {
+      console.log('PretreatmentAnalysisPage: Methods data updated, triggering recalculation')
+      // Methods 数据变化时，请求重新计算
+      window.dispatchEvent(new CustomEvent('requestScoreRecalculation'))
+    }
 
     window.addEventListener('scoreDataUpdated', handleDataUpdate)
     window.addEventListener('fileDataChanged', handleDataUpdate)
+    window.addEventListener('methodsDataUpdated', handleMethodsDataUpdated)
 
     return () => {
       window.removeEventListener('scoreDataUpdated', handleDataUpdate)
       window.removeEventListener('fileDataChanged', handleDataUpdate)
+      window.removeEventListener('methodsDataUpdated', handleMethodsDataUpdated)
     }
   }, [])
 

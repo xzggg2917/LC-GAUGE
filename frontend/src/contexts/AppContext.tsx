@@ -66,6 +66,15 @@ export interface AppData {
     // Power Factor (P) calculation parameters (新能耗输入方式)
     instrumentEnergy?: number  // 仪器分析能耗 (kWh)
     pretreatmentEnergy?: number  // 前处理能耗 (kWh)
+    // 权重方案
+    weightSchemes?: {
+      safetyScheme?: string
+      healthScheme?: string
+      environmentScheme?: string
+      instrumentStageScheme?: string
+      prepStageScheme?: string
+      finalScheme?: string
+    }
   }
   factors: ReagentFactor[]
   gradient: GradientStep[]
@@ -105,7 +114,15 @@ const getDefaultData = (): AppData => ({
     mobilePhaseA: [{ id: Date.now().toString() + '1', name: '', percentage: 0 }],
     mobilePhaseB: [{ id: Date.now().toString() + '2', name: '', percentage: 0 }],
     instrumentEnergy: 0,
-    pretreatmentEnergy: 0
+    pretreatmentEnergy: 0,
+    weightSchemes: {
+      safetyScheme: 'PBT_Balanced',
+      healthScheme: 'Absolute_Balance',
+      environmentScheme: 'PBT_Balanced',
+      instrumentStageScheme: 'Balanced',
+      prepStageScheme: 'Balanced',
+      finalScheme: 'Direct_Online'
+    }
   },
   factors: [],
   gradient: []

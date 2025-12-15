@@ -60,33 +60,42 @@ const MethodEvaluationPage: React.FC = () => {
   })
 
   useEffect(() => {
+    // 页面挂载时，直接加载已有数据
     calculateTotalScores()
 
     const handleDataUpdate = () => {
-      console.log('GraphPage: Data updated, recalculating...')
+      console.log('MethodEvaluationPage: Data updated, recalculating...')
       calculateTotalScores()
     }
     
     const handleFileDataChanged = () => {
-      console.log('GraphPage: File data changed event received')
+      console.log('MethodEvaluationPage: File data changed event received')
       calculateTotalScores()
     }
     
     const handleScoreDataUpdated = () => {
-      console.log('GraphPage: Score data updated event received')
+      console.log('MethodEvaluationPage: Score data updated event received')
       calculateTotalScores()
+    }
+    
+    const handleMethodsDataUpdated = async () => {
+      console.log('MethodEvaluationPage: Methods data updated, triggering recalculation')
+      // Methods 数据变化时，请求重新计算
+      window.dispatchEvent(new CustomEvent('requestScoreRecalculation'))
     }
 
     window.addEventListener('gradientDataUpdated', handleDataUpdate)
     window.addEventListener('factorsDataUpdated', handleDataUpdate)
     window.addEventListener('fileDataChanged', handleFileDataChanged)
     window.addEventListener('scoreDataUpdated', handleScoreDataUpdated)
+    window.addEventListener('methodsDataUpdated', handleMethodsDataUpdated)
 
     return () => {
       window.removeEventListener('gradientDataUpdated', handleDataUpdate)
       window.removeEventListener('factorsDataUpdated', handleDataUpdate)
       window.removeEventListener('fileDataChanged', handleFileDataChanged)
       window.removeEventListener('scoreDataUpdated', handleScoreDataUpdated)
+      window.removeEventListener('methodsDataUpdated', handleMethodsDataUpdated)
     }
   }, [])
 

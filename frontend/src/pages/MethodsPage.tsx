@@ -28,13 +28,13 @@ const MethodsPage: React.FC = () => {
   const [instrumentEnergy, setInstrumentEnergy] = useState<number>(data.methods.instrumentEnergy || 0)  // 仪器分析能耗 (kWh)
   const [pretreatmentEnergy, setPretreatmentEnergy] = useState<number>(data.methods.pretreatmentEnergy || 0)  // 前处理能耗 (kWh)
 
-  // 权重方案选择状态
-  const [safetyScheme, setSafetyScheme] = useState<string>('PBT_Balanced')
-  const [healthScheme, setHealthScheme] = useState<string>('Absolute_Balance')
-  const [environmentScheme, setEnvironmentScheme] = useState<string>('PBT_Balanced')
-  const [instrumentStageScheme, setInstrumentStageScheme] = useState<string>('Balanced')
-  const [prepStageScheme, setPrepStageScheme] = useState<string>('Balanced')
-  const [finalScheme, setFinalScheme] = useState<string>('Direct_Online')
+  // 权重方案选择状态 - 从 Context 初始化
+  const [safetyScheme, setSafetyScheme] = useState<string>(data.methods.weightSchemes?.safetyScheme || 'PBT_Balanced')
+  const [healthScheme, setHealthScheme] = useState<string>(data.methods.weightSchemes?.healthScheme || 'Absolute_Balance')
+  const [environmentScheme, setEnvironmentScheme] = useState<string>(data.methods.weightSchemes?.environmentScheme || 'PBT_Balanced')
+  const [instrumentStageScheme, setInstrumentStageScheme] = useState<string>(data.methods.weightSchemes?.instrumentStageScheme || 'Balanced')
+  const [prepStageScheme, setPrepStageScheme] = useState<string>(data.methods.weightSchemes?.prepStageScheme || 'Balanced')
+  const [finalScheme, setFinalScheme] = useState<string>(data.methods.weightSchemes?.finalScheme || 'Direct_Online')
 
   // 评分结果状态（新增）
   const [scoreResults, setScoreResults] = useState<any>(null)
@@ -146,6 +146,18 @@ const MethodsPage: React.FC = () => {
       // 先加载 factors
       await loadFactorsData()
       
+      // 加载 Methods 数据（包括权重方案）
+      const methodsData = await StorageHelper.getJSON(STORAGE_KEYS.METHODS)
+      if (methodsData?.weightSchemes) {
+        console.log('✅ 恢复权重方案:', methodsData.weightSchemes)
+        setSafetyScheme(methodsData.weightSchemes.safetyScheme || 'PBT_Balanced')
+        setHealthScheme(methodsData.weightSchemes.healthScheme || 'Absolute_Balance')
+        setEnvironmentScheme(methodsData.weightSchemes.environmentScheme || 'PBT_Balanced')
+        setInstrumentStageScheme(methodsData.weightSchemes.instrumentStageScheme || 'Balanced')
+        setPrepStageScheme(methodsData.weightSchemes.prepStageScheme || 'Balanced')
+        setFinalScheme(methodsData.weightSchemes.finalScheme || 'Direct_Online')
+      }
+      
       // 再加载 gradient（依赖 factors）
       const gradientData = await StorageHelper.getJSON(STORAGE_KEYS.GRADIENT)
       if (gradientData?.calculations) {
@@ -166,9 +178,21 @@ const MethodsPage: React.FC = () => {
     
       loadAllData()
     } else {
-      // 非首次加载，只验证数据是否存在，不重新设置 isDataLoading
-      console.log('🔄 后续访问，验证数据完整性')
+      // 非首次加载，验证数据完整性并恢复权重方案
+      console.log('🔄 后续访问，验证数据完整性并恢复权重方案')
       const verifyData = async () => {
+        // 恢复权重方案（每次都要加载）
+        const methodsData = await StorageHelper.getJSON(STORAGE_KEYS.METHODS)
+        if (methodsData?.weightSchemes) {
+          console.log('✅ 恢复权重方案:', methodsData.weightSchemes)
+          setSafetyScheme(methodsData.weightSchemes.safetyScheme || 'PBT_Balanced')
+          setHealthScheme(methodsData.weightSchemes.healthScheme || 'Absolute_Balance')
+          setEnvironmentScheme(methodsData.weightSchemes.environmentScheme || 'PBT_Balanced')
+          setInstrumentStageScheme(methodsData.weightSchemes.instrumentStageScheme || 'Balanced')
+          setPrepStageScheme(methodsData.weightSchemes.prepStageScheme || 'Balanced')
+          setFinalScheme(methodsData.weightSchemes.finalScheme || 'Direct_Online')
+        }
+        
         const factors = await StorageHelper.getJSON<any[]>(STORAGE_KEYS.FACTORS)
         const gradientData = await StorageHelper.getJSON(STORAGE_KEYS.GRADIENT)
         
@@ -327,6 +351,7 @@ const MethodsPage: React.FC = () => {
   // 自动保存数据到 Context 和存储（每次状态变化时）
   // 使用 ref 来避免初始化时触发 dirty
   const isInitialMount = React.useRef(true)
+  const isAutoCalcInitialized = React.useRef(false)  // 专门用于自动计算的初始化标志
   const lastLocalData = React.useRef<string>('')
   
   useEffect(() => {
@@ -359,7 +384,16 @@ const MethodsPage: React.FC = () => {
         mobilePhaseA: validMobilePhaseA,
         mobilePhaseB: validMobilePhaseB,
         instrumentEnergy,
-        pretreatmentEnergy
+        pretreatmentEnergy,
+        // 保存权重方案
+        weightSchemes: {
+          safetyScheme,
+          healthScheme,
+          environmentScheme,
+          instrumentStageScheme,
+          prepStageScheme,
+          finalScheme
+        }
       }
       
       const currentLocalDataStr = JSON.stringify(dataToSave)
@@ -389,11 +423,22 @@ const MethodsPage: React.FC = () => {
       setIsDirty(true)
       
       // Trigger event to notify other pages (like TablePage)
+      console.log('🔔 MethodsPage: 触发 methodsDataUpdated 事件')
+      console.log('📋 变化的数据:', {
+        sampleCount: dataToSave.sampleCount,
+        前处理试剂数: dataToSave.preTreatmentReagents.length,
+        流动相A试剂数: dataToSave.mobilePhaseA.length,
+        流动相B试剂数: dataToSave.mobilePhaseB.length,
+        仪器能耗: dataToSave.instrumentEnergy,
+        前处理能耗: dataToSave.pretreatmentEnergy
+      })
       window.dispatchEvent(new CustomEvent('methodsDataUpdated', { detail: dataToSave }))
     }
     
     saveData()
-  }, [sampleCount, preTreatmentReagents, mobilePhaseA, mobilePhaseB, instrumentEnergy, pretreatmentEnergy, updateMethodsData, setIsDirty])
+  }, [sampleCount, preTreatmentReagents, mobilePhaseA, mobilePhaseB, instrumentEnergy, pretreatmentEnergy, 
+      safetyScheme, healthScheme, environmentScheme, instrumentStageScheme, prepStageScheme, finalScheme, 
+      updateMethodsData, setIsDirty])
 
   // Handle sample count changes
   const handleSampleCountChange = (value: number | null) => {
@@ -887,6 +932,9 @@ const MethodsPage: React.FC = () => {
   const calculateFullScoreAPI = async (options?: { silent?: boolean }) => {
     const silent = options?.silent || false
     setIsCalculatingScore(true)
+    
+    console.log('🚀 开始执行 calculateFullScoreAPI, silent:', silent)
+    
     try {
       // 1. 获取梯度数据
       const gradientData = await StorageHelper.getJSON(STORAGE_KEYS.GRADIENT)
@@ -1178,6 +1226,7 @@ const MethodsPage: React.FC = () => {
       }
 
       // 10. 调用后端API
+      console.log('🌐 调用后端API: /api/v1/scoring/full-score')
       const response = await api.calculateFullScore(requestData)
       
       if (response.data.success) {
@@ -1193,8 +1242,10 @@ const MethodsPage: React.FC = () => {
         
         // 保存评分结果到StorageHelper
         await StorageHelper.setJSON(STORAGE_KEYS.SCORE_RESULTS, response.data.data)
+        console.log('💾 MethodsPage: 评分结果已保存到 SCORE_RESULTS')
         
         // 触发GraphPage更新
+        console.log('🔔 MethodsPage: 触发 scoreDataUpdated 事件')
         window.dispatchEvent(new CustomEvent('scoreDataUpdated'))
       } else {
         if (!silent) message.error('Scoring calculation failed: ' + response.data.message)
@@ -1229,31 +1280,34 @@ const MethodsPage: React.FC = () => {
 
   // 自动计算评分（数据变化时触发）
   useEffect(() => {
-    console.log('📌 自动计算useEffect触发')
-    console.log('  - 前处理试剂数:', preTreatmentReagents.length)
-    console.log('  - 仪器能耗:', instrumentEnergy, 'kWh')
-    console.log('  - 前处理能耗:', pretreatmentEnergy, 'kWh')
+    // Skip on initial mount
+    if (!isAutoCalcInitialized.current) {
+      console.log('⏭️ 自动计算: 跳过初始挂载')
+      isAutoCalcInitialized.current = true
+      return
+    }
     
-    // 防抖计时器 - 增加到3秒避免频繁计算
-    const debounceTimer = setTimeout(async () => {
-      // 检查是否有必要的数据
+    console.log('🔄 自动计算: 数据已变化，准备计算评分')
+    
+    // 立即执行自动计算
+    ;(async () => {
+      // 检查必要数据
       const gradientData = await StorageHelper.getJSON(STORAGE_KEYS.GRADIENT)
       const factors = await StorageHelper.getJSON<any[]>(STORAGE_KEYS.FACTORS)
       
-      // 只有当梯度数据和因子数据都存在时才自动计算
       if (gradientData && factors && factors.length > 0) {
-        console.log('🔄 数据已变化，自动触发评分计算')
-        console.log('  前处理试剂详情:', preTreatmentReagents)
-        calculateFullScoreAPI({ silent: true })  // 静默计算，不显示错误
+        console.log('✅ 自动计算: 数据完整，开始调用后端API')
+        try {
+          await calculateFullScoreAPI({ silent: true })
+          console.log('✅ 自动计算: 评分计算完成')
+        } catch (error) {
+          console.error('❌ 自动计算失败:', error)
+        }
       } else {
-        console.log('⚠️ 跳过自动计算 - 缺少必要数据', {
-          hasGradient: !!gradientData,
-          hasFactors: !!(factors && factors.length > 0)
-        })
+        console.log('⚠️ 自动计算: 跳过（缺少梯度或因子数据）')
       }
-    }, 3000) // 3秒防抖
-
-    return () => clearTimeout(debounceTimer)
+    })()
+    
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     // 监听所有可能影响评分的数据
@@ -1270,7 +1324,6 @@ const MethodsPage: React.FC = () => {
     gradientCalculations,
     instrumentEnergy,
     pretreatmentEnergy
-    // 注意：不监听factorsData，而是每次从Storage动态读取最新数据
   ])
 
   // 监听Storage变化事件（当Factors页面更新数据时触发）
@@ -1301,11 +1354,20 @@ const MethodsPage: React.FC = () => {
         }
       }
     }
+    
+    // 监听来自 Results 页面的重新计算请求
+    const handleRecalculationRequest = () => {
+      console.log('📊 MethodsPage: 收到重新计算评分请求')
+      // 直接调用函数
+      calculateFullScoreAPI({ silent: true })
+    }
 
     window.addEventListener('storageUpdated' as any, handleStorageChange)
+    window.addEventListener('requestScoreRecalculation' as any, handleRecalculationRequest)
     
     return () => {
       window.removeEventListener('storageUpdated' as any, handleStorageChange)
+      window.removeEventListener('requestScoreRecalculation' as any, handleRecalculationRequest)
     }
   }, [])
   

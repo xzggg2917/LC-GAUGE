@@ -147,7 +147,24 @@ let writeQueue = Promise.resolve()
 ipcMain.handle('fs:readAppData', async (event, key) => {
   try {
     const data = await fs.readFile(APP_DATA_FILE, 'utf-8')
-    const allData = JSON.parse(data)
+    
+    // 容错处理：如果文件为空或只有空白字符，返回空对象
+    if (!data || data.trim() === '') {
+      console.log(`⚠️ APP_DATA_FILE is empty, returning null for key: ${key}`)
+      return null
+    }
+    
+    let allData
+    try {
+      allData = JSON.parse(data)
+    } catch (parseError) {
+      console.error(`❌ JSON parse error for key ${key}:`, parseError.message)
+      console.log(`📄 Corrupted data (first 200 chars):`, data.substring(0, 200))
+      
+      // 数据损坏，尝试恢复或返回 null
+      return null
+    }
+    
     return allData[key] || null
   } catch (error) {
     if (error.code === 'ENOENT') {
@@ -164,13 +181,29 @@ ipcMain.handle('fs:writeAppData', async (event, key, value) => {
       let allData = {}
       try {
         const existing = await fs.readFile(APP_DATA_FILE, 'utf-8')
-        allData = JSON.parse(existing)
+        // 容错：如果文件为空，使用空对象
+        if (existing && existing.trim() !== '') {
+          allData = JSON.parse(existing)
+        }
       } catch (error) {
-        if (error.code !== 'ENOENT') throw error
+        if (error.code !== 'ENOENT') {
+          console.error(`⚠️ Read existing data error: ${error.message}, using empty object`)
+          allData = {}
+        }
       }
       
       allData[key] = value
-      await fs.writeFile(APP_DATA_FILE, JSON.stringify(allData, null, 2), 'utf-8')
+      const jsonString = JSON.stringify(allData, null, 2)
+      
+      // 验证生成的 JSON 是否有效
+      try {
+        JSON.parse(jsonString)
+      } catch (verifyError) {
+        console.error(`❌ Generated invalid JSON for key ${key}:`, verifyError)
+        throw new Error('Generated invalid JSON')
+      }
+      
+      await fs.writeFile(APP_DATA_FILE, jsonString, 'utf-8')
       console.log(`✅ writeAppData成功: ${key}, 数据大小: ${JSON.stringify(value).length}字节`)
       return { success: true }
     } catch (error) {
