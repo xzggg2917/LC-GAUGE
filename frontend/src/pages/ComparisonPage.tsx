@@ -196,7 +196,6 @@ const ComparisonPage: React.FC = () => {
       try {
         // 优先使用后端计算结果
         const scoreResults = await StorageHelper.getJSON(STORAGE_KEYS.SCORE_RESULTS)
-      const powerScore = await StorageHelper.getJSON<number>(STORAGE_KEYS.POWER_SCORE) || 0
       
       if (scoreResults && scoreResults.instrument && scoreResults.preparation) {
         console.log('✅ Using backend scoreResults')
@@ -1178,7 +1177,7 @@ const ComparisonPage: React.FC = () => {
   ]
 
   // 构建展开的表格数据（每个文件3行：前处理、仪器、总体）
-  const tableData = filesMajorFactors.flatMap((file, index) => {
+  const tableData = filesMajorFactors.flatMap((file) => {
     // 获取对应文件的 scoreResults
     const originalFile = uniqueFiles.find(f => f.id === file.id)
     const scoreResults = originalFile?.scoreResults

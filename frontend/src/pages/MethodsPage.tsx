@@ -146,16 +146,64 @@ const MethodsPage: React.FC = () => {
       // 先加载 factors
       await loadFactorsData()
       
-      // 加载 Methods 数据（包括权重方案）
+      // 加载 Methods 数据（包括权重方案、能耗、Mobile Phase等）
       const methodsData = await StorageHelper.getJSON(STORAGE_KEYS.METHODS)
-      if (methodsData?.weightSchemes) {
-        console.log('✅ 恢复权重方案:', methodsData.weightSchemes)
-        setSafetyScheme(methodsData.weightSchemes.safetyScheme || 'PBT_Balanced')
-        setHealthScheme(methodsData.weightSchemes.healthScheme || 'Absolute_Balance')
-        setEnvironmentScheme(methodsData.weightSchemes.environmentScheme || 'PBT_Balanced')
-        setInstrumentStageScheme(methodsData.weightSchemes.instrumentStageScheme || 'Balanced')
-        setPrepStageScheme(methodsData.weightSchemes.prepStageScheme || 'Balanced')
-        setFinalScheme(methodsData.weightSchemes.finalScheme || 'Direct_Online')
+      console.log('📋 加载到的Methods数据:', methodsData)
+      
+      // ✅ 先加载所有现有数据到state（确保数据不丢失）
+      if (methodsData) {
+        // 加载权重方案
+        if (methodsData.weightSchemes) {
+          console.log('✅ 恢复权重方案:', methodsData.weightSchemes)
+          setSafetyScheme(methodsData.weightSchemes.safetyScheme || 'PBT_Balanced')
+          setHealthScheme(methodsData.weightSchemes.healthScheme || 'Absolute_Balance')
+          setEnvironmentScheme(methodsData.weightSchemes.environmentScheme || 'PBT_Balanced')
+          setInstrumentStageScheme(methodsData.weightSchemes.instrumentStageScheme || 'Balanced')
+          setPrepStageScheme(methodsData.weightSchemes.prepStageScheme || 'Balanced')
+          setFinalScheme(methodsData.weightSchemes.finalScheme || 'Direct_Online')
+        }
+        
+        // ⚠️ 关键：加载能耗数据到state（即使是0也要加载）
+        console.log('📋 检查能耗数据:', {
+          instrumentEnergy: methodsData.instrumentEnergy,
+          pretreatmentEnergy: methodsData.pretreatmentEnergy
+        })
+        if (methodsData.instrumentEnergy !== undefined && methodsData.instrumentEnergy !== null) {
+          console.log('✅ 恢复仪器能耗:', methodsData.instrumentEnergy)
+          setInstrumentEnergy(methodsData.instrumentEnergy)
+        } else {
+          console.log('⚠️ 仪器能耗为空，使用默认值0')
+          setInstrumentEnergy(0)
+        }
+        if (methodsData.pretreatmentEnergy !== undefined && methodsData.pretreatmentEnergy !== null) {
+          console.log('✅ 恢复前处理能耗:', methodsData.pretreatmentEnergy)
+          setPretreatmentEnergy(methodsData.pretreatmentEnergy)
+        } else {
+          console.log('⚠️ 前处理能耗为空，使用默认值0')
+          setPretreatmentEnergy(0)
+        }
+        
+        // ⚠️ 关键：加载已有的Mobile Phase A/B到state
+        if (methodsData.mobilePhaseA && methodsData.mobilePhaseA.length > 0) {
+          console.log('✅ 恢复Mobile Phase A:', methodsData.mobilePhaseA)
+          setMobilePhaseA(methodsData.mobilePhaseA)
+        }
+        if (methodsData.mobilePhaseB && methodsData.mobilePhaseB.length > 0) {
+          console.log('✅ 恢复Mobile Phase B:', methodsData.mobilePhaseB)
+          setMobilePhaseB(methodsData.mobilePhaseB)
+        }
+        
+        // 加载前处理试剂
+        if (methodsData.preTreatmentReagents && methodsData.preTreatmentReagents.length > 0) {
+          console.log('✅ 恢复前处理试剂:', methodsData.preTreatmentReagents)
+          setPreTreatmentReagents(methodsData.preTreatmentReagents)
+        }
+        
+        // 加载样品数量
+        if (methodsData.sampleCount) {
+          console.log('✅ 恢复样品数量:', methodsData.sampleCount)
+          setSampleCount(methodsData.sampleCount)
+        }
       }
       
       // 再加载 gradient（依赖 factors）
@@ -163,13 +211,102 @@ const MethodsPage: React.FC = () => {
       if (gradientData?.calculations) {
         setGradientCalculations(gradientData.calculations)
         console.log('✅ 初始加载gradient数据成功')
+        
+        let needsSave = false
+        let updatedMethodsData = { ...methodsData }
+        
+        // 🔧 只在storage中的mobilePhaseA/B为空时，才从gradient calculations自动填充
+        // （注意：这里检查的是methodsData，不是state）
+        if ((!methodsData?.mobilePhaseA || methodsData.mobilePhaseA.length === 0) && 
+            gradientData.calculations.mobilePhaseA?.components?.length > 0) {
+          console.log('🔄 storage中的mobilePhaseA为空，从gradient自动同步')
+          const phaseAReagents = gradientData.calculations.mobilePhaseA.components.map((c: any) => ({
+            name: c.reagentName,
+            percentage: c.percentage || 100
+          }))
+          setMobilePhaseA(phaseAReagents)
+          updatedMethodsData.mobilePhaseA = phaseAReagents
+          needsSave = true
+          console.log('  ✅ 已同步Mobile Phase A:', phaseAReagents)
+        }
+        
+        if ((!methodsData?.mobilePhaseB || methodsData.mobilePhaseB.length === 0) && 
+            gradientData.calculations.mobilePhaseB?.components?.length > 0) {
+          console.log('🔄 storage中的mobilePhaseB为空，从gradient自动同步')
+          const phaseBReagents = gradientData.calculations.mobilePhaseB.components.map((c: any) => ({
+            name: c.reagentName,
+            percentage: c.percentage || 100
+          }))
+          setMobilePhaseB(phaseBReagents)
+          updatedMethodsData.mobilePhaseB = phaseBReagents
+          needsSave = true
+          console.log('  ✅ 已同步Mobile Phase B:', phaseBReagents)
+        }
+        
+        // 🔧 同步Sample PreTreatment数据
+        if ((!methodsData?.preTreatmentReagents || methodsData.preTreatmentReagents.length === 0) && 
+            gradientData.calculations.samplePreTreatment?.components?.length > 0) {
+          console.log('🔄 storage中的preTreatmentReagents为空，从gradient自动同步')
+          const preTreatmentReagents = gradientData.calculations.samplePreTreatment.components.map((c: any) => ({
+            name: c.reagentName,
+            volume: c.volume || 0
+          }))
+          setPreTreatmentReagents(preTreatmentReagents)
+          updatedMethodsData.preTreatmentReagents = preTreatmentReagents
+          needsSave = true
+          console.log('  ✅ 已同步Sample PreTreatment:', preTreatmentReagents)
+        }
+        
+        // 🔧 同步样品数量
+        if ((!methodsData?.sampleCount || methodsData.sampleCount === 0) && 
+            gradientData.calculations.sampleCount) {
+          console.log('🔄 storage中的sampleCount为空，从gradient自动同步')
+          setSampleCount(gradientData.calculations.sampleCount)
+          updatedMethodsData.sampleCount = gradientData.calculations.sampleCount
+          needsSave = true
+          console.log('  ✅ 已同步Sample Count:', gradientData.calculations.sampleCount)
+        }
+        
+        // 💾 如果有数据被同步，立即保存到storage
+        if (needsSave) {
+          console.log('💾 保存同步的数据到storage')
+          // ⚠️ 保留原有能耗数据（从gradient同步不会覆盖能耗）
+          if (methodsData?.instrumentEnergy !== undefined) {
+            updatedMethodsData.instrumentEnergy = methodsData.instrumentEnergy
+          }
+          if (methodsData?.pretreatmentEnergy !== undefined) {
+            updatedMethodsData.pretreatmentEnergy = methodsData.pretreatmentEnergy
+          }
+          
+          // 保留权重方案
+          if (!updatedMethodsData.weightSchemes) {
+            updatedMethodsData.weightSchemes = {
+              safetyScheme: 'PBT_Balanced',
+              healthScheme: 'Absolute_Balance',
+              environmentScheme: 'PBT_Balanced',
+              instrumentStageScheme: 'Balanced',
+              prepStageScheme: 'Balanced',
+              finalScheme: 'Direct_Online'
+            }
+          }
+          await StorageHelper.setJSON(STORAGE_KEYS.METHODS, updatedMethodsData)
+          console.log('  ✅ 已保存同步后的数据')
+        }
       } else {
         console.log('⚠️ gradient数据不完整')
         setGradientCalculations(null)
       }
       
-      // 加载评分结果
+      // 加载评分结果，并尝试从中恢复能耗数据
       await loadScoreResults()
+      
+      // 🔧 如果能耗为0，尝试从score_results反推
+      const scoreResults = await StorageHelper.getJSON(STORAGE_KEYS.SCORE_RESULTS)
+      if (scoreResults && (!methodsData?.instrumentEnergy || methodsData.instrumentEnergy === 0)) {
+        // 注意：无法从P因子反推精确的能耗值，因为P因子是评分结果
+        // 但我们可以检查是否之前有保存的能耗数据
+        console.log('ℹ️ 能耗数据为0，用户需要手动输入')
+      }
       
       // 数据加载完成
       setIsDataLoading(false)
@@ -304,47 +441,20 @@ const MethodsPage: React.FC = () => {
     console.log('🔄 MethodsPage: Context数据变化，更新本地状态')
     lastSyncedData.current = currentDataStr
     
-    // 更新所有相关数据（包括能耗）
+    // 更新所有相关数据
     setSampleCount(data.methods.sampleCount)
     setPreTreatmentReagents(data.methods.preTreatmentReagents)
     setMobilePhaseA(data.methods.mobilePhaseA)
     setMobilePhaseB(data.methods.mobilePhaseB)
-    setInstrumentEnergy(data.methods.instrumentEnergy || 0)
-    setPretreatmentEnergy(data.methods.pretreatmentEnergy || 0)
     
-    // Context变化时也重新加载factors和gradient数据，确保图表有数据
-    const reloadData = async () => {
-      setIsDataLoading(true)
-      console.log('📥 开始重新加载数据...')
-      
-      // 顺序加载，确保数据完整性
-      const factors = await StorageHelper.getJSON<any[]>(STORAGE_KEYS.FACTORS)
-      if (factors && factors.length > 0) {
-        setFactorsData(factors)
-        const reagentNames = Array.from(
-          new Set(factors.map((f: any) => f.name).filter((n: string) => n && n.trim()))
-        ).sort()
-        setAvailableReagents(reagentNames as string[])
-        console.log('  ✅ 重新加载了factors数据:', factors.length, '个')
-      } else {
-        console.log('  ⚠️ factors数据为空')
-        setFactorsData([])
-      }
-      
-      const gradientData = await StorageHelper.getJSON(STORAGE_KEYS.GRADIENT)
-      if (gradientData?.calculations) {
-        setGradientCalculations(gradientData.calculations)
-        console.log('  ✅ 重新加载了gradient数据')
-      } else {
-        console.log('  ⚠️ gradient数据不完整')
-        setGradientCalculations(null)
-      }
-      
-      // 数据加载完成
-      setIsDataLoading(false)
-      console.log('✅ 数据重新加载完成')
+    // ✅ 能耗数据：总是同步Context数据到本地state（确保数据一致性）
+    // 注意：能耗数据的真实来源是loadAllData()从storage加载，这里只是保持Context同步
+    if (data.methods.instrumentEnergy !== undefined) {
+      setInstrumentEnergy(data.methods.instrumentEnergy)
     }
-    reloadData()
+    if (data.methods.pretreatmentEnergy !== undefined) {
+      setPretreatmentEnergy(data.methods.pretreatmentEnergy)
+    }
   }, [data.methods.sampleCount, data.methods.preTreatmentReagents, data.methods.mobilePhaseA, data.methods.mobilePhaseB, data.methods.instrumentEnergy, data.methods.pretreatmentEnergy])
 
   // 监听 availableReagents 变化
@@ -387,8 +497,8 @@ const MethodsPage: React.FC = () => {
         preTreatmentReagents: validPreTreatmentReagents,
         mobilePhaseA: validMobilePhaseA,
         mobilePhaseB: validMobilePhaseB,
-        instrumentEnergy,
-        pretreatmentEnergy,
+        instrumentEnergy: instrumentEnergy || 0,
+        pretreatmentEnergy: pretreatmentEnergy || 0,
         // 保存权重方案
         weightSchemes: {
           safetyScheme,
@@ -944,15 +1054,21 @@ const MethodsPage: React.FC = () => {
       const gradientData = await StorageHelper.getJSON(STORAGE_KEYS.GRADIENT)
       if (!gradientData) {
         if (!silent) message.error('Please configure gradient program in HPLC Gradient page first')
+        setIsCalculatingScore(false)
         return
       }
+      
+      console.log('✅ 梯度数据加载成功:', gradientData)
       
       // 2. 获取因子数据
       const factors = await StorageHelper.getJSON<any[]>(STORAGE_KEYS.FACTORS)
       if (!factors) {
         if (!silent) message.error('Please configure reagent factors in Factors page first')
+        setIsCalculatingScore(false)
         return
       }
+      
+      console.log('✅ 因子数据加载成功:', factors.length, '个试剂')
       
       // 辅助函数：清理数字数据
       const cleanNumber = (value: any, defaultValue: number = 0): number => {
@@ -1010,19 +1126,39 @@ const MethodsPage: React.FC = () => {
       }
 
       // 5. 构建仪器分析数据
+      console.log('📋 Mobile Phase 数据:')
+      console.log('  - mobilePhaseA:', mobilePhaseA)
+      console.log('  - mobilePhaseB:', mobilePhaseB)
+      
       const instrumentReagents = [
         ...mobilePhaseA.map(r => r.name),
         ...mobilePhaseB.map(r => r.name)
       ].filter((name, index, self) => name && self.indexOf(name) === index)
+      
+      console.log('  - 提取的试剂列表:', instrumentReagents)
+      
+      if (instrumentReagents.length === 0) {
+        message.error('No reagents configured in Mobile Phase A/B. Please configure them in Methods page first.')
+        setIsCalculatingScore(false)
+        return
+      }
 
       // 验证梯度数据结构
       if (!gradientData.steps || !Array.isArray(gradientData.steps)) {
         message.error('Gradient data format error: missing steps array')
+        setIsCalculatingScore(false)
         return
       }
+      
+      console.log('✅ 梯度步骤数量:', gradientData.steps.length)
 
       const instrumentComposition: any = {}
+      
+      console.log('🔄 开始构建 composition，试剂数量:', instrumentReagents.length)
+      
       instrumentReagents.forEach(reagent => {
+        console.log(`\n📌 处理试剂: ${reagent}`)
+        
         const percentages = gradientData.steps.map((step: any, index: number) => {
           // 计算该试剂在每个步骤的百分比
           // 注意：字段名是 phaseA 和 phaseB，不是 compositionA 和 compositionB
@@ -1055,7 +1191,11 @@ const MethodsPage: React.FC = () => {
         
         // 确保数组中所有值都是有效数字
         instrumentComposition[reagent] = cleanNumberArray(percentages)
+        console.log(`  ✅ ${reagent} composition 完成:`, instrumentComposition[reagent])
       })
+      
+      console.log('📊 最终 composition 对象:', instrumentComposition)
+      console.log('📊 composition keys 数量:', Object.keys(instrumentComposition).length)
 
       // 验证时间点数据
       const timePoints = cleanNumberArray(gradientData.steps.map((s: any) => s.time))
@@ -1071,6 +1211,14 @@ const MethodsPage: React.FC = () => {
         factor_matrix: buildFactorMatrix(instrumentReagents),
         curve_types: curveTypes  // 新增：发送曲线类型
       }
+      
+      console.log('📦 构建的 instrumentData:')
+      console.log('  - time_points:', instrumentData.time_points)
+      console.log('  - composition keys:', Object.keys(instrumentData.composition))
+      console.log('  - composition:', instrumentData.composition)
+      console.log('  - flow_rate:', instrumentData.flow_rate)
+      console.log('  - densities:', instrumentData.densities)
+      console.log('  - curve_types:', instrumentData.curve_types)
 
       // 验证仪器数据
       console.log('📋 仪器分析数据验证:', {
@@ -1162,18 +1310,9 @@ const MethodsPage: React.FC = () => {
       const pretreatment_r = cleanNumber(rdFactors.pretreatment_r, 0)
       const pretreatment_d = cleanNumber(rdFactors.pretreatment_d, 0)
 
-      console.log('🎯 P/R/D因子计算结果（分阶段）:', {
-        仪器分析: {
-          P: instrument_p_factor,
-          R: instrument_r,
-          D: instrument_d
-        },
-        前处理: {
-          P: pretreatment_p_factor,
-          R: pretreatment_r,
-          D: pretreatment_d
-        }
-      })
+      console.log('🎯 P/R/D因子计算结果（分阶段）:')
+      console.log('  仪器分析: P=' + instrument_p_factor + ', R=' + instrument_r + ', D=' + instrument_d)
+      console.log('  前处理: P=' + pretreatment_p_factor + ', R=' + pretreatment_r + ', D=' + pretreatment_d)
 
       // 9. 构建完整请求
       const requestData = {
@@ -1181,10 +1320,10 @@ const MethodsPage: React.FC = () => {
         preparation: prepData,
         p_factor: instrument_p_factor,  // 仪器分析P因子
         pretreatment_p_factor: pretreatment_p_factor,  // 前处理P因子
-        instrument_r_factor: instrument_r,
-        instrument_d_factor: instrument_d,
-        pretreatment_r_factor: pretreatment_r,
-        pretreatment_d_factor: pretreatment_d,
+        instrument_r_factor: Number(instrument_r),  // 确保是数字类型
+        instrument_d_factor: Number(instrument_d),  // 确保是数字类型
+        pretreatment_r_factor: Number(pretreatment_r),  // 确保是数字类型
+        pretreatment_d_factor: Number(pretreatment_d),  // 确保是数字类型
         safety_scheme: safetyScheme,
         health_scheme: healthScheme,
         environment_scheme: environmentScheme,
@@ -1193,22 +1332,53 @@ const MethodsPage: React.FC = () => {
         final_scheme: finalScheme
       }
 
-      console.log('📊 发送评分请求:', requestData)
+      // 打印请求数据（使用字符串拼接避免对象展开问题）
+      console.log('📊 发送评分请求:')
+      console.log('  - instrument_r_factor:', requestData.instrument_r_factor)
+      console.log('  - instrument_d_factor:', requestData.instrument_d_factor)
+      console.log('  - pretreatment_r_factor:', requestData.pretreatment_r_factor)
+      console.log('  - pretreatment_d_factor:', requestData.pretreatment_d_factor)
+      
+      // 详细的数据验证和调试
+      console.log('🔍 数据验证开始:')
+      console.log('  - time_points 长度:', instrumentData.time_points.length)
+      console.log('  - composition keys:', Object.keys(instrumentData.composition))
+      console.log('  - composition 样例:', instrumentData.composition)
+      
+      // 验证 composition 中的值
+      const compositionValues = Object.values(instrumentData.composition)
+      console.log('  - composition values 数量:', compositionValues.length)
+      
+      let hasNaN = false
+      Object.entries(instrumentData.composition).forEach(([key, arr]: [string, any]) => {
+        if (arr.some((val: any) => isNaN(val) || !isFinite(val))) {
+          console.error(`    ❌ ${key} 包含无效值:`, arr)
+          hasNaN = true
+        } else {
+          console.log(`    ✅ ${key} 数据正常:`, arr)
+        }
+      })
       
       // 最终数据验证
       const hasInvalidData = (
         !instrumentData.time_points.length ||
         Object.keys(instrumentData.composition).length === 0 ||
-        Object.values(instrumentData.composition).some((arr: any) => 
-          arr.some((val: any) => isNaN(val) || !isFinite(val))
-        )
+        hasNaN
       )
       
       if (hasInvalidData) {
         if (!silent) message.error('Data validation failed: invalid values detected, please check gradient and reagent configuration')
-        console.error('❌ 数据验证失败，请求数据:', requestData)
+        console.error('❌ 数据验证失败')
+        console.error('  详细信息:', {
+          hasTimePoints: !!instrumentData.time_points.length,
+          hasComposition: Object.keys(instrumentData.composition).length > 0,
+          hasNaN: hasNaN
+        })
+        setIsCalculatingScore(false)
         return
       }
+      
+      console.log('✅ 数据验证通过')
 
       // 10. 调用后端API
       console.log('🌐 调用后端API: /api/v1/scoring/full-score')
@@ -1270,6 +1440,12 @@ const MethodsPage: React.FC = () => {
     if (!isAutoCalcInitialized.current) {
       console.log('⏭️ 自动计算: 跳过初始挂载')
       isAutoCalcInitialized.current = true
+      return
+    }
+    
+    // ⚠️ 如果数据正在加载中，跳过自动计算（等数据加载完成后再触发）
+    if (isDataLoading) {
+      console.log('⏭️ 自动计算: 数据加载中，跳过')
       return
     }
     

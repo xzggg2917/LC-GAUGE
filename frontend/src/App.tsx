@@ -402,10 +402,14 @@ const AppContent: React.FC = () => {
       console.log('🔓 Attempting to decrypt file with provided password...')
       let decryptedJson = decryptData(pendingFileData.data, password)
       
-      // 如果密码解密失败，尝试使用用户名解密（向后兼容旧文件）
+      // 如果密码解密失败，尝试使用用户名解密（仅向后兼容使用用户名加密的旧文件）
       if (!decryptedJson) {
-        console.log('🔓 Password failed, trying with username for backward compatibility...')
+        console.log('⚠️ Password decryption failed, trying with username for backward compatibility...')
         decryptedJson = decryptData(pendingFileData.data, username)
+        
+        if (decryptedJson) {
+          message.warning('File was encrypted with old method (username), recommend re-saving to use password encryption')
+        }
       }
       
       if (!decryptedJson) {
@@ -483,9 +487,15 @@ const AppContent: React.FC = () => {
       // 将数据转换为JSON字符串
       const jsonString = JSON.stringify(dataToSave, null, 2)
       
-      // 使用当前登录用户的密码加密数据（如果密码不可用则使用用户名作为后备方案）
-      console.log('🔐 使用当前用户密码加密数据...')
-      const encryptedString = encryptData(jsonString, currentPassword || currentUser.username)
+      // 使用当前登录用户的密码加密数据（必须有密码）
+      if (!currentPassword) {
+        message.error('Unable to save: password not available, please re-login')
+        console.error('❌ 无法保存：密码不可用')
+        return
+      }
+      
+      // 静默使用用户密码加密数据
+      const encryptedString = encryptData(jsonString, currentPassword)
       
       // 创建加密文件格式
       const encryptedFileContent = JSON.stringify({
