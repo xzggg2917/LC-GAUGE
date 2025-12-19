@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import { Card, Form, Input, Button, Tabs, message, Space, Typography } from 'antd'
-import { UserOutlined, LockOutlined, ExperimentOutlined } from '@ant-design/icons'
+import { UserOutlined, LockOutlined } from '@ant-design/icons'
 import { useAuth } from '../contexts/AuthContext'
+import GaugeIcon from '../components/GaugeIcon'
 import './LoginPage.css'
 
 const { Title, Paragraph, Text } = Typography
@@ -49,25 +50,25 @@ const LoginPage: React.FC = () => {
         {/* Logo和系统介绍区域 */}
         <div className="logo-section">
           <div className="logo-wrapper">
-            <ExperimentOutlined className="logo-icon" />
+            <GaugeIcon className="logo-icon" size={150} />
             <Title level={1} className="system-title">
-              HPLC Green Chemistry Analysis System
+              LC Green Chemistry Analysis System
             </Title>
             <Title level={4} className="system-subtitle">
-              Professional HPLC Method Assessment & Environmental Impact Evaluation
+              Comprehensive LC Method Assessment & Environmental Impact Evaluation
             </Title>
           </div>
           
           <div className="system-description">
             <Paragraph className="description-text">
-              <Text strong>Professional HPLC Green Chemistry Assessment Platform</Text>
+              <Text strong>Professional LC Green Chemistry Assessment Platform</Text>
             </Paragraph>
             <Space direction="vertical" size="small" className="features-list">
-              <Text>🧪 Comprehensive Reagent Safety Assessment</Text>
-              <Text>📊 Multi-dimensional Green Chemistry Metrics</Text>
-              <Text>📈 Intuitive Data Visualization</Text>
-              <Text>💾 Complete Experimental Data Management</Text>
-              <Text>🌱 Eco-friendly Method Optimization</Text>
+              <Text>🧪 Full-Process Assessment: Sample Preparation to Final Analysis</Text>
+              <Text>📊 Comprehensive Evaluation: Pretreatment, Instrumentation & Overall Impact</Text>
+              <Text>📈 Multi-dimensional Green Chemistry Metrics & Data Visualization</Text>
+              <Text>💾 Complete Experimental Data Management & Method Comparison</Text>
+              <Text>🌱 Eco-friendly Method Optimization Across All LC Techniques</Text>
             </Space>
           </div>
         </div>
@@ -221,7 +222,7 @@ const LoginPage: React.FC = () => {
 
           <div className="footer-text">
             <Text type="secondary">
-              © 2025 HPLC Green Chemistry Analysis System | Professional, Secure, Eco-friendly
+              © 2025 LC Green Chemistry Analysis System | Professional, Secure, Eco-friendly
             </Text>
           </div>
         </div>

@@ -29,32 +29,40 @@ const ComparisonPage: React.FC = () => {
   const { data: allData, currentFilePath } = useAppContext()
   const [files, setFiles] = useState<FileData[]>([])
   
-  // 异步加载对比文件数据
+  // 异步加载对比文件数据（根据当前文件路径）
   useEffect(() => {
     const loadComparisonFiles = async () => {
-      const saved = await StorageHelper.getJSON<FileData[]>('hplc_comparison_files')
+      if (!currentFilePath) {
+        console.log('📂 No current file, skipping comparison files load')
+        return
+      }
+      const storageKey = `hplc_comparison_files_${currentFilePath}`
+      const saved = await StorageHelper.getJSON<FileData[]>(storageKey)
       if (saved && saved.length > 0) {
-        console.log('📂 Loaded comparison files from storage:', saved.length)
+        console.log('📂 Loaded comparison files for', currentFilePath, ':', saved.length)
         setFiles(saved)
       } else {
-        console.log('📂 No saved comparison files found')
+        console.log('📂 No saved comparison files for this file')
+        setFiles([])
       }
     }
     loadComparisonFiles()
-  }, [])
+  }, [currentFilePath])
   const [loading, setLoading] = useState(false)
   const [updateTrigger, setUpdateTrigger] = useState(0) // 用于强制更新
   const hasLoadedCurrentFile = useRef(false) // 追踪是否已加载当前文件
 
-  // 保存文件列表到存储
+  // 保存文件列表到存储（根据当前文件路径）
   useEffect(() => {
     const saveFiles = async () => {
-      await StorageHelper.setJSON('hplc_comparison_files', files)
+      if (!currentFilePath) return
+      const storageKey = `hplc_comparison_files_${currentFilePath}`
+      await StorageHelper.setJSON(storageKey, files)
+      console.log('💾 Saved comparison files for', currentFilePath, ':', files.length)
     }
-    if (files.length > 0) {
-      saveFiles()
-    }
-  }, [files])
+    // 始终保存，即使是空数组
+    saveFiles()
+  }, [files, currentFilePath])
 
   // 监听 New File 事件，清空对比数据
   useEffect(() => {
@@ -63,7 +71,10 @@ const ComparisonPage: React.FC = () => {
       console.log('Current files before clear:', files.length)
       
       setFiles([])
-      await StorageHelper.setJSON('hplc_comparison_files', [])
+      if (currentFilePath) {
+        const storageKey = `hplc_comparison_files_${currentFilePath}`
+        await StorageHelper.setJSON(storageKey, [])
+      }
       hasLoadedCurrentFile.current = false // 重置加载标记
       
       console.log('Files cleared, triggering update')
@@ -88,9 +99,8 @@ const ComparisonPage: React.FC = () => {
       console.log('🔄 ComparisonPage: File opened event received')
       console.log('Current files before clear:', files.length)
       
-      // 清空对比列表（会在下一个 useEffect 中自动加载当前文件）
+      // 清空对比列表（会在 loadComparisonFiles useEffect 中自动加载新文件的对比数据）
       setFiles([])
-      await StorageHelper.setJSON('hplc_comparison_files', [])
       hasLoadedCurrentFile.current = false // 重置加载标记
       
       console.log('Files cleared for new file, triggering update')
@@ -195,20 +205,7 @@ const ComparisonPage: React.FC = () => {
         const prepMajor = scoreResults.preparation.major_factors
         const additionalFactors = scoreResults.additional_factors || {}
         
-        // 使用 Method Evaluation 计算好的数据（汇总值）
-        const avgS = (instMajor.S + prepMajor.S) / 2
-        const avgH = (instMajor.H + prepMajor.H) / 2
-        const avgE = (instMajor.E + prepMajor.E) / 2
-        
-        // R 和 D 使用 additionalFactors 中的仪器和前处理的平均值
-        const instR = additionalFactors.instrument_R || 0
-        const instD = additionalFactors.instrument_D || 0
-        const prepR = additionalFactors.pretreatment_R || 0
-        const prepD = additionalFactors.pretreatment_D || 0
-        const avgR = (instR + prepR) / 2
-        const avgD = (instD + prepD) / 2
-        
-        // P 因子使用加权平均（根据最终汇总权重方案）
+        // 获取权重方案（与 Method Evaluation 一致）
         const finalWeights = scoreResults.schemes?.final_scheme || 'Standard'
         const weightMap: Record<string, { instrument: number, preparation: number }> = {
           'Standard': { instrument: 0.6, preparation: 0.4 },
@@ -217,8 +214,21 @@ const ComparisonPage: React.FC = () => {
           'Equal': { instrument: 0.5, preparation: 0.5 }
         }
         const weights = weightMap[finalWeights] || weightMap['Standard']
+        
+        // 所有大因子都使用加权平均（与 Method Evaluation 完全一致）
+        const avgS = instMajor.S * weights.instrument + prepMajor.S * weights.preparation
+        const avgH = instMajor.H * weights.instrument + prepMajor.H * weights.preparation
+        const avgE = instMajor.E * weights.instrument + prepMajor.E * weights.preparation
+        
+        const instR = additionalFactors.instrument_R || 0
+        const instD = additionalFactors.instrument_D || 0
         const instP = additionalFactors.instrument_P || 0
+        const prepR = additionalFactors.pretreatment_R || 0
+        const prepD = additionalFactors.pretreatment_D || 0
         const prepP = additionalFactors.pretreatment_P || 0
+        
+        const avgR = instR * weights.instrument + prepR * weights.preparation
+        const avgD = instD * weights.instrument + prepD * weights.preparation
         const avgP = instP * weights.instrument + prepP * weights.preparation
         
         const totalScore = scoreResults.final?.score3 || 0
@@ -571,7 +581,10 @@ const ComparisonPage: React.FC = () => {
     if (files.length === 0) return
     if (window.confirm(`Are you sure you want to remove all ${files.length} file(s)?`)) {
       setFiles([])
-      await StorageHelper.setJSON('hplc_comparison_files', [])
+      if (currentFilePath) {
+        const storageKey = `hplc_comparison_files_${currentFilePath}`
+        await StorageHelper.setJSON(storageKey, [])
+      }
       message.success('All files cleared')
     }
   }
@@ -733,11 +746,7 @@ const ComparisonPage: React.FC = () => {
             const prepD = additionalFactors.pretreatment_D || 0
             const prepP = additionalFactors.pretreatment_P || 0
             
-            // 计算平均值（对应 Method Evaluation 页面的汇总数据）
-            const avgR = (instR + prepR) / 2
-            const avgD = (instD + prepD) / 2
-            
-            // P 因子使用加权平均（根据最终汇总权重方案）
+            // 计算加权平均值（对应 Method Evaluation 页面的汇总数据）
             const finalWeights = scoreResults.schemes?.final_scheme || 'Standard'
             const weightMap: Record<string, { instrument: number, preparation: number }> = {
               'Standard': { instrument: 0.6, preparation: 0.4 },
@@ -746,6 +755,13 @@ const ComparisonPage: React.FC = () => {
               'Equal': { instrument: 0.5, preparation: 0.5 }
             }
             const weights = weightMap[finalWeights] || weightMap['Standard']
+            
+            // 所有因子都使用加权平均
+            const avgS = instMajor.S * weights.instrument + prepMajor.S * weights.preparation
+            const avgH = instMajor.H * weights.instrument + prepMajor.H * weights.preparation
+            const avgE = instMajor.E * weights.instrument + prepMajor.E * weights.preparation
+            const avgR = instR * weights.instrument + prepR * weights.preparation
+            const avgD = instD * weights.instrument + prepD * weights.preparation
             const avgP = instP * weights.instrument + prepP * weights.preparation
 
             majorFactorsArray.push({
@@ -769,9 +785,9 @@ const ComparisonPage: React.FC = () => {
                 P: instP
               },
               average: {
-                S: (prepMajor.S + instMajor.S) / 2,
-                H: (prepMajor.H + instMajor.H) / 2,
-                E: (prepMajor.E + instMajor.E) / 2,
+                S: avgS,
+                H: avgH,
+                E: avgE,
                 R: avgR,
                 D: avgD,
                 P: avgP
@@ -793,9 +809,7 @@ const ComparisonPage: React.FC = () => {
             const prepD = additionalFactors.pretreatment_D || 0
             const prepP = additionalFactors.pretreatment_P || 0
             
-            const avgR = (instR + prepR) / 2
-            const avgD = (instD + prepD) / 2
-            
+            // 使用加权平均（与 Method Evaluation 一致）
             const finalWeights = scoreResults.schemes?.final_scheme || 'Standard'
             const weightMap: Record<string, { instrument: number, preparation: number }> = {
               'Standard': { instrument: 0.6, preparation: 0.4 },
@@ -804,6 +818,13 @@ const ComparisonPage: React.FC = () => {
               'Equal': { instrument: 0.5, preparation: 0.5 }
             }
             const weights = weightMap[finalWeights] || weightMap['Standard']
+            
+            // 所有因子都使用加权平均
+            const avgS = instMajor.S * weights.instrument + prepMajor.S * weights.preparation
+            const avgH = instMajor.H * weights.instrument + prepMajor.H * weights.preparation
+            const avgE = instMajor.E * weights.instrument + prepMajor.E * weights.preparation
+            const avgR = instR * weights.instrument + prepR * weights.preparation
+            const avgD = instD * weights.instrument + prepD * weights.preparation
             const avgP = instP * weights.instrument + prepP * weights.preparation
             
             majorFactorsArray.push({
@@ -827,9 +848,9 @@ const ComparisonPage: React.FC = () => {
                 P: instP
               },
               average: {
-                S: (prepMajor.S + instMajor.S) / 2,
-                H: (prepMajor.H + instMajor.H) / 2,
-                E: (prepMajor.E + instMajor.E) / 2,
+                S: avgS,
+                H: avgH,
+                E: avgE,
                 R: avgR,
                 D: avgD,
                 P: avgP

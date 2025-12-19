@@ -43,10 +43,29 @@
     },
     "nsis": {
       "oneClick": false,
+      "allowElevation": true,
       "allowToChangeInstallationDirectory": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico",
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "HPLC绿色化学分析系统",
       "perMachine": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "license": "build/license.txt",
+      "installerHeader": "build/installer-header.bmp",
+      "installerSidebar": "build/installer-sidebar.bmp",
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": true,
+      "menuCategory": true,
+      "displayLanguageSelector": false,
+      "installerLanguages": ["zh_CN", "en_US"],
+      "language": "2052",
+      "include": "build/installer.nsh"
+    },
+    "extraMetadata": {
+      "author": "HPLC开发团队",
+      "copyright": "Copyright © 2025"
     }
   },
   "devDependencies": {

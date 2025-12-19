@@ -28,10 +28,10 @@
 }
 
 .logo-icon {
-  font-size: 120px;
-  color: white;
+  display: inline-block;
   margin-bottom: 20px;
   animation: float 3s ease-in-out infinite;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
 }
 
 @keyframes float {

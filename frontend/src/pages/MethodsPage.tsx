@@ -106,6 +106,34 @@ const MethodsPage: React.FC = () => {
             setForceRenderKey(prev => prev + 1)
             console.log('  🔄 触发强制刷新')
           }, 100)
+          
+          // 🔥 试剂库更新后，尝试自动重新计算评分（但要先检查数据完整性）
+          setTimeout(async () => {
+            try {
+              // 检查是否有基本的配置数据
+              const methodsData = await StorageHelper.getJSON(STORAGE_KEYS.METHODS)
+              const gradientData = await StorageHelper.getJSON(STORAGE_KEYS.GRADIENT)
+              
+              const hasValidConfig = (
+                methodsData &&
+                gradientData &&
+                gradientData.calculations &&
+                (methodsData.mobilePhaseA?.length > 0 || methodsData.mobilePhaseB?.length > 0 || methodsData.preTreatmentReagents?.length > 0)
+              )
+              
+              if (hasValidConfig) {
+                console.log('🎯 试剂库更新后自动重新计算评分（数据完整）')
+                calculateFullScoreAPI({ silent: true }).catch(err => {
+                  console.warn('⚠️ 自动重新计算评分失败（已忽略）:', err)
+                })
+              } else {
+                console.log('ℹ️ 跳过自动评分计算（配置数据不完整）')
+              }
+            } catch (err) {
+              console.warn('⚠️ 检查配置数据失败:', err)
+            }
+          }, 800)
+          
         } else {
           console.log('  ⚠️ 存储中没有factors数据，清空试剂列表')
           setFactorsData([])
@@ -383,14 +411,8 @@ const MethodsPage: React.FC = () => {
         loadScoreResults() // 同时重新加载评分结果
       }, 100)
       
-      // 🔄 自动重新计算评分（因为全局试剂库可能已更新）
-      setTimeout(() => {
-        console.log('🎯 MethodsPage: 自动重新计算评分（静默模式）')
-        calculateFullScoreAPI({ silent: true }).catch(err => {
-          console.warn('⚠️ 自动重新计算评分失败:', err)
-          // 静默失败，不显示错误提示
-        })
-      }, 800) // 延迟执行，等待数据加载完成
+      // 🔄 文件切换时不自动计算评分（因为loadFactorsData已经包含了智能计算逻辑）
+      console.log('ℹ️ 文件切换完成，等待用户手动触发评分计算')
       
       console.log('🔄 MethodsPage: 已强制刷新页面数据')
     }
