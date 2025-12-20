@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, globalShortcut, dialog } = require('electron')
 const path = require('path')
 const fs = require('fs').promises
+const fsSync = require('fs')
 const isDev = require('electron-is-dev')
 const { spawn } = require('child_process')
 const { autoUpdater } = require('electron-updater')
@@ -89,7 +90,7 @@ function createWindow() {
 }
 
 function startBackend() {
-  // 在生产环境启动后端服务
+  // 在生产环境启动后端服务（如果存在）
   if (!isDev) {
     const backendPath = path.join(
       process.resourcesPath,
@@ -98,21 +99,26 @@ function startBackend() {
       'hplc-backend.exe'
     )
     
-    backendProcess = spawn(backendPath, [], {
-      cwd: path.join(process.resourcesPath, 'backend'),
-    })
+    // 检查后端文件是否存在
+    if (fsSync.existsSync(backendPath)) {
+      backendProcess = spawn(backendPath, [], {
+        cwd: path.join(process.resourcesPath, 'backend'),
+      })
 
-    backendProcess.stdout.on('data', (data) => {
-      console.log(`Backend: ${data}`)
-    })
+      backendProcess.stdout.on('data', (data) => {
+        console.log(`Backend: ${data}`)
+      })
 
-    backendProcess.stderr.on('data', (data) => {
-      console.error(`Backend Error: ${data}`)
-    })
+      backendProcess.stderr.on('data', (data) => {
+        console.error(`Backend Error: ${data}`)
+      })
 
-    backendProcess.on('close', (code) => {
-      console.log(`Backend process exited with code ${code}`)
-    })
+      backendProcess.on('close', (code) => {
+        console.log(`Backend process exited with code ${code}`)
+      })
+    } else {
+      console.log('后端服务未打包，将使用远程API')
+    }
   } else {
     console.log('开发模式：请手动启动后端服务 (python backend/main.py)')
   }
