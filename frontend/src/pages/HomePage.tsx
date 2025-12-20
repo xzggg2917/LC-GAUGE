@@ -38,9 +38,10 @@ const HomePage: React.FC = () => {
           imageStyle={{ height: 120 }}
           description={
             <Space direction="vertical" size="large" style={{ marginTop: 20 }}>
-              <Title level={2}>Welcome to HPLC Green Chemistry Analysis System</Title>
+              <Title level={2}>Welcome to LC GAUGE</Title>
               <Paragraph style={{ fontSize: 16, color: '#666', maxWidth: 600, margin: '0 auto' }}>
-                Before starting analysis, please create a new file or open an existing file
+                Comprehensive green chemistry assessment for all liquid chromatography techniques (HPLC/UHPLC/SFC).
+                Please create a new file or open an existing file to begin.
               </Paragraph>
             </Space>
           }
@@ -120,13 +121,14 @@ const HomePage: React.FC = () => {
   // If file is open, show the original statistics interface
   return (
     <div>
-      <Title level={2}>Welcome to HPLC Green Chemistry Analysis System</Title>
+      <Title level={2}>Welcome to LC GAUGE</Title>
       <Paragraph>
         Current File: <Text strong>{currentFilePath}</Text>
       </Paragraph>
       <Paragraph>
-        This system integrates High Performance Liquid Chromatography (HPLC) data analysis with green chemistry assessment,
-        helping you optimize experimental protocols, reduce environmental impact, and improve experimental efficiency.
+        This system integrates Liquid Chromatography (LC) data analysis with green chemistry assessment,
+        supporting HPLC, UHPLC, SFC and other LC techniques to help you optimize experimental protocols,
+        reduce environmental impact, and improve experimental efficiency.
       </Paragraph>
 
       <Row gutter={16} style={{ marginTop: 32 }}>

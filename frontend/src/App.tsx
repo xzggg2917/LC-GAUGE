@@ -195,7 +195,10 @@ const AppContent: React.FC = () => {
         sampleCount: null,
         preTreatmentReagents: [{ id: Date.now().toString(), name: '', volume: 0 }],
         mobilePhaseA: [{ id: Date.now().toString() + '1', name: '', percentage: 0 }],
-        mobilePhaseB: [{ id: Date.now().toString() + '2', name: '', percentage: 0 }]
+        mobilePhaseB: [{ id: Date.now().toString() + '2', name: '', percentage: 0 }],
+        // 🔥 初始化能耗数据为 0（让用户输入）
+        instrumentEnergy: 0,
+        pretreatmentEnergy: 0
       },
       // 🔥 Factors由全局配置管理，新文件为空
       factors: [],
@@ -224,6 +227,10 @@ const AppContent: React.FC = () => {
     // 🔥 清空对比数据
     StorageHelper.setJSON('hplc_comparison_files', [])
     console.log('✅ App: Cleared comparison files from Electron storage')
+    
+    // 🔥 清空 methods storage,确保干净状态
+    await StorageHelper.setJSON(STORAGE_KEYS.METHODS, emptyData.methods)
+    console.log('✅ App: Cleared methods storage with empty data:', emptyData.methods)
     
     // Clear file handle, set to "Untitled" state
     setFileHandle(null)
@@ -622,7 +629,7 @@ const AppContent: React.FC = () => {
       >
         <div style={{ height: 64, display: 'flex', alignItems: 'center', padding: '0 16px' }}>
           <Title level={4} style={{ color: 'white', margin: 0, fontSize: '16px' }}>
-            HPLC Analysis
+            LC GAUGE
           </Title>
         </div>
         <Menu
@@ -657,7 +664,7 @@ const AppContent: React.FC = () => {
             flex: '0 0 auto',
             maxWidth: '600px'
           }}>
-            HPLC Green Chemistry Analysis System
+            LC GAUGE
           </Title>
           <div style={{ 
             display: 'flex', 
@@ -724,7 +731,7 @@ const AppContent: React.FC = () => {
           </VineBorder>
         </Content>
         <Footer style={{ textAlign: 'center' }}>
-          HPLC Green Chemistry Analysis System ©2025 Created with React + FastAPI
+          LC GAUGE ©2025 Dalian University of Technology
         </Footer>
       </Layout>
     </Layout>

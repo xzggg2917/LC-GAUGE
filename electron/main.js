@@ -3,6 +3,7 @@ const path = require('path')
 const fs = require('fs').promises
 const isDev = require('electron-is-dev')
 const { spawn } = require('child_process')
+const { autoUpdater } = require('electron-updater')
 
 let mainWindow
 let backendProcess
@@ -34,6 +35,34 @@ function createWindow() {
   // 开发模式打开DevTools
   if (isDev) {
     mainWindow.webContents.openDevTools()
+  }
+
+  // 🔄 配置自动更新（仅在生产环境）
+  if (!isDev) {
+    // 设置更新检查
+    autoUpdater.checkForUpdatesAndNotify()
+    
+    // 监听更新事件
+    autoUpdater.on('update-available', () => {
+      dialog.showMessageBox(mainWindow, {
+        type: 'info',
+        title: 'Update Available',
+        message: 'A new version is available. Downloading now...'
+      })
+    })
+    
+    autoUpdater.on('update-downloaded', () => {
+      dialog.showMessageBox(mainWindow, {
+        type: 'info',
+        title: 'Update Ready',
+        message: 'Update downloaded. The application will restart to install the update.',
+        buttons: ['Restart', 'Later']
+      }).then((result) => {
+        if (result.response === 0) {
+          autoUpdater.quitAndInstall()
+        }
+      })
+    })
   }
 
   mainWindow.on('closed', () => {

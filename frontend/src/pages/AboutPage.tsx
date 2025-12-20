@@ -15,17 +15,18 @@ const { Title, Paragraph, Text } = Typography
 const AboutPage: React.FC = () => {
   return (
     <div className="about-page">
-      <Title level={2}>About HPLC Green Chemistry Analysis System</Title>
+      <Title level={2}>About LC GAUGE</Title>
 
       {/* System Overview */}
       <Card title="System Overview" style={{ marginBottom: 24 }}>
         <Paragraph>
-          <Text strong>HPLC Green Chemistry Analysis System</Text> is a professional High-Performance Liquid Chromatography (HPLC) analysis platform,
-          designed to help researchers and laboratory technicians conduct <Text mark>green chemistry assessments</Text> of HPLC experimental methods.
+          <Text strong>LC GAUGE</Text> (<Text italic>Greenness Assessment Unified Generalised Evaluator</Text>) is a comprehensive Liquid Chromatography (LC) analysis platform,
+          designed to help researchers and laboratory technicians conduct <Text mark>green chemistry assessments</Text> of various LC experimental methods,
+          including HPLC, UHPLC, SFC, and other liquid chromatography techniques.
         </Paragraph>
         <Paragraph>
           Based on the twelve principles of green chemistry, this system quantitatively analyzes the environmental, health, and safety impacts of reagents used in experiments,
-          providing scientific evidence for optimizing experimental methods and reducing environmental burdens.
+          providing scientific evidence for optimizing experimental methods and reducing environmental burdens across all types of liquid chromatography applications.
         </Paragraph>
       </Card>
 
@@ -52,21 +53,21 @@ const AboutPage: React.FC = () => {
             <ExperimentOutlined style={{ fontSize: 24, color: '#52c41a', marginRight: 8 }} />
             <Text strong>Methods - Experimental Method Configuration</Text>
             <Paragraph style={{ marginTop: 8, fontSize: 14 }}>
-              Configure detailed HPLC experiment parameters:
+              Configure detailed LC experiment parameters for various techniques (HPLC/UHPLC/SFC):
               <ul>
                 <li><strong>Sample Count</strong>: Total number of samples processed</li>
                 <li><strong>Sample PreTreatment</strong>: Pretreatment reagents and volumes</li>
                 <li><strong>Mobile Phase A</strong>: Component ratio of mobile phase A</li>
                 <li><strong>Mobile Phase B</strong>: Component ratio of mobile phase B</li>
               </ul>
-              System automatically calculates reagent usage and generates green chemistry assessment charts.
+              System automatically calculates reagent usage and generates green chemistry assessment charts for all LC methods.
             </Paragraph>
           </Card>
           <Card type="inner" size="small">
             <LineChartOutlined style={{ fontSize: 24, color: '#722ed1', marginRight: 8 }} />
-            <Text strong>HPLC Gradient - Gradient Program</Text>
+            <Text strong>LC Gradient - Gradient Program</Text>
             <Paragraph style={{ marginTop: 8, fontSize: 14 }}>
-              Configure and visualize HPLC gradient elution program:
+              Configure and visualize LC gradient elution program for all chromatography types:
               <ul>
                 <li><strong>Gradient Steps</strong>: Define mobile phase ratio at each time point</li>
                 <li><strong>Flow Rate Control</strong>: Set flow rate for each segment (ml/min)</li>
@@ -133,7 +134,7 @@ const AboutPage: React.FC = () => {
       </Card>
 
       {/* Gradient Curve Type Explanation */}
-      <Card title="HPLC Gradient Curve Type Explanation" style={{ marginBottom: 24 }}>
+      <Card title="LC Gradient Curve Type Explanation" style={{ marginBottom: 24 }}>
         <Paragraph>
           System supports <Text strong>11 different gradient curve types</Text> for simulating various elution strategies.
           Each curve type is suitable for different separation needs and sample characteristics.

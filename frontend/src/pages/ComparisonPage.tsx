@@ -1272,9 +1272,9 @@ const ComparisonPage: React.FC = () => {
           {/* 第一行：前处理和仪器分析雷达图 */}
           <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
             <Col xs={24} lg={12}>
-              <Card title="Sample Preparation Stage - Major Factors">
+              <Card title={`Sample Preparation Stage - Major Factors (${filesMajorFactors.filter(f => f.preparation).length} files)`}>
                 <div style={{ width: '100%', height: '450px' }}>
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" key="prep-radar">
                     <RadarChart data={preparationRadarData} margin={{ top: 50, right: 20, bottom: 30, left: 30 }}>
                       <PolarGrid />
                       <PolarAngleAxis dataKey="subject" tick={renderCustomTick} />
@@ -1298,9 +1298,9 @@ const ComparisonPage: React.FC = () => {
               </Card>
             </Col>
             <Col xs={24} lg={12}>
-              <Card title="Instrument Analysis Stage - Major Factors">
+              <Card title={`Instrument Analysis Stage - Major Factors (${filesMajorFactors.filter(f => f.instrument).length} files)`}>
                 <div style={{ width: '100%', height: '450px' }}>
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" key="inst-radar">
                     <RadarChart data={instrumentRadarData} margin={{ top: 50, right: 20, bottom: 30, left: 30 }}>
                       <PolarGrid />
                       <PolarAngleAxis dataKey="subject" tick={renderCustomTick} />
@@ -1328,9 +1328,9 @@ const ComparisonPage: React.FC = () => {
           {/* 第二行：总体雷达图和总分饼状图 */}
           <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
             <Col xs={24} lg={12}>
-              <Card title="Overall Comparison - Major Factors Average">
+              <Card title={`Overall Comparison - Major Factors Average (${filesMajorFactors.filter(f => f.average).length} files)`}>
                 <div style={{ width: '100%', height: '450px' }}>
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" key="avg-radar">
                     <RadarChart data={averageRadarData} margin={{ top: 50, right: 20, bottom: 30, left: 30 }}>
                       <PolarGrid />
                       <PolarAngleAxis dataKey="subject" tick={renderCustomTick} />

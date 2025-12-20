@@ -194,19 +194,25 @@ const MethodsPage: React.FC = () => {
         // ⚠️ 关键：加载已有的Mobile Phase A/B到state（创建深拷贝）
         if (methodsData.mobilePhaseA && methodsData.mobilePhaseA.length > 0) {
           console.log('✅ 恢复Mobile Phase A:', methodsData.mobilePhaseA)
-          setMobilePhaseA(methodsData.mobilePhaseA.map(r => ({ ...r })))
+          setMobilePhaseA(methodsData.mobilePhaseA.map((r, index) => ({ 
+            ...r,
+            id: r.id || `phaseA_${Date.now()}_${index}` // 确保每个试剂都有唯一 id
+          })))
         }
         if (methodsData.mobilePhaseB && methodsData.mobilePhaseB.length > 0) {
           console.log('✅ 恢复Mobile Phase B:', methodsData.mobilePhaseB)
-          setMobilePhaseB(methodsData.mobilePhaseB.map(r => ({ ...r })))
+          setMobilePhaseB(methodsData.mobilePhaseB.map((r, index) => ({ 
+            ...r,
+            id: r.id || `phaseB_${Date.now()}_${index}` // 确保每个试剂都有唯一 id
+          })))
         }
         
         // 加载前处理试剂（创建完全独立的深拷贝）
         if (methodsData.preTreatmentReagents && methodsData.preTreatmentReagents.length > 0) {
           console.log('✅ 恢复前处理试剂:', methodsData.preTreatmentReagents)
-          // 创建完全独立的副本，每个对象都是新的
-          const reagentsCopy = methodsData.preTreatmentReagents.map(r => ({
-            id: r.id,
+          // 创建完全独立的副本，每个对象都是新的，确保有 id
+          const reagentsCopy = methodsData.preTreatmentReagents.map((r, index) => ({
+            id: r.id || `pretreatment_${Date.now()}_${index}`, // 确保每个试剂都有唯一 id
             name: r.name,
             volume: Number(r.volume)
           }))
@@ -239,7 +245,8 @@ const MethodsPage: React.FC = () => {
         if ((!methodsData?.mobilePhaseA || methodsData.mobilePhaseA.length === 0) && 
             gradientData.calculations.mobilePhaseA?.components?.length > 0) {
           console.log('🔄 storage中的mobilePhaseA为空，从gradient自动同步')
-          const phaseAReagents = gradientData.calculations.mobilePhaseA.components.map((c: any) => ({
+          const phaseAReagents = gradientData.calculations.mobilePhaseA.components.map((c: any, index: number) => ({
+            id: `phaseA_${Date.now()}_${index}`, // 添加唯一 id
             name: c.reagentName,
             percentage: c.percentage || 100
           }))
@@ -252,7 +259,8 @@ const MethodsPage: React.FC = () => {
         if ((!methodsData?.mobilePhaseB || methodsData.mobilePhaseB.length === 0) && 
             gradientData.calculations.mobilePhaseB?.components?.length > 0) {
           console.log('🔄 storage中的mobilePhaseB为空，从gradient自动同步')
-          const phaseBReagents = gradientData.calculations.mobilePhaseB.components.map((c: any) => ({
+          const phaseBReagents = gradientData.calculations.mobilePhaseB.components.map((c: any, index: number) => ({
+            id: `phaseB_${Date.now()}_${index}`, // 添加唯一 id
             name: c.reagentName,
             percentage: c.percentage || 100
           }))
@@ -266,7 +274,8 @@ const MethodsPage: React.FC = () => {
         if ((!methodsData?.preTreatmentReagents || methodsData.preTreatmentReagents.length === 0) && 
             gradientData.calculations.samplePreTreatment?.components?.length > 0) {
           console.log('🔄 storage中的preTreatmentReagents为空，从gradient自动同步')
-          const preTreatmentReagents = gradientData.calculations.samplePreTreatment.components.map((c: any) => ({
+          const preTreatmentReagents = gradientData.calculations.samplePreTreatment.components.map((c: any, index: number) => ({
+            id: `pretreatment_${Date.now()}_${index}`, // 添加唯一 id
             name: c.reagentName,
             volume: c.volume || 0
           }))
@@ -490,6 +499,9 @@ const MethodsPage: React.FC = () => {
     console.log('🔄 MethodsPage: Context数据变化，更新本地状态')
     lastSyncedData.current = currentDataStr
     
+    // 🔥 设置标志，表示正在从Context同步（避免触发自动保存）
+    isSyncingFromContext.current = true
+    
     // 更新所有相关数据
     setSampleCount(data.methods.sampleCount)
     setPreTreatmentReagents(data.methods.preTreatmentReagents)
@@ -504,6 +516,11 @@ const MethodsPage: React.FC = () => {
     if (data.methods.pretreatmentEnergy !== undefined) {
       setPretreatmentEnergy(data.methods.pretreatmentEnergy)
     }
+    
+    // 🔥 重置标志（在下一个事件循环中，确保状态更新已完成）
+    setTimeout(() => {
+      isSyncingFromContext.current = false
+    }, 0)
   }, [data.methods.sampleCount, data.methods.preTreatmentReagents, data.methods.mobilePhaseA, data.methods.mobilePhaseB, data.methods.instrumentEnergy, data.methods.pretreatmentEnergy])
 
   // 监听 availableReagents 变化
@@ -516,8 +533,15 @@ const MethodsPage: React.FC = () => {
   const isInitialMount = React.useRef(true)
   const isAutoCalcInitialized = React.useRef(false)  // 专门用于自动计算的初始化标志
   const lastLocalData = React.useRef<string>('')
+  const isSyncingFromContext = React.useRef(false)  // 🔥 新增：标记是否正在从Context同步
   
   useEffect(() => {
+    // 🔥 如果正在从Context同步，跳过自动保存（避免循环）
+    if (isSyncingFromContext.current) {
+      console.log('⏭️ MethodsPage: 正在从Context同步，跳过自动保存')
+      return
+    }
+    
     // 🔥 首次挂载时跳过保存，避免覆盖刚从Context加载的数据
     if (isInitialMount.current) {
       isInitialMount.current = false
@@ -1421,7 +1445,22 @@ const MethodsPage: React.FC = () => {
       )
       
       if (hasInvalidData) {
-        if (!silent) message.error('Data validation failed: invalid values detected, please check gradient and reagent configuration')
+        // 提供友好的检查提示
+        let warningMsg = 'Please check: '
+        const checks = []
+        if (!instrumentData.time_points.length) {
+          checks.push('HPLC Gradient configuration')
+        }
+        if (Object.keys(instrumentData.composition).length === 0) {
+          checks.push('Mobile Phase A/B reagent setup')
+        }
+        if (hasNaN) {
+          checks.push('numeric values (found invalid data)')
+        }
+        warningMsg += checks.join(', ')
+        
+        if (!silent) message.warning(warningMsg)
+        console.error('❌ 数据验证失败')
         console.error('❌ 数据验证失败')
         console.error('  详细信息:', {
           hasTimePoints: !!instrumentData.time_points.length,
@@ -1712,6 +1751,7 @@ const MethodsPage: React.FC = () => {
           <Row gutter={8} key={reagent.id} style={{ marginBottom: 12 }}>
             <Col span={15}>
               <Select
+                key={`pretreatment-select-${reagent.id}`}
                 style={{ width: '100%' }}
                 placeholder="Select reagent"
                 value={reagent.name || null}
@@ -1788,6 +1828,7 @@ const MethodsPage: React.FC = () => {
           <Row gutter={8} key={reagent.id} style={{ marginBottom: 12 }}>
             <Col span={15}>
               <Select
+                key={`${type}-select-${reagent.id}`}
                 style={{ width: '100%' }}
                 placeholder="Select reagent"
                 value={reagent.name || null}

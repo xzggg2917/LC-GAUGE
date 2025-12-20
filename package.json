@@ -1,19 +1,19 @@
 {
-  "name": "hplc-green-chemistry-app",
+  "name": "lc-gauge",
   "version": "1.0.0",
-  "description": "HPLC绿色化学分析桌面应用",
+  "description": "LC GAUGE - Greenness Assessment Unified Generalised Evaluator",
   "main": "electron/main.js",
   "scripts": {
     "electron:dev": "concurrently \"npm run frontend:dev\" \"wait-on http://localhost:5173 && electron .\"",
-    "electron:build": "npm run frontend:build && electron-builder",
+    "electron:build": "dotenv npm run frontend:build && electron-builder",
     "frontend:dev": "cd frontend && npm run dev",
     "frontend:build": "cd frontend && npm run build",
     "backend:dev": "cd backend && python main.py",
     "backend:build": "cd backend && pyinstaller --name=hplc-backend --onefile main.py"
   },
   "build": {
-    "appId": "com.hplc.green.chemistry",
-    "productName": "HPLC绿色化学分析系统",
+    "appId": "com.dlut.lc.gauge",
+    "productName": "LC GAUGE",
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -50,7 +50,7 @@
       "installerHeaderIcon": "build/icon.ico",
       "createDesktopShortcut": "always",
       "createStartMenuShortcut": true,
-      "shortcutName": "HPLC绿色化学分析系统",
+      "shortcutName": "LC GAUGE",
       "perMachine": true,
       "license": "build/license.txt",
       "installerHeader": "build/installer-header.bmp",
@@ -59,22 +59,33 @@
       "runAfterFinish": true,
       "menuCategory": true,
       "displayLanguageSelector": false,
-      "installerLanguages": ["zh_CN", "en_US"],
+      "installerLanguages": [
+        "zh_CN",
+        "en_US"
+      ],
       "language": "2052",
       "include": "build/installer.nsh"
     },
     "extraMetadata": {
-      "author": "HPLC开发团队",
-      "copyright": "Copyright © 2025"
+      "author": "Dalian University of Technology",
+      "copyright": "Copyright © 2025 Dalian University of Technology"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "xzggg2917",
+      "repo": "LC-GAUGE",
+      "releaseType": "release"
     }
   },
   "devDependencies": {
+    "concurrently": "^8.2.2",
+    "dotenv-cli": "^11.0.0",
     "electron": "^27.1.3",
     "electron-builder": "^24.9.1",
-    "concurrently": "^8.2.2",
     "wait-on": "^7.2.0"
   },
   "dependencies": {
-    "electron-is-dev": "^2.0.0"
+    "electron-is-dev": "^2.0.0",
+    "electron-updater": "^6.1.7"
   }
 }
