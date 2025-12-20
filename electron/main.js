@@ -29,7 +29,7 @@ function createWindow() {
   // 开发模式加载本地服务器，生产模式加载打包后的文件
   const startUrl = isDev
     ? 'http://localhost:5173'
-    : `file://${path.join(__dirname, '../frontend/dist/index.html')}`
+    : `file://${path.join(__dirname, '..', 'frontend', 'dist', 'index.html')}`
 
   mainWindow.loadURL(startUrl)
 

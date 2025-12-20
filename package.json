@@ -6,7 +6,7 @@
   "main": "electron/main.js",
   "scripts": {
     "electron:dev": "concurrently \"npm run frontend:dev\" \"wait-on http://localhost:5173 && electron .\"",
-    "electron:build": "dotenv npm run frontend:build && electron-builder",
+    "electron:build": "npm run frontend:build && electron-builder",
     "frontend:dev": "cd frontend && npm run dev",
     "frontend:build": "cd frontend && npm run build",
     "backend:dev": "cd backend && python main.py",
