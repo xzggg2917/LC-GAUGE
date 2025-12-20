@@ -39,8 +39,12 @@ function createWindow() {
 
   // 🔄 配置自动更新（仅在生产环境）
   if (!isDev) {
-    // 设置更新检查
-    autoUpdater.checkForUpdatesAndNotify()
+    // 设置更新检查（延迟启动避免阻塞）
+    setTimeout(() => {
+      autoUpdater.checkForUpdatesAndNotify().catch(err => {
+        console.log('自动更新检查失败（可能是首次发布）:', err.message)
+      })
+    }, 3000)
     
     // 监听更新事件
     autoUpdater.on('update-available', () => {
