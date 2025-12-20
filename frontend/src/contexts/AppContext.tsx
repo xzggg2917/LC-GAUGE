@@ -58,6 +58,7 @@ export interface AppData {
   lastModified: string
   owner?: string  // 文件所有者用户名
   createdAt?: string  // 创建时间
+  scoreResults?: any  // 评分结果
   methods: {
     sampleCount: number | null
     preTreatmentReagents: PreTreatmentReagent[]

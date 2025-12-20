@@ -2,6 +2,7 @@
   "name": "lc-gauge",
   "version": "1.0.0",
   "description": "LC GAUGE - Greenness Assessment Unified Generalised Evaluator",
+  "author": "Dalian University of Technology",
   "main": "electron/main.js",
   "scripts": {
     "electron:dev": "concurrently \"npm run frontend:dev\" \"wait-on http://localhost:5173 && electron .\"",
@@ -28,7 +29,9 @@
         "nsis",
         "portable"
       ],
-      "icon": "build/icon.ico"
+      "icon": "build/icon.ico",
+      "certificateFile": null,
+      "certificatePassword": null
     },
     "mac": {
       "target": "dmg",
@@ -57,7 +60,7 @@
       "installerSidebar": "build/installer-sidebar.bmp",
       "deleteAppDataOnUninstall": false,
       "runAfterFinish": true,
-      "menuCategory": true,
+      "menuCategory": false,
       "displayLanguageSelector": false,
       "installerLanguages": [
         "zh_CN",
