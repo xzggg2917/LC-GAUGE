@@ -25,6 +25,7 @@ import HPLCGradientPage from './pages/HPLCGradientPage'
 import LoginPage from './pages/LoginPage'
 import ComparisonPage from './pages/ComparisonPage'
 import VineBorder from './components/VineBorder'
+import GaugeIcon from './components/GaugeIcon'
 import { AppProvider, useAppContext } from './contexts/AppContext'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { StorageHelper, STORAGE_KEYS } from './utils/storage'
@@ -50,6 +51,32 @@ const AppContent: React.FC = () => {
     setAllData,
     isLoading
   } = useAppContext()
+  
+  // 🔧 DEBUG: AppContent渲染日志
+  console.log('🔧 DEBUG: AppContent渲染中... location.pathname:', location.pathname, 'currentFilePath:', currentFilePath, 'isLoading:', isLoading)
+  
+  // � 应用启动时预加载Factors数据（确保首次使用时试剂库已就绪）
+  useEffect(() => {
+    const preloadFactorsData = async () => {
+      try {
+        const factors = await StorageHelper.getJSON(STORAGE_KEYS.FACTORS)
+        if (!factors || factors.length === 0) {
+          console.log('ℹ️ App启动：Factors数据为空，将在访问Factors页面时自动初始化')
+        } else {
+          console.log('✅ App启动：Factors数据已就绪 (', factors.length, '个试剂)')
+        }
+      } catch (error) {
+        console.error('⚠️ App启动：预检查Factors数据失败:', error)
+      }
+    }
+    preloadFactorsData()
+  }, [])
+  
+  // �🔧 DEBUG: 监控路由变化
+  useEffect(() => {
+    console.log('🔧 DEBUG: 路由变化 -> location.pathname:', location.pathname)
+    console.log('🔧 DEBUG: 当前 isLoading:', isLoading, 'currentFilePath:', currentFilePath)
+  }, [location.pathname, isLoading, currentFilePath])
 
   // 使用ref来存储处理函数，避免Hooks规则问题
   const handleNewFileRef = useRef<(() => void) | null>(null)
@@ -198,7 +225,17 @@ const AppContent: React.FC = () => {
         mobilePhaseB: [{ id: Date.now().toString() + '2', name: '', percentage: 0 }],
         // 🔥 初始化能耗数据为 0（让用户输入）
         instrumentEnergy: 0,
-        pretreatmentEnergy: 0
+        pretreatmentEnergy: 0,
+        // 🎯 初始化权重方案为默认值
+        weightSchemes: {
+          safetyScheme: 'PBT_Balanced',
+          healthScheme: 'Absolute_Balance',
+          environmentScheme: 'PBT_Balanced',
+          instrumentStageScheme: 'Balanced',
+          prepStageScheme: 'Balanced',
+          finalScheme: 'Direct_Online',
+          customWeights: {}
+        }
       },
       // 🔥 Factors由全局配置管理，新文件为空
       factors: [],
@@ -250,6 +287,35 @@ const AppContent: React.FC = () => {
     navigate('/')
     
     message.success(`New project created (Owner: ${currentUser?.username}), please save after editing`)
+  }
+  
+  // 检查是否需要重新计算
+  const checkIfNeedsRecalculation = async (): Promise<boolean> => {
+    try {
+      const gradientData = await StorageHelper.getJSON(STORAGE_KEYS.GRADIENT)
+      
+      // 如果gradient数据不存在，或只是数组（没有calculations），需要重新计算
+      if (!gradientData) {
+        console.log('  ℹ️ No gradient data, needs recalculation')
+        return true
+      }
+      
+      if (Array.isArray(gradientData)) {
+        console.log('  ℹ️ Gradient is array (no calculations), needs recalculation')
+        return true
+      }
+      
+      if (typeof gradientData === 'object' && !('calculations' in gradientData)) {
+        console.log('  ℹ️ Gradient object missing calculations, needs recalculation')
+        return true
+      }
+      
+      console.log('  ✅ Gradient data is complete')
+      return false
+    } catch (error) {
+      console.error('Error checking gradient data:', error)
+      return true // 出错时也触发重新计算
+    }
   }
   
   // Open file
@@ -333,24 +399,24 @@ const AppContent: React.FC = () => {
         return
       }
 
-      // 检查是否为加密文件格式
+      // Check if it's encrypted file format
       if (parsedContent.encrypted && parsedContent.data) {
-        console.log('🔓 检测到旧加密文件，自动解密...')
+        console.log('🔓 Detected old encrypted file, auto-decrypting...')
         
         try {
-          // 尝试解密旧文件（不需要密码）
+          // Try to decrypt old file (no password needed)
           const decryptedJson = decryptData(parsedContent.data, '')
           
           if (!decryptedJson) {
-            throw new Error('无法解密文件')
+            throw new Error('Unable to decrypt file')
           }
           
-          // 解析解密后的数据
+          // Parse decrypted data
           const decryptedData = JSON.parse(decryptedJson)
           
-          // 验证数据格式
+          // Validate data format
           if (!decryptedData.version || !decryptedData.methods) {
-            throw new Error('文件格式不正确')
+            throw new Error('Invalid file format')
           }
           
           console.log('✅ 旧加密文件解密成功')
@@ -365,19 +431,29 @@ const AppContent: React.FC = () => {
           window.dispatchEvent(new Event('fileOpened'))
           console.log('📢 App: Triggered fileOpened event')
           
-          message.success(`文件已打开: ${fileName} (旧加密文件已自动解密)`)
+          // 检查是否需要重新计算（如果gradient数据不完整）
+          const needsRecalculation = await checkIfNeedsRecalculation()
+          if (needsRecalculation) {
+            console.log('⚠️ Gradient data incomplete, will trigger auto-calculation')
+            // 延迟触发，等待页面加载完成
+            setTimeout(() => {
+              window.dispatchEvent(new CustomEvent('autoCalculateScores', { detail: { silent: true } }))
+            }, 500)
+          }
+          
+          message.success(`File opened: ${fileName} (Old encrypted file auto-decrypted)`)
         } catch (error: any) {
-          message.error('解密文件失败: ' + error.message)
-          console.error('解密失败:', error)
+          message.error('Failed to decrypt file: ' + error.message)
+          console.error('Decryption failed:', error)
           return
         }
       } else {
-        // 非加密文件，直接加载
-        console.log('📂 打开非加密文件')
+        // Non-encrypted file, load directly
+        console.log('📂 Opening non-encrypted file')
         
-        // 验证数据格式
+        // Validate data format
         if (!parsedContent.version || !parsedContent.methods) {
-          throw new Error('文件格式不正确')
+          throw new Error('Invalid file format')
         }
         
         // 直接加载数据
@@ -390,7 +466,17 @@ const AppContent: React.FC = () => {
         window.dispatchEvent(new Event('fileOpened'))
         console.log('📢 App: Triggered fileOpened event')
         
-        message.success(`文件已打开: ${fileName}`)
+        // 检查是否需要重新计算（如果gradient数据不完整）
+        const needsRecalculation = await checkIfNeedsRecalculation()
+        if (needsRecalculation) {
+          console.log('⚠️ Gradient data incomplete, will trigger auto-calculation')
+          // 延迟触发，等待页面加载完成
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('autoCalculateScores', { detail: { silent: true } }))
+          }, 500)
+        }
+        
+        message.success(`File opened: ${fileName}`)
       }
       
     } catch (error: any) {
@@ -616,6 +702,7 @@ const AppContent: React.FC = () => {
   return (
     <Layout style={{ minHeight: '100vh' }}>
       <Sider
+        width={200}
         breakpoint={undefined}
         collapsedWidth="0"
         style={{
@@ -627,7 +714,14 @@ const AppContent: React.FC = () => {
           bottom: 0,
         }}
       >
-        <div style={{ height: 64, display: 'flex', alignItems: 'center', padding: '0 16px' }}>
+        <div style={{ 
+          height: 64, 
+          display: 'flex', 
+          alignItems: 'center', 
+          padding: '0 16px',
+          gap: '12px'
+        }}>
+          <GaugeIcon size={32} />
           <Title level={4} style={{ color: 'white', margin: 0, fontSize: '16px' }}>
             LC GAUGE
           </Title>
@@ -642,27 +736,24 @@ const AppContent: React.FC = () => {
           triggerSubMenuAction="hover"
         />
       </Sider>
-      <Layout className="site-layout">
+      <Layout className="site-layout" style={{ marginLeft: 200 }}>
         <Header style={{ 
-          padding: '0 24px', 
+          padding: '0 16px', 
           background: '#fff', 
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'space-between',
           height: '64px',
-          lineHeight: '64px',
-          minWidth: 0,
-          overflow: 'hidden'
+          minHeight: '64px',
+          gap: '16px',
+          flexWrap: 'nowrap'
         }}>
           <Title level={3} style={{ 
             padding: 0, 
             margin: 0, 
             fontSize: '20px',
             whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            flex: '0 0 auto',
-            maxWidth: '600px'
+            flex: '0 0 auto'
           }}>
             LC GAUGE
           </Title>
@@ -670,9 +761,9 @@ const AppContent: React.FC = () => {
             display: 'flex', 
             alignItems: 'center', 
             gap: '12px',
-            flex: '0 0 auto',
+            flex: '1 1 auto',
             minWidth: 0,
-            flexShrink: 0
+            justifyContent: 'flex-end'
           }}>
             {currentFilePath && (
               <span style={{ 
@@ -681,8 +772,8 @@ const AppContent: React.FC = () => {
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
-                maxWidth: '250px',
-                display: 'inline-block'
+                minWidth: 0,
+                flex: '0 1 auto'
               }}>
                 Current File: {currentFilePath}
                 {currentFilePath === 'Untitled Project.json' && <span style={{ fontSize: 12, marginLeft: 8 }}>(Not saved yet)</span>}
@@ -731,7 +822,7 @@ const AppContent: React.FC = () => {
           </VineBorder>
         </Content>
         <Footer style={{ textAlign: 'center' }}>
-          LC GAUGE ©2025 Dalian University of Technology
+          {/* LC GAUGE ©2025 Dalian University of Technology */}
         </Footer>
       </Layout>
     </Layout>

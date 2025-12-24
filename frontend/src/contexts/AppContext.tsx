@@ -75,6 +75,14 @@ export interface AppData {
       instrumentStageScheme?: string
       prepStageScheme?: string
       finalScheme?: string
+      // 自定义权重配置（仅当方案为Custom时使用）
+      customWeights?: {
+        safety?: Record<string, number>  // S1, S2, S3, S4
+        health?: Record<string, number>  // H1, H2
+        environment?: Record<string, number>  // E1, E2, E3
+        stage?: Record<string, number>  // S, H, E, R, D, P
+        final?: Record<string, number>  // instrument, preparation
+      }
     }
   }
   factors: ReagentFactor[]
@@ -122,7 +130,8 @@ const getDefaultData = (): AppData => ({
       environmentScheme: 'PBT_Balanced',
       instrumentStageScheme: 'Balanced',
       prepStageScheme: 'Balanced',
-      finalScheme: 'Direct_Online'
+      finalScheme: 'Direct_Online',
+      customWeights: {}
     }
   },
   factors: [],
@@ -175,7 +184,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             ...(savedMethods || {}),
             // 确保新字段有默认值
             instrumentEnergy: savedMethods?.instrumentEnergy ?? 0,
-            pretreatmentEnergy: savedMethods?.pretreatmentEnergy ?? 0
+            pretreatmentEnergy: savedMethods?.pretreatmentEnergy ?? 0,
+            // 深度合并 weightSchemes，确保 customWeights 不会被丢失
+            weightSchemes: {
+              ...getDefaultData().methods.weightSchemes,
+              ...(savedMethods?.weightSchemes || {}),
+              customWeights: savedMethods?.weightSchemes?.customWeights || {}
+            }
           },
           factors: savedFactors || [],
           gradient: gradientSteps
@@ -348,29 +363,62 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     
     setData(processedData)
     
+    // 🎯 确保methods数据包含weightSchemes（兼容旧文件）
+    const methodsDataToSave = {
+      ...newData.methods,
+      weightSchemes: newData.methods.weightSchemes || {
+        safetyScheme: 'PBT_Balanced',
+        healthScheme: 'Absolute_Balance',
+        environmentScheme: 'PBT_Balanced',
+        instrumentStageScheme: 'Balanced',
+        prepStageScheme: 'Balanced',
+        finalScheme: 'Direct_Online',
+        customWeights: {}
+      }
+    }
+    
     // 同步到存储（⚠️ 注意：factors不保存，保持全局独立）
     console.log('  💾 准备保存methods到存储:')
     console.log('    - preTreatmentReagents:', newData.methods.preTreatmentReagents?.length, '个')
     console.log('    - preTreatmentReagents详情:', newData.methods.preTreatmentReagents)
     console.log('    - mobilePhaseA:', newData.methods.mobilePhaseA?.length, '个')
     console.log('    - mobilePhaseB:', newData.methods.mobilePhaseB?.length, '个')
-    await StorageHelper.setJSON(STORAGE_KEYS.METHODS, newData.methods)
-    console.log('  ✅ 已更新methods到存储')
+    console.log('    - weightSchemes:', methodsDataToSave.weightSchemes)
+    await StorageHelper.setJSON(STORAGE_KEYS.METHODS, methodsDataToSave)
+    console.log('  ✅ 已更新methods到存储（包含weightSchemes）')
     console.log('  ℹ️ Factors保持全局配置不变（', factorsToUse.length, '个试剂）')
     
-    // gradient数据需要特殊处理
+    // 🎯 gradient数据需要特殊处理 - 保持完整对象以保留calculations
     if (Array.isArray(newData.gradient)) {
       if (newData.gradient.length === 0) {
         // 如果是空数组（新建文件），清除存储中的gradient数据
         console.log('  🗑️ 清除存储中的gradient数据（新建文件）')
         await storage.removeItem(STORAGE_KEYS.GRADIENT)
       } else {
-        // 如果是非空数组，直接存储（但这不包含calculations，柱状图会是空的）
-        console.log('  ⚠️ 警告：存储的是gradient数组，不包含calculations数据')
-        await StorageHelper.setJSON(STORAGE_KEYS.GRADIENT, newData.gradient)
+        // 如果是非空数组，尝试保留原有的calculations（如果存在）
+        console.log('  ⚠️ gradient是数组格式，尝试保留原有calculations')
+        try {
+          const existingGradient = await StorageHelper.getJSON(STORAGE_KEYS.GRADIENT)
+          if (existingGradient && typeof existingGradient === 'object' && 'calculations' in existingGradient) {
+            // 保留calculations，只更新steps
+            const gradientToSave = {
+              ...existingGradient,
+              steps: newData.gradient
+            }
+            console.log('  ✅ 保留了原有的calculations，更新steps')
+            await StorageHelper.setJSON(STORAGE_KEYS.GRADIENT, gradientToSave)
+          } else {
+            // 没有原有calculations，只保存数组（图表会为空）
+            console.log('  ⚠️ 没有原有calculations，只保存数组')
+            await StorageHelper.setJSON(STORAGE_KEYS.GRADIENT, newData.gradient)
+          }
+        } catch (error) {
+          console.error('  ❌ 读取原有gradient失败，只保存数组:', error)
+          await StorageHelper.setJSON(STORAGE_KEYS.GRADIENT, newData.gradient)
+        }
       }
-    } else {
-      // 如果是完整对象（包含计算结果），存储完整对象供Methods页面使用
+    } else if (newData.gradient && typeof newData.gradient === 'object') {
+      // 如果是完整对象（包含calculations），直接存储供Methods页面使用
       console.log('  ✅ 存储完整gradient对象，包含calculations数据')
       await StorageHelper.setJSON(STORAGE_KEYS.GRADIENT, newData.gradient)
     }
@@ -397,6 +445,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }
 
   const exportData = async (): Promise<AppData> => {
+    // 🎯 从storage读取最新的methods数据（包含weightSchemes和customWeights）
+    let methodsDataToSave = data.methods
+    try {
+      const storageMethods = await StorageHelper.getJSON(STORAGE_KEYS.METHODS)
+      if (storageMethods) {
+        console.log('📦 exportData: 使用storage中的最新methods数据（包含weightSchemes）')
+        methodsDataToSave = storageMethods
+      }
+    } catch (error) {
+      console.error('读取存储methods数据失败:', error)
+    }
+    
     // 尝试从存储获取完整的gradient数据（包含calculations）
     let gradientDataToSave: any = data.gradient
     try {
@@ -430,6 +490,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     // 每个方法文件只保存methods和gradient数据
     return {
       ...data,
+      methods: methodsDataToSave, // 🎯 使用storage中的最新数据
       factors: [], // 不保存factors到文件
       gradient: gradientDataToSave as any,
       scoreResults: scoreResultsToSave, // 添加评分结果

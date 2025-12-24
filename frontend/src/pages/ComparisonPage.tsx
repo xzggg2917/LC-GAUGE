@@ -538,27 +538,27 @@ const ComparisonPage: React.FC = () => {
         return false
       }
 
-      // 检查是否为加密文件
+      // Check if it's an encrypted file
       if (parsedContent.encrypted && parsedContent.data) {
-        console.log('� 检测到旧加密文件，自动解密...')
+        console.log('🔓 Detected old encrypted file, auto-decrypting...')
         try {
-          // 尝试解密旧文件（不需要密码）
+          // Try to decrypt old file (no password needed)
           const decryptedData = decryptData(parsedContent.data, '')
           
           if (!decryptedData) {
-            throw new Error('无法解密文件')
+            throw new Error('Unable to decrypt file')
           }
           
           const parsedData = JSON.parse(decryptedData)
-          console.log('✅ 旧加密文件解密成功')
+          console.log('✅ Old encrypted file decrypted successfully')
           await processDecryptedData(parsedData, file.name)
         } catch (error) {
-          console.error('解密失败:', error)
-          message.error(`解密文件失败: ${error instanceof Error ? error.message : '未知错误'}`)
+          console.error('Decryption failed:', error)
+          message.error(`Failed to decrypt file: ${error instanceof Error ? error.message : 'Unknown error'}`)
         }
         setLoading(false)
       } else {
-        console.log('📂 非加密文件')
+        console.log('📂 Non-encrypted file')
         await processDecryptedData(parsedContent, file.name)
         setLoading(false)
       }
@@ -1222,7 +1222,7 @@ const ComparisonPage: React.FC = () => {
         <SwapOutlined /> Method Comparison
       </Title>
       <Paragraph>
-        Upload multiple HPLC method files to compare their green chemistry performance across different dimensions.
+        Upload multiple LC method files to compare their green chemistry performance across different dimensions.
       </Paragraph>
 
       <Card style={{ marginBottom: 24 }}>
@@ -1236,7 +1236,7 @@ const ComparisonPage: React.FC = () => {
               disabled={loading}
             >
               <Button icon={<UploadOutlined />} loading={loading}>
-                Upload HPLC Files
+                Upload LC Files
               </Button>
             </Upload>
             <Text type="secondary" style={{ marginLeft: 16 }}>
@@ -1253,7 +1253,7 @@ const ComparisonPage: React.FC = () => {
 
       {uniqueFiles.length === 0 ? (
         <Card>
-          <Empty description="No files uploaded. Please upload at least one HPLC method file to start comparison." />
+          <Empty description="No files uploaded. Please upload at least one LC method file to start comparison." />
         </Card>
       ) : (
         <>

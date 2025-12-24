@@ -1,5 +1,6 @@
 import React from 'react'
 import { Card, Typography, Row, Col, Timeline, Tag, Image } from 'antd'
+import gradientCurvesImage from '../assets/gradient_curves.png'
 import { 
   ExperimentOutlined, 
   BarChartOutlined, 
@@ -144,7 +145,7 @@ const AboutPage: React.FC = () => {
           <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start' }}>
             <div style={{ flex: '0 0 50%', textAlign: 'center' }}>
               <Image
-                src="/gradient_curves.png"
+                src={gradientCurvesImage}
                 alt="11 gradient curve comparison chart"
                 width="100%"
                 preview={true}

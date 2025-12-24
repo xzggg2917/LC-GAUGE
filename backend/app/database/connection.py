@@ -26,8 +26,10 @@ Base = declarative_base()
 
 async def init_db():
     """初始化数据库"""
-    # 确保数据目录存在
-    os.makedirs("./data", exist_ok=True)
+    from app.core.config import DATA_DIR
+    
+    # 确保数据目录存在（已在config.py中创建，这里再次确认）
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
     
     # 创建所有表
     async with engine.begin() as conn:

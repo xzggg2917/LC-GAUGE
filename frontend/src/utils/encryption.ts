@@ -19,12 +19,12 @@ export const decryptData = (encryptedData: string, password: string = ''): strin
     const combined = decodeURIComponent(escape(atob(encryptedData)))
     const separator = '::HPLC_SEPARATOR::'
     
-    console.log('🔓 解密旧加密文件（兼容模式）')
+    console.log('\uD83D\uDD13 Decrypting file (compatibility mode)')
     
-    // 检查是否包含分隔符（带密码的格式）
+    // Check if it contains separator (password-protected format)
     if (!combined.includes(separator)) {
-      // 旧格式：直接 Base64 编码，没有密码验证
-      console.log('✅ 旧格式文件（无密码），直接返回数据')
+      // Old format: direct Base64 encoding, no password verification
+      console.log('\u2705 Old format file (no password), returning data directly')
       return combined
     }
     
@@ -32,13 +32,13 @@ export const decryptData = (encryptedData: string, password: string = ''): strin
     const data = parts[0]
     const storedPassword = parts[1]
     
-    console.log('✅ 带密码格式文件，忽略密码验证，返回数据')
+    console.log('✅ Password-protected format file, bypassing password verification, returning data')
     
-    // 不再验证密码，直接返回数据（向后兼容）
+    // No longer verifying password, directly return data (backward compatibility)
     return data
   } catch (error) {
-    console.error('解密失败:', error)
-    // 解密失败时返回null，让调用者处理
+    console.error('Decryption failed:', error)
+    // Return empty string on decryption failure, let caller handle it
     return ''
   }
 }

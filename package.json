@@ -1,6 +1,6 @@
 {
   "name": "lc-gauge",
-  "version": "1.0.0",
+  "version": "1.0.9",
   "description": "LC GAUGE - Greenness Assessment Unified Generalised Evaluator",
   "author": "Dalian University of Technology",
   "main": "electron/main.js",
@@ -14,14 +14,21 @@
   },
   "build": {
     "appId": "com.dlut.lc.gauge",
-    "productName": "LC GAUGE",
+    "productName": "LC-GAUGE",
     "directories": {
-      "output": "dist",
+      "output": "dist-final",
       "buildResources": "build"
     },
     "files": [
       "electron/**/*",
       "frontend/dist/**/*",
+      "backend/dist/hplc-backend.exe",
+      "!backend/**/*.py",
+      "!backend/**/*.pyc",
+      "!backend/.venv/**",
+      "!backend/__pycache__/**"
+    ],
+    "asarUnpack": [
       "backend/dist/**/*"
     ],
     "win": {
@@ -29,7 +36,6 @@
         "nsis",
         "portable"
       ],
-      "icon": "build/icon.ico",
       "certificateFile": null,
       "certificatePassword": null
     },
@@ -61,23 +67,21 @@
       "deleteAppDataOnUninstall": false,
       "runAfterFinish": true,
       "menuCategory": false,
-      "displayLanguageSelector": false,
-      "installerLanguages": [
-        "zh_CN",
-        "en_US"
-      ],
-      "language": "2052",
-      "include": "build/installer.nsh"
+      "language": "1033",
+      "include": "build/installer.nsh",
+      "differentialPackage": true,
+      "artifactName": "${productName} Setup ${version}.${ext}",
+      "warningsAsErrors": false
     },
     "extraMetadata": {
-      "author": "Dalian University of Technology",
-      "copyright": "Copyright © 2025 Dalian University of Technology"
+      "author": "LC GAUGE Team"
     },
     "publish": {
       "provider": "github",
       "owner": "xzggg2917",
       "repo": "LC-GAUGE",
-      "releaseType": "release"
+      "releaseType": "release",
+      "publishAutoUpdate": true
     }
   },
   "devDependencies": {

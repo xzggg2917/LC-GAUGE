@@ -197,14 +197,14 @@ async def calculate_full_score(request: FullScoreRequest):
     - schemes: 使用的权重方案
     """
     try:
-        # 🔥 首先打印接收到的原始数据
+        # DEBUG: Print received data
         print("\n" + "=" * 80)
-        print("🔍 后端接收到的P/R/D因子（分阶段）:")
-        print(f"  仪器分析阶段:")
+        print("[Backend] Received P/R/D factors:")
+        print(f"  Instrument Stage:")
         print(f"    p_factor = {request.p_factor}")
         print(f"    instrument_r_factor = {request.instrument_r_factor}")
         print(f"    instrument_d_factor = {request.instrument_d_factor}")
-        print(f"  前处理阶段:")
+        print(f"  Pretreatment Stage:")
         print(f"    pretreatment_p_factor = {request.pretreatment_p_factor}")
         print(f"    pretreatment_r_factor = {request.pretreatment_r_factor}")
         print(f"    pretreatment_d_factor = {request.pretreatment_d_factor}")
@@ -273,7 +273,10 @@ async def calculate_full_score(request: FullScoreRequest):
             environment_scheme=request.environment_scheme,
             instrument_stage_scheme=request.instrument_stage_scheme,
             prep_stage_scheme=request.prep_stage_scheme,
-            final_scheme=request.final_scheme
+            final_scheme=request.final_scheme,
+            
+            # 自定义权重（如果提供）
+            custom_weights=request.custom_weights
         )
         
         # 打印调试信息

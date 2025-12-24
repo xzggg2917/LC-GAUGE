@@ -184,15 +184,15 @@ const TablePage: React.FC = () => {
   useEffect(() => {
     loadAllData()
 
-    // 监听数据更新
+    // Listen for data updates
     const handleDataUpdate = () => {
-      console.log('🔔 TablePage: 检测到数据更新，重新加载表格...')
+      console.log('🔔 TablePage: Detected data update, reloading table...')
       loadAllData()
     }
     
     const handleFactorsDataUpdated = () => {
-      console.log('📢 TablePage: Factors数据已变化，触发重新计算')
-      // Factors 数据变化，需要触发 Methods 重新计算
+      console.log('📢 TablePage: Factors data changed, triggering recalculation')
+      // Factors data changed, need to trigger Methods recalculation
       window.dispatchEvent(new CustomEvent('requestScoreRecalculation'))
       // 延迟一点加载数据，等待计算完成
       setTimeout(() => {
@@ -200,9 +200,9 @@ const TablePage: React.FC = () => {
       }, 100)
     }
     
-    // 监听文件数据变更事件
+    // Listen for file data change events
     const handleFileDataChanged = () => {
-      console.log('📢 TablePage: 接收到 fileDataChanged 事件，立即重新加载')
+      console.log('📢 TablePage: Received fileDataChanged event, reloading immediately')
       loadAllData()
     }
 
@@ -653,7 +653,7 @@ const TablePage: React.FC = () => {
       ) : (
         <>
           {/* Total Score Summary - 三组数据对比 */}
-          <Card title="Green Chemistry Assessment Total Scores" style={{ marginBottom: 24 }}>
+          <Card title="Green Analytical Chemistry Assessment Total Scores" style={{ marginBottom: 24 }}>
             {totalScores?.weights && (
               <Alert 
                 message={`Weight Scheme: Instrument Analysis ${(totalScores.weights.instrument * 100).toFixed(0)}% + Sample PreTreatment ${(totalScores.weights.preparation * 100).toFixed(0)}%`}

@@ -7,6 +7,7 @@ import { useAppContext } from '../contexts/AppContext'
 import api from '../services/api'
 import type { Reagent, PreTreatmentReagent, ReagentFactor } from '../contexts/AppContext'
 import { StorageHelper, STORAGE_KEYS } from '../utils/storage'
+import CustomWeightModal from '../components/CustomWeightModal'
 import './MethodsPage.css'
 
 const { Title } = Typography
@@ -34,9 +35,20 @@ const MethodsPage: React.FC = () => {
   const [environmentScheme, setEnvironmentScheme] = useState<string>(data.methods.weightSchemes?.environmentScheme || 'PBT_Balanced')
   const [stageScheme, setStageScheme] = useState<string>(data.methods.weightSchemes?.instrumentStageScheme || 'Balanced')
   const [finalScheme, setFinalScheme] = useState<string>(data.methods.weightSchemes?.finalScheme || 'Direct_Online')
+  
+  // 自定义权重状态
+  const [customWeights, setCustomWeights] = useState<any>(() => {
+    const initial = data.methods.weightSchemes?.customWeights || {};
+    console.log('🎯 [Init] customWeights初始值:', initial);
+    console.log('🎯 [Init] data.methods.weightSchemes:', data.methods.weightSchemes);
+    return initial;
+  })
+  const [customWeightModalVisible, setCustomWeightModalVisible] = useState<boolean>(false)
+  const [customWeightType, setCustomWeightType] = useState<'safety' | 'health' | 'environment' | 'stage' | 'final'>('safety')
 
   // 评分结果状态（新增）
   const [scoreResults, setScoreResults] = useState<any>(null)
+
   const [isCalculatingScore, setIsCalculatingScore] = useState<boolean>(false)
   const [availableSchemes, setAvailableSchemes] = useState<any>(null)
 
@@ -175,22 +187,43 @@ const MethodsPage: React.FC = () => {
       
       // 加载 Methods 数据（包括权重方案、能耗、Mobile Phase等）
       const methodsData = await StorageHelper.getJSON(STORAGE_KEYS.METHODS)
-      console.log('📋 加载到的Methods数据:', methodsData)
+      console.log('📋 [loadAllData] 加载到的Methods数据:', methodsData)
+      console.log('📋 [loadAllData] weightSchemes:', methodsData?.weightSchemes)
+      console.log('📋 [loadAllData] customWeights from storage:', methodsData?.weightSchemes?.customWeights)
       
       // ✅ 先加载所有现有数据到state（确保数据不丢失）
       if (methodsData) {
         // 加载权重方案
         if (methodsData.weightSchemes) {
-          console.log('✅ 恢复权重方案:', methodsData.weightSchemes)
+          console.log('✅ [loadAllData] 恢复权重方案:', methodsData.weightSchemes)
           setSafetyScheme(methodsData.weightSchemes.safetyScheme || 'PBT_Balanced')
           setHealthScheme(methodsData.weightSchemes.healthScheme || 'Absolute_Balance')
           setEnvironmentScheme(methodsData.weightSchemes.environmentScheme || 'PBT_Balanced')
           setStageScheme(methodsData.weightSchemes.instrumentStageScheme || 'Balanced')
           setFinalScheme(methodsData.weightSchemes.finalScheme || 'Direct_Online')
+          
+          // 恢复自定义权重
+          const restoredCustomWeights = methodsData.weightSchemes.customWeights || {};
+          console.log('✅ [loadAllData] 即将设置customWeights到state:', restoredCustomWeights);
+          setCustomWeights(restoredCustomWeights);
+          console.log('✅ [loadAllData] customWeights已设置完成');
+        } else {
+          console.log('⚠️ [loadAllData] weightSchemes不存在，设置默认值');
+          setSafetyScheme('PBT_Balanced')
+          setHealthScheme('Absolute_Balance')
+          setEnvironmentScheme('PBT_Balanced')
+          setStageScheme('Balanced')
+          setFinalScheme('Direct_Online')
+          setCustomWeights({})
         }
-        
-        // ⚠️ 能耗数据不在此处加载，由独立的useEffect管理（避免被刷新覆盖）
-        
+      } else {
+        console.log('⚠️ [loadAllData] methodsData不存在，设置默认值');
+        setCustomWeights({})
+      }
+      
+      // ⚠️ 能耗数据不在此处加载，由独立的useEffect管理（避免被刷新覆盖）
+      
+      if (methodsData) {
         // ⚠️ 关键：加载已有的Mobile Phase A/B到state（创建深拷贝）
         if (methodsData.mobilePhaseA && methodsData.mobilePhaseA.length > 0) {
           console.log('✅ 恢复Mobile Phase A:', methodsData.mobilePhaseA)
@@ -348,13 +381,31 @@ const MethodsPage: React.FC = () => {
       const verifyData = async () => {
         // 恢复权重方案（每次都要加载）
         const methodsData = await StorageHelper.getJSON(STORAGE_KEYS.METHODS)
+        console.log('📋 [verifyData] 读取到的Methods数据:', methodsData)
+        console.log('📋 [verifyData] weightSchemes:', methodsData?.weightSchemes)
+        console.log('📋 [verifyData] customWeights from storage:', methodsData?.weightSchemes?.customWeights)
+        
         if (methodsData?.weightSchemes) {
-          console.log('✅ 恢复权重方案:', methodsData.weightSchemes)
+          console.log('✅ [verifyData] 恢复权重方案:', methodsData.weightSchemes)
           setSafetyScheme(methodsData.weightSchemes.safetyScheme || 'PBT_Balanced')
           setHealthScheme(methodsData.weightSchemes.healthScheme || 'Absolute_Balance')
           setEnvironmentScheme(methodsData.weightSchemes.environmentScheme || 'PBT_Balanced')
           setStageScheme(methodsData.weightSchemes.instrumentStageScheme || 'Balanced')
           setFinalScheme(methodsData.weightSchemes.finalScheme || 'Direct_Online')
+          
+          // 恢复自定义权重
+          const restoredCustomWeights = methodsData.weightSchemes.customWeights || {};
+          console.log('✅ [verifyData] 即将设置customWeights到state:', restoredCustomWeights);
+          setCustomWeights(restoredCustomWeights);
+          console.log('✅ [verifyData] customWeights已设置完成');
+        } else {
+          console.log('⚠️ [verifyData] weightSchemes不存在，设置默认值');
+          setSafetyScheme('PBT_Balanced')
+          setHealthScheme('Absolute_Balance')
+          setEnvironmentScheme('PBT_Balanced')
+          setStageScheme('Balanced')
+          setFinalScheme('Direct_Online')
+          setCustomWeights({})
         }
         
         const factors = await StorageHelper.getJSON<any[]>(STORAGE_KEYS.FACTORS)
@@ -400,7 +451,7 @@ const MethodsPage: React.FC = () => {
         // 如果gradient是数组或没有calculations，提示用户需要重新计算
         if (Array.isArray(gradientData) || !gradientData.calculations) {
           console.warn('⚠️ 打开的文件缺少gradient calculations数据')
-          message.warning('This file is missing gradient calculation data. Please go to HPLC Gradient Prg page and click "Confirm" to recalculate', 5)
+          message.warning('This file is missing gradient calculation data. Please go to Time Gradient Curve page and click "Confirm" to recalculate', 5)
         }
       }
     }
@@ -409,9 +460,40 @@ const MethodsPage: React.FC = () => {
     const checkTimer = setTimeout(checkGradientDataOnLoad, 500)
     
     // 监听文件数据变更事件（打开文件、新建文件时触发）
-    const handleFileDataChanged = (e: Event) => {
+    const handleFileDataChanged = async (e: Event) => {
       const customEvent = e as CustomEvent
       console.log('📢 MethodsPage: 接收到 fileDataChanged 事件', customEvent.detail)
+      
+      // 🎯 恢复权重方案和自定义权重（防止文件污染）
+      const methodsData = await StorageHelper.getJSON(STORAGE_KEYS.METHODS)
+      console.log('📋 [文件切换] 读取到的Methods数据:', methodsData)
+      console.log('📋 [文件切换] weightSchemes:', methodsData?.weightSchemes)
+      console.log('📋 [文件切换] customWeights from storage:', methodsData?.weightSchemes?.customWeights)
+      
+      if (methodsData?.weightSchemes) {
+        console.log('✅ [文件切换] 恢复权重方案:', methodsData.weightSchemes)
+        setSafetyScheme(methodsData.weightSchemes.safetyScheme || 'PBT_Balanced')
+        setHealthScheme(methodsData.weightSchemes.healthScheme || 'Absolute_Balance')
+        setEnvironmentScheme(methodsData.weightSchemes.environmentScheme || 'PBT_Balanced')
+        setStageScheme(methodsData.weightSchemes.instrumentStageScheme || 'Balanced')
+        setFinalScheme(methodsData.weightSchemes.finalScheme || 'Direct_Online')
+        
+        // 恢复自定义权重
+        const restoredCustomWeights = methodsData.weightSchemes.customWeights || {};
+        console.log('✅ [文件切换] 即将设置customWeights到state:', restoredCustomWeights);
+        setCustomWeights(restoredCustomWeights);
+        console.log('✅ [文件切换] customWeights已设置完成');
+      } else {
+        // 如果是新文件，重置为默认值
+        console.log('ℹ️ [文件切换] 新文件或没有weightSchemes，重置为默认权重方案')
+        setSafetyScheme('PBT_Balanced')
+        setHealthScheme('Absolute_Balance')
+        setEnvironmentScheme('PBT_Balanced')
+        setStageScheme('Balanced')
+        setFinalScheme('Direct_Online')
+        setCustomWeights({})
+        console.log('✅ [文件切换] 已重置为默认值');
+      }
       
       // 延迟重新加载factors数据（等待FactorsPage初始化预定义数据）
       setTimeout(() => {
@@ -579,7 +661,8 @@ const MethodsPage: React.FC = () => {
           environmentScheme,
           instrumentStageScheme: stageScheme,
           prepStageScheme: stageScheme,
-          finalScheme
+          finalScheme,
+          customWeights: customWeights  // 🎯 保留自定义权重
         }
       }
       
@@ -1127,11 +1210,12 @@ const MethodsPage: React.FC = () => {
   }
 
   // 计算完整评分（调用后端API）
-  const calculateFullScoreAPI = async (options?: { silent?: boolean }) => {
+  const calculateFullScoreAPI = async (options?: { silent?: boolean; overrides?: any }) => {
     const silent = options?.silent || false
+    const overrides = options?.overrides || {}
     setIsCalculatingScore(true)
     
-    console.log('🚀 开始执行 calculateFullScoreAPI, silent:', silent)
+    console.log('🚀 开始执行 calculateFullScoreAPI, silent:', silent, 'overrides:', overrides)
     
     try {
       // 1. 获取梯度数据
@@ -1402,12 +1486,13 @@ const MethodsPage: React.FC = () => {
         instrument_d_factor: Number(instrument_d),  // 确保是数字类型
         pretreatment_r_factor: Number(pretreatment_r),  // 确保是数字类型
         pretreatment_d_factor: Number(pretreatment_d),  // 确保是数字类型
-        safety_scheme: safetyScheme,
-        health_scheme: healthScheme,
-        environment_scheme: environmentScheme,
-        instrument_stage_scheme: stageScheme,
-        prep_stage_scheme: stageScheme,
-        final_scheme: finalScheme
+        safety_scheme: overrides.safetyScheme || safetyScheme,
+        health_scheme: overrides.healthScheme || healthScheme,
+        environment_scheme: overrides.environmentScheme || environmentScheme,
+        instrument_stage_scheme: overrides.stageScheme || stageScheme,
+        prep_stage_scheme: overrides.stageScheme || stageScheme,
+        final_scheme: overrides.finalScheme || finalScheme,
+        custom_weights: overrides.customWeights || customWeights
       }
 
       // 打印请求数据（使用字符串拼接避免对象展开问题）
@@ -1701,14 +1786,29 @@ const MethodsPage: React.FC = () => {
     const validMobilePhaseA = mobilePhaseA.filter(r => r.name && r.name.trim() && r.percentage > 0)
     const validMobilePhaseB = mobilePhaseB.filter(r => r.name && r.name.trim() && r.percentage > 0)
     
+    // 🎯 读取现有数据，保留weightSchemes和customWeights
+    const existingData = await StorageHelper.getJSON<any>(STORAGE_KEYS.METHODS) || {}
+    
     // 保存到StorageHelper（供后续模块使用）
     await StorageHelper.setJSON(STORAGE_KEYS.METHODS, {
+      ...existingData,
       sampleCount,
       preTreatmentReagents: validPreTreatmentReagents,
       mobilePhaseA: validMobilePhaseA,
       mobilePhaseB: validMobilePhaseB,
       instrumentEnergy,
-      pretreatmentEnergy
+      pretreatmentEnergy,
+      // 🎯 保留权重方案和自定义权重
+      weightSchemes: {
+        ...existingData.weightSchemes,
+        safetyScheme,
+        healthScheme,
+        environmentScheme,
+        instrumentStageScheme: stageScheme,
+        prepStageScheme: stageScheme,
+        finalScheme,
+        customWeights: customWeights
+      }
     })
 
     // 更新 Context
@@ -1929,73 +2029,188 @@ const MethodsPage: React.FC = () => {
         {/* 权重方案配置 - 竖向布局确保内容完整显示 */}
         <Row gutter={16}>
           <Col span={8}>
-            <div style={{ marginBottom: 8, fontSize: 13, fontWeight: 500 }}>Safety Factor (S) Weight Scheme <Tooltip title="S1-Release Potential, S2-Fire/Explosion, S3-Reaction/Decomposition, S4-Acute Toxicity"><QuestionCircleOutlined style={{ marginLeft: 4, color: '#1890ff' }} /></Tooltip></div>
+            <div style={{ marginBottom: 8, fontSize: 13, fontWeight: 500 }}>
+              Safety Factor (S) Weight Scheme <Tooltip title="S1-Release Potential, S2-Fire/Explosion, S3-Reaction/Decomposition, S4-Acute Toxicity"><QuestionCircleOutlined style={{ marginLeft: 4, color: '#1890ff' }} /></Tooltip>
+              {safetyScheme === 'Custom' && (
+                <Button 
+                  type="link" 
+                  size="small" 
+                  onClick={() => {
+                    setCustomWeightType('safety');
+                    setCustomWeightModalVisible(true);
+                  }}
+                  style={{ padding: 0, marginLeft: 8, height: 'auto' }}
+                >
+                  ✏️ Edit
+                </Button>
+              )}
+            </div>
             <Select style={{ width: '100%', marginBottom: 12 }} value={safetyScheme} onChange={(value) => { 
               console.log('⚖️ 安全因子权重方案变化:', safetyScheme, '->', value); 
+              if (value === 'Custom') {
+                setCustomWeightType('safety');
+                setCustomWeightModalVisible(true);
+                return;
+              }
               setSafetyScheme(value); 
-              calculateFullScoreAPI({ silent: true });
+              calculateFullScoreAPI({ silent: true, overrides: { safetyScheme: value } });
               window.dispatchEvent(new CustomEvent('weightSchemeUpdated', { detail: { type: 'safety', scheme: value } }));
             }}>
-              <Option value="PBT_Balanced">PBT Balanced (0.25/0.25/0.25/0.25)</Option>
-              <Option value="Frontier_Focus">Frontier Focus (0.10/0.60/0.15/0.15)</Option>
-              <Option value="Personnel_Exposure">Personnel Exposure (0.10/0.20/0.20/0.50)</Option>
-              <Option value="Material_Transport">Material Transport (0.50/0.20/0.20/0.10)</Option>
+              <Option value="PBT_Balanced">PBT Balanced (S1:0.25/S2:0.25/S3:0.25/S4:0.25)</Option>
+              <Option value="Frontier_Focus">Frontier Focus (S1:0.10/S2:0.60/S3:0.15/S4:0.15)</Option>
+              <Option value="Personnel_Exposure">Personnel Exposure (S1:0.10/S2:0.20/S3:0.20/S4:0.50)</Option>
+              <Option value="Material_Transport">Material Transport (S1:0.50/S2:0.20/S3:0.20/S4:0.10)</Option>
+              <Option value="Custom" style={{ color: '#1890ff', fontWeight: 'bold' }}>
+                {customWeights.safety ? `🎯 Custom (S1:${customWeights.safety.S1?.toFixed(2)}/S2:${customWeights.safety.S2?.toFixed(2)}/S3:${customWeights.safety.S3?.toFixed(2)}/S4:${customWeights.safety.S4?.toFixed(2)})` : '🎯 Custom...'}
+              </Option>
             </Select>
           </Col>
 
           <Col span={8}>
-            <div style={{ marginBottom: 8, fontSize: 13, fontWeight: 500 }}>Health Factor (H) Weight Scheme <Tooltip title="H1-Chronic Toxicity, H2-Irritation"><QuestionCircleOutlined style={{ marginLeft: 4, color: '#1890ff' }} /></Tooltip></div>
+            <div style={{ marginBottom: 8, fontSize: 13, fontWeight: 500 }}>
+              Health Factor (H) Weight Scheme <Tooltip title="H1-Chronic Toxicity, H2-Irritation"><QuestionCircleOutlined style={{ marginLeft: 4, color: '#1890ff' }} /></Tooltip>
+              {healthScheme === 'Custom' && (
+                <Button 
+                  type="link" 
+                  size="small" 
+                  onClick={() => {
+                    setCustomWeightType('health');
+                    setCustomWeightModalVisible(true);
+                  }}
+                  style={{ padding: 0, marginLeft: 8, height: 'auto' }}
+                >
+                  ✏️ Edit
+                </Button>
+              )}
+            </div>
             <Select style={{ width: '100%', marginBottom: 12 }} value={healthScheme} onChange={(value) => { 
               console.log('⚖️ Health Factor权重方案变化:', healthScheme, '->', value); 
+              if (value === 'Custom') {
+                setCustomWeightType('health');
+                setCustomWeightModalVisible(true);
+                return;
+              }
               setHealthScheme(value); 
-              calculateFullScoreAPI({ silent: true });
+              calculateFullScoreAPI({ silent: true, overrides: { healthScheme: value } });
               window.dispatchEvent(new CustomEvent('weightSchemeUpdated', { detail: { type: 'health', scheme: value } }));
             }}>
-              <Option value="Occupational_Exposure">Occupational Exposure (0.70/0.30)</Option>
-              <Option value="Operation_Protection">Operation Protection (0.30/0.70)</Option>
-              <Option value="Strict_Compliance">Strict Compliance (0.90/0.10)</Option>
-              <Option value="Absolute_Balance">Absolute Balance (0.50/0.50)</Option>
+              <Option value="Occupational_Exposure">Occupational Exposure (H1:0.70/H2:0.30)</Option>
+              <Option value="Operation_Protection">Operation Protection (H1:0.30/H2:0.70)</Option>
+              <Option value="Strict_Compliance">Strict Compliance (H1:0.90/H2:0.10)</Option>
+              <Option value="Absolute_Balance">Absolute Balance (H1:0.50/H2:0.50)</Option>
+              <Option value="Custom" style={{ color: '#1890ff', fontWeight: 'bold' }}>
+                {customWeights.health ? `🎯 Custom (H1:${customWeights.health.H1?.toFixed(2)}/H2:${customWeights.health.H2?.toFixed(2)})` : '🎯 Custom...'}
+              </Option>
             </Select>
 
-            <div style={{ marginBottom: 8, fontSize: 13, fontWeight: 500 }}>Environmental Factor (E) Weight Scheme <Tooltip title="E1-Persistence, E2-Emissions, E3-Aquatic Hazards"><QuestionCircleOutlined style={{ marginLeft: 4, color: '#1890ff' }} /></Tooltip></div>
+            <div style={{ marginBottom: 8, fontSize: 13, fontWeight: 500 }}>
+              Environmental Factor (E) Weight Scheme <Tooltip title="E1-Persistence, E2-Emissions, E3-Aquatic Hazards"><QuestionCircleOutlined style={{ marginLeft: 4, color: '#1890ff' }} /></Tooltip>
+              {environmentScheme === 'Custom' && (
+                <Button 
+                  type="link" 
+                  size="small" 
+                  onClick={() => {
+                    setCustomWeightType('environment');
+                    setCustomWeightModalVisible(true);
+                  }}
+                  style={{ padding: 0, marginLeft: 8, height: 'auto' }}
+                >
+                  ✏️ Edit
+                </Button>
+              )}
+            </div>
             <Select style={{ width: '100%', marginBottom: 12 }} value={environmentScheme} onChange={(value) => { 
               console.log('⚖️ Environmental Factor权重方案变化:', environmentScheme, '->', value); 
+              if (value === 'Custom') {
+                setCustomWeightType('environment');
+                setCustomWeightModalVisible(true);
+                return;
+              }
               setEnvironmentScheme(value); 
-              calculateFullScoreAPI({ silent: true });
+              calculateFullScoreAPI({ silent: true, overrides: { environmentScheme: value } });
               window.dispatchEvent(new CustomEvent('weightSchemeUpdated', { detail: { type: 'environment', scheme: value } }));
             }}>
-              <Option value="PBT_Balanced">PBT Balanced (0.334/0.333/0.333)</Option>
-              <Option value="Emission_Compliance">Emission Compliance (0.10/0.80/0.10)</Option>
-              <Option value="Deep_Impact">Deep Impact (0.10/0.10/0.80)</Option>
-              <Option value="Degradation_Priority">Degradation Priority (0.70/0.15/0.15)</Option>
+              <Option value="PBT_Balanced">PBT Balanced (E1:0.334/E2:0.333/E3:0.333)</Option>
+              <Option value="Emission_Compliance">Emission Compliance (E1:0.10/E2:0.80/E3:0.10)</Option>
+              <Option value="Deep_Impact">Deep Impact (E1:0.10/E2:0.10/E3:0.80)</Option>
+              <Option value="Degradation_Priority">Degradation Priority (E1:0.70/E2:0.15/E3:0.15)</Option>
+              <Option value="Custom" style={{ color: '#1890ff', fontWeight: 'bold' }}>
+                {customWeights.environment ? `🎯 Custom (E1:${customWeights.environment.E1?.toFixed(2)}/E2:${customWeights.environment.E2?.toFixed(2)}/E3:${customWeights.environment.E3?.toFixed(2)})` : '🎯 Custom...'}
+              </Option>
             </Select>
           </Col>
 
           <Col span={8}>
-            <div style={{ marginBottom: 8, fontSize: 13, fontWeight: 500 }}>Stage Weight Scheme (6 Factors) <Tooltip title="Unified weight scheme for both Instrument and Sample Prep stages. Contains 6 factors: S/H/E/R/D/P"><QuestionCircleOutlined style={{ marginLeft: 4, color: '#1890ff' }} /></Tooltip></div>
+            <div style={{ marginBottom: 8, fontSize: 13, fontWeight: 500 }}>
+              Stage Weight Scheme (6 Factors) <Tooltip title="Unified weight scheme for both Instrument and Sample Prep stages. Contains 6 factors: S/H/E/R/D/P"><QuestionCircleOutlined style={{ marginLeft: 4, color: '#1890ff' }} /></Tooltip>
+              {stageScheme === 'Custom' && (
+                <Button 
+                  type="link" 
+                  size="small" 
+                  onClick={() => {
+                    setCustomWeightType('stage');
+                    setCustomWeightModalVisible(true);
+                  }}
+                  style={{ padding: 0, marginLeft: 8, height: 'auto' }}
+                >
+                  ✏️ Edit
+                </Button>
+              )}
+            </div>
             <Select style={{ width: '100%', marginBottom: 12 }} value={stageScheme} onChange={(value) => { 
               console.log('⚖️ Stage权重方案变化:', stageScheme, '->', value); 
+              if (value === 'Custom') {
+                setCustomWeightType('stage');
+                setCustomWeightModalVisible(true);
+                return;
+              }
               setStageScheme(value); 
-              calculateFullScoreAPI({ silent: true });
+              calculateFullScoreAPI({ silent: true, overrides: { stageScheme: value } });
               window.dispatchEvent(new CustomEvent('weightSchemeUpdated', { detail: { type: 'stage', scheme: value } }));
             }}>
               <Option value="Balanced">Balanced (S:0.18 H:0.18 E:0.18 R:0.18 D:0.18 P:0.10)</Option>
               <Option value="Safety_First">Safety First (S:0.30 H:0.30 E:0.10 R:0.10 D:0.10 P:0.10)</Option>
               <Option value="Eco_Friendly">Eco-Friendly (S:0.10 H:0.10 E:0.30 P:0.10 R:0.25 D:0.15)</Option>
               <Option value="Energy_Efficient">Energy Efficient (S:0.10 H:0.10 E:0.15 P:0.40 R:0.15 D:0.10)</Option>
+              <Option value="Custom" style={{ color: '#1890ff', fontWeight: 'bold' }}>
+                {customWeights.stage ? `🎯 Custom (S:${customWeights.stage.S?.toFixed(2)} H:${customWeights.stage.H?.toFixed(2)} E:${customWeights.stage.E?.toFixed(2)} R:${customWeights.stage.R?.toFixed(2)} D:${customWeights.stage.D?.toFixed(2)} P:${customWeights.stage.P?.toFixed(2)})` : '🎯 Custom...'}
+              </Option>
             </Select>
 
-            <div style={{ marginBottom: 8, fontSize: 13, fontWeight: 500 }}>Final Summary Weight Scheme <Tooltip title="Weight allocation between Instrument Analysis and Sample Preparation"><QuestionCircleOutlined style={{ marginLeft: 4, color: '#1890ff' }} /></Tooltip></div>
+            <div style={{ marginBottom: 8, fontSize: 13, fontWeight: 500 }}>
+              Final Summary Weight Scheme <Tooltip title="Weight allocation between Instrument Analysis and Sample Preparation"><QuestionCircleOutlined style={{ marginLeft: 4, color: '#1890ff' }} /></Tooltip>
+              {finalScheme === 'Custom' && (
+                <Button 
+                  type="link" 
+                  size="small" 
+                  onClick={() => {
+                    setCustomWeightType('final');
+                    setCustomWeightModalVisible(true);
+                  }}
+                  style={{ padding: 0, marginLeft: 8, height: 'auto' }}
+                >
+                  ✏️ Edit
+                </Button>
+              )}
+            </div>
             <Select style={{ width: '100%' }} value={finalScheme} onChange={(value) => { 
               console.log('⚖️ 最终汇总权重方案变化:', finalScheme, '->', value); 
+              if (value === 'Custom') {
+                setCustomWeightType('final');
+                setCustomWeightModalVisible(true);
+                return;
+              }
               setFinalScheme(value); 
-              calculateFullScoreAPI({ silent: true });
+              calculateFullScoreAPI({ silent: true, overrides: { finalScheme: value } });
               window.dispatchEvent(new CustomEvent('weightSchemeUpdated', { detail: { type: 'final', scheme: value } }));
             }}>
               <Option value="Direct_Online">Direct Injection (Instrument:0.8 Prep:0.2)</Option>
               <Option value="Standard">Standard (Instrument:0.6 Prep:0.4)</Option>
               <Option value="Equal">Equal Weight (Instrument:0.5 Prep:0.5)</Option>
               <Option value="Complex_Prep">Complex Prep (Instrument:0.3 Prep:0.7)</Option>
+              <Option value="Custom" style={{ color: '#1890ff', fontWeight: 'bold' }}>
+                {customWeights.final ? `🎯 Custom (Inst:${customWeights.final.instrument?.toFixed(2)} Prep:${customWeights.final.preparation?.toFixed(2)})` : '🎯 Custom...'}
+              </Option>
             </Select>
           </Col>
         </Row>
@@ -2225,7 +2440,7 @@ const MethodsPage: React.FC = () => {
                         Cannot calculate volume when all flow rates are 0 ml/min
                       </div>
                       <div style={{ fontSize: 12, color: '#999' }}>
-                        Please go to <strong>HPLC Gradient Prg</strong> page<br/>
+                        Please go to <strong>Time Gradient Curve</strong> page<br/>
                         and set at least one step with flow rate &gt; 0
                       </div>
                     </div>
@@ -2434,7 +2649,7 @@ const MethodsPage: React.FC = () => {
                         Cannot calculate volume when all flow rates are 0 ml/min
                       </div>
                       <div style={{ fontSize: 12, color: '#999' }}>
-                        Please go to <strong>HPLC Gradient Prg</strong> page<br/>
+                        Please go to <strong>Time Gradient Curve</strong> page<br/>
                         and set at least one step with flow rate &gt; 0
                       </div>
                     </div>
@@ -2617,6 +2832,98 @@ const MethodsPage: React.FC = () => {
           Confirm
         </Button>
       </div>
+
+      {/* Custom Weight Modal */}
+      <CustomWeightModal
+        visible={customWeightModalVisible}
+        type={customWeightType}
+        initialValues={customWeights[customWeightType]}
+        onCancel={() => {
+          setCustomWeightModalVisible(false);
+        }}
+        onConfirm={async (weights) => {
+          console.log('🎯 [Custom Weights] 开始保存自定义权重:', weights);
+          
+          // 更新自定义权重
+          const newCustomWeights = {
+            ...customWeights,
+            [customWeightType]: weights
+          };
+          console.log('🎯 [Custom Weights] 新的customWeights对象:', newCustomWeights);
+          setCustomWeights(newCustomWeights);
+          
+          // 更新对应的scheme为Custom
+          let newScheme = '';
+          switch (customWeightType) {
+            case 'safety':
+              setSafetyScheme('Custom');
+              newScheme = 'safetyScheme';
+              break;
+            case 'health':
+              setHealthScheme('Custom');
+              newScheme = 'healthScheme';
+              break;
+            case 'environment':
+              setEnvironmentScheme('Custom');
+              newScheme = 'environmentScheme';
+              break;
+            case 'stage':
+              setStageScheme('Custom');
+              newScheme = 'instrumentStageScheme';
+              break;
+            case 'final':
+              setFinalScheme('Custom');
+              newScheme = 'finalScheme';
+              break;
+          }
+          
+          console.log(`🎯 [Custom Weights] 更新scheme字段: ${newScheme} = Custom`);
+          
+          // 🎯 立即保存到storage，防止刷新丢失
+          try {
+            console.log('🎯 [Custom Weights] 读取当前METHODS数据...');
+            const currentMethodsData = await StorageHelper.getJSON<any>(STORAGE_KEYS.METHODS) || {};
+            console.log('🎯 [Custom Weights] 当前METHODS数据:', currentMethodsData);
+            
+            const updatedWeightSchemes = {
+              ...currentMethodsData.weightSchemes,
+              [newScheme]: 'Custom',
+              customWeights: newCustomWeights
+            };
+            console.log('🎯 [Custom Weights] 更新后的weightSchemes:', updatedWeightSchemes);
+            
+            const dataToSave = {
+              ...currentMethodsData,
+              weightSchemes: updatedWeightSchemes
+            };
+            console.log('🎯 [Custom Weights] 准备保存的完整数据:', dataToSave);
+            
+            await StorageHelper.setJSON(STORAGE_KEYS.METHODS, dataToSave);
+            console.log('✅ [Custom Weights] Custom weights已保存到storage!');
+            
+            // 验证保存是否成功
+            const verifyData = await StorageHelper.getJSON<any>(STORAGE_KEYS.METHODS);
+            console.log('🔍 [Custom Weights] 验证保存结果:', verifyData?.weightSchemes?.customWeights);
+            
+          } catch (error) {
+            console.error('❌ [Custom Weights] 保存失败:', error);
+            message.error('Failed to save custom weights!');
+          }
+          
+          setCustomWeightModalVisible(false);
+          
+          // 重新计算评分
+          calculateFullScoreAPI({ 
+            silent: true, 
+            overrides: { 
+              [`${customWeightType}Scheme`]: 'Custom',
+              customWeights: newCustomWeights
+            } 
+          });
+          
+          message.success(`Custom ${customWeightType} weights applied successfully!`);
+        }}
+      />
     </div>
   )
 }

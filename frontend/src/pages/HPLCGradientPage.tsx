@@ -798,7 +798,7 @@ const HPLCGradientPage: React.FC = () => {
 
   return (
     <div className="hplc-gradient-page">
-      <Title level={2}>HPLC Gradient Prg</Title>
+      <Title level={2}>Time Gradient Curve</Title>
 
       {/* 梯度步骤表格 */}
       <Card style={{ marginBottom: 24 }}>

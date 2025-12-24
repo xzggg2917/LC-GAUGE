@@ -129,6 +129,9 @@ class FullScoreRequest(BaseModel):
     instrument_stage_scheme: str = Field("Balanced", description="仪器分析阶段权重方案")
     prep_stage_scheme: str = Field("Balanced", description="前处理阶段权重方案")
     final_scheme: str = Field("Standard", description="最终汇总权重方案")
+    
+    # 自定义权重（可选，当方案为Custom时使用）
+    custom_weights: Optional[Dict[str, Dict[str, float]]] = Field(None, description="自定义权重配置")
 
 
 class FullScoreResponse(BaseModel):

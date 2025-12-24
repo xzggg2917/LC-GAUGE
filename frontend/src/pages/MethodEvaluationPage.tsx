@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react'
-import { Card, Typography, Alert, Row, Col } from 'antd'
+import { Card, Typography, Alert, Row, Col, Statistic } from 'antd'
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Tooltip, ResponsiveContainer } from 'recharts'
 import FanChart from '../components/FanChart'
 import PolarBarChart from '../components/PolarBarChart'
@@ -513,7 +513,7 @@ const MethodEvaluationPage: React.FC = () => {
 
   return (
     <div className="graph-page" style={{ padding: '24px', background: '#f0f2f5', minHeight: '100vh' }}>
-      <Title level={2}>Method Green Chemistry Evaluation</Title>
+      <Title level={2}>Method Green Analytical Chemistry Evaluation</Title>
 
       {/* Stage Score Comparison */}
       {hasData && score1 > 0 && score2 > 0 && (
@@ -533,7 +533,7 @@ const MethodEvaluationPage: React.FC = () => {
               </div>
             </Card>
           </Col>
-          <Col span={12}>
+          <Col xs={24} sm={24} md={24} lg={12} xl={12}>
             <Card 
               style={{ 
                 background: `linear-gradient(135deg, ${getColorHex(score2)}30, ${getColorHex(score2)}50)`,
@@ -554,40 +554,50 @@ const MethodEvaluationPage: React.FC = () => {
       {/* 6个大因子的分数卡片 */}
       {hasData && (
         <Card style={{ marginBottom: 24 }}>
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'space-around', 
-            alignItems: 'center',
-            gap: '20px',
-            flexWrap: 'wrap'
-          }}>
-            <div style={{ textAlign: 'center', minWidth: '120px' }}>
-              <div style={{ fontSize: 14, color: '#666', marginBottom: 8, fontWeight: 500 }}>Safety (S)</div>
-              <div style={{ fontSize: 24, fontWeight: 'bold', color: '#52c41a' }}>{mainFactorScores.S.toFixed(3)}</div>
-            </div>
-            <div style={{ textAlign: 'center', minWidth: '120px' }}>
-              <div style={{ fontSize: 14, color: '#666', marginBottom: 8, fontWeight: 500 }}>Health (H)</div>
-              <div style={{ fontSize: 24, fontWeight: 'bold', color: '#fa8c16' }}>{mainFactorScores.H.toFixed(3)}</div>
-            </div>
-            <div style={{ textAlign: 'center', minWidth: '120px' }}>
-              <div style={{ fontSize: 14, color: '#666', marginBottom: 8, fontWeight: 500 }}>Environment (E)</div>
-              <div style={{ fontSize: 24, fontWeight: 'bold', color: '#1890ff' }}>{mainFactorScores.E.toFixed(3)}</div>
-            </div>
-            <div style={{ textAlign: 'center', minWidth: '120px' }}>
-              <div style={{ fontSize: 14, color: '#666', marginBottom: 8, fontWeight: 500 }}>Regeneration (R)</div>
-              <div style={{ fontSize: 24, fontWeight: 'bold', color: '#f5222d' }}>{mainFactorScores.R.toFixed(3)}</div>
-            </div>
-            <div style={{ textAlign: 'center', minWidth: '120px' }}>
-              <div style={{ fontSize: 14, color: '#666', marginBottom: 8, fontWeight: 500 }}>Disposal (D)</div>
-              <div style={{ fontSize: 24, fontWeight: 'bold', color: '#722ed1' }}>{mainFactorScores.D.toFixed(3)}</div>
-            </div>
-            <div style={{ textAlign: 'center', minWidth: '120px' }}>
-              <div style={{ fontSize: 14, color: '#666', marginBottom: 8, fontWeight: 500 }}>Power (P)</div>
-              <div style={{ fontSize: 24, fontWeight: 'bold', color: '#eb2f96' }}>
-                {mainFactorScores.P.toFixed(3)}
-              </div>
-            </div>
-          </div>
+          <Row gutter={[16, 16]} justify="space-around" style={{ textAlign: 'center' }}>
+            <Col xs={12} sm={8} md={8} lg={4} xl={4}>
+              <Statistic
+                title="Safety (S)"
+                value={mainFactorScores.S.toFixed(3)}
+                valueStyle={{ color: '#52c41a', fontSize: '20px', fontWeight: 'bold' }}
+              />
+            </Col>
+            <Col xs={12} sm={8} md={8} lg={4} xl={4}>
+              <Statistic
+                title="Health (H)"
+                value={mainFactorScores.H.toFixed(3)}
+                valueStyle={{ color: '#fa8c16', fontSize: '20px', fontWeight: 'bold' }}
+              />
+            </Col>
+            <Col xs={12} sm={8} md={8} lg={4} xl={4}>
+              <Statistic
+                title="Environment (E)"
+                value={mainFactorScores.E.toFixed(3)}
+                valueStyle={{ color: '#1890ff', fontSize: '20px', fontWeight: 'bold' }}
+              />
+            </Col>
+            <Col xs={12} sm={8} md={8} lg={4} xl={4}>
+              <Statistic
+                title="Regeneration (R)"
+                value={mainFactorScores.R.toFixed(3)}
+                valueStyle={{ color: '#f5222d', fontSize: '20px', fontWeight: 'bold' }}
+              />
+            </Col>
+            <Col xs={12} sm={8} md={8} lg={4} xl={4}>
+              <Statistic
+                title="Disposal (D)"
+                value={mainFactorScores.D.toFixed(3)}
+                valueStyle={{ color: '#722ed1', fontSize: '20px', fontWeight: 'bold' }}
+              />
+            </Col>
+            <Col xs={12} sm={8} md={8} lg={4} xl={4}>
+              <Statistic
+                title="Power (P)"
+                value={mainFactorScores.P.toFixed(3)}
+                valueStyle={{ color: '#eb2f96', fontSize: '20px', fontWeight: 'bold' }}
+              />
+            </Col>
+          </Row>
         </Card>
       )}
 
@@ -604,7 +614,7 @@ const MethodEvaluationPage: React.FC = () => {
             transition: 'all 0.3s ease'
           }}>
             <div style={{ fontSize: 16, opacity: 0.95, marginBottom: 8, fontWeight: 500 }}>
-              Final Green Chemistry Score (Score₃)
+              Final Green Analytical Chemistry Score (Score₃)
             </div>
             <div style={{ fontSize: 52, fontWeight: 'bold', marginBottom: 12, textShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
               {totalScore.toFixed(2)}
@@ -641,9 +651,9 @@ const MethodEvaluationPage: React.FC = () => {
           <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
             {/* 第一行 */}
             {/* 左上：雷达图 */}
-            <Col xs={24} xl={12}>
-              <Card title="Radar Chart Analysis" style={{ height: '550px' }}>
-                <div style={{ width: '100%', height: '500px' }}>
+            <Col xs={24} sm={24} md={24} lg={12} xl={12}>
+              <Card title="Radar Chart Analysis" style={{ height: 'auto', minHeight: '500px' }}>
+                <div style={{ width: '100%', height: '450px' }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <RadarChart data={radarData} margin={{ top: 50, right:20, bottom: 30, left: 30 }}>
                       <PolarGrid stroke="#000" />
@@ -667,9 +677,9 @@ const MethodEvaluationPage: React.FC = () => {
             </Col>
 
             {/* 右上：切向极坐标条形图 */}
-            <Col xs={24} xl={12}>
-              <Card title="Tangential Polar Bar Chart" style={{ height: '550px' }}>
-                <div style={{ width: '100%', height: '500px' }}>
+            <Col xs={24} sm={24} md={24} lg={12} xl={12}>
+              <Card title="Tangential Polar Bar Chart" style={{ height: 'auto', minHeight: '500px' }}>
+                <div style={{ width: '100%', height: '450px' }}>
                   <PolarBarChart scores={mainFactorScores} />
                 </div>
               </Card>
@@ -679,18 +689,18 @@ const MethodEvaluationPage: React.FC = () => {
           <Row gutter={[16, 16]}>
             {/* 第二行 */}
             {/* 左下：扇子图 */}
-            <Col xs={24} xl={12}>
-              <Card title="Fan Chart Visualization" style={{ height: '550px' }}>
-                <div style={{ width: '100%', height: '500px' }}>
+            <Col xs={24} sm={24} md={24} lg={12} xl={12}>
+              <Card title="Fan Chart Visualization" style={{ height: 'auto', minHeight: '500px' }}>
+                <div style={{ width: '100%', height: '450px' }}>
                   <FanChart scores={mainFactorScores} />
                 </div>
               </Card>
             </Col>
 
             {/* 右下：嵌套环形图 - 内圈6个大因子，外圈9个小因子 */}
-            <Col xs={24} xl={12}>
-              <Card title="Nested Pie Chart - Main & Sub Factors" style={{ height: '550px' }}>
-                <div style={{ width: '100%', height: '500px' }}>
+            <Col xs={24} sm={24} md={24} lg={12} xl={12}>
+              <Card title="Nested Pie Chart - Main & Sub Factors" style={{ height: 'auto', minHeight: '500px' }}>
+                <div style={{ width: '100%', height: '450px' }}>
                   <NestedPieChart 
                     mainFactors={mainFactorScores}
                     subFactors={subFactorScores}

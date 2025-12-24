@@ -60,11 +60,12 @@ INSTRUMENT_STAGE_WEIGHTS = {
 }
 
 # 图7：样品前处理阶段权重方案（4种，6因子含P）
+# 注意：为了与仪器分析阶段保持一致，使用相同的方案名称
 PREPARATION_STAGE_WEIGHTS = {
     "Balanced": {"S": 0.18, "H": 0.18, "E": 0.18, "R": 0.18, "D": 0.18, "P": 0.10},
-    "Operation_Protection": {"S": 0.35, "H": 0.35, "E": 0.10, "R": 0.10, "D": 0.10, "P": 0.00},
-    "Circular_Economy": {"S": 0.10, "H": 0.10, "E": 0.10, "R": 0.40, "D": 0.30, "P": 0.00},
-    "Environmental_Tower": {"S": 0.15, "H": 0.15, "E": 0.40, "R": 0.15, "D": 0.15, "P": 0.00}
+    "Safety_First": {"S": 0.30, "H": 0.30, "E": 0.10, "R": 0.10, "D": 0.10, "P": 0.10},  # 与仪器分析相同
+    "Eco_Friendly": {"S": 0.10, "H": 0.10, "E": 0.30, "R": 0.25, "D": 0.15, "P": 0.10},  # 与仪器分析相同
+    "Energy_Efficient": {"S": 0.10, "H": 0.10, "E": 0.15, "R": 0.15, "D": 0.10, "P": 0.40}  # 与仪器分析相同
 }
 
 
@@ -356,7 +357,8 @@ def merge_sub_factors(
 def calculate_major_factor(
     sub_factor_scores: Dict[str, float],
     major_factor_type: str,
-    weight_scheme: str
+    weight_scheme: str,
+    custom_weights: Dict[str, float] = None  # 自定义权重
 ) -> float:
     """
     根据小因子得分计算大因子得分（S/H/E）
@@ -365,30 +367,46 @@ def calculate_major_factor(
         sub_factor_scores: 小因子得分字典
         major_factor_type: 大因子类型（"S"/"H"/"E"）
         weight_scheme: 权重方案名称
+        custom_weights: 自定义权重（当weight_scheme为"Custom"时使用）
     
     返回：
         float: 大因子得分（0-100）
     """
-    if major_factor_type == "S":
-        if weight_scheme not in SAFETY_WEIGHTS:
-            raise ValueError(f"未知的安全因子权重方案：{weight_scheme}")
-        weights = SAFETY_WEIGHTS[weight_scheme]
-        sub_factors = ["S1", "S2", "S3", "S4"]
-    
-    elif major_factor_type == "H":
-        if weight_scheme not in HEALTH_WEIGHTS:
-            raise ValueError(f"未知的健康因子权重方案：{weight_scheme}")
-        weights = HEALTH_WEIGHTS[weight_scheme]
-        sub_factors = ["H1", "H2"]
-    
-    elif major_factor_type == "E":
-        if weight_scheme not in ENVIRONMENT_WEIGHTS:
-            raise ValueError(f"未知的环境因子权重方案：{weight_scheme}")
-        weights = ENVIRONMENT_WEIGHTS[weight_scheme]
-        sub_factors = ["E1", "E2", "E3"]
-    
+    # 如果是Custom方案，使用自定义权重
+    if weight_scheme == "Custom":
+        if custom_weights is None:
+            raise ValueError(f"Custom权重方案需要提供custom_weights参数")
+        weights = custom_weights
+        if major_factor_type == "S":
+            sub_factors = ["S1", "S2", "S3", "S4"]
+        elif major_factor_type == "H":
+            sub_factors = ["H1", "H2"]
+        elif major_factor_type == "E":
+            sub_factors = ["E1", "E2", "E3"]
+        else:
+            raise ValueError(f"未知的大因子类型：{major_factor_type}")
     else:
-        raise ValueError(f"未知的大因子类型：{major_factor_type}")
+        # 使用预定义权重方案
+        if major_factor_type == "S":
+            if weight_scheme not in SAFETY_WEIGHTS:
+                raise ValueError(f"未知的安全因子权重方案：{weight_scheme}")
+            weights = SAFETY_WEIGHTS[weight_scheme]
+            sub_factors = ["S1", "S2", "S3", "S4"]
+        
+        elif major_factor_type == "H":
+            if weight_scheme not in HEALTH_WEIGHTS:
+                raise ValueError(f"未知的健康因子权重方案：{weight_scheme}")
+            weights = HEALTH_WEIGHTS[weight_scheme]
+            sub_factors = ["H1", "H2"]
+        
+        elif major_factor_type == "E":
+            if weight_scheme not in ENVIRONMENT_WEIGHTS:
+                raise ValueError(f"未知的环境因子权重方案：{weight_scheme}")
+            weights = ENVIRONMENT_WEIGHTS[weight_scheme]
+            sub_factors = ["E1", "E2", "E3"]
+        
+        else:
+            raise ValueError(f"未知的大因子类型：{major_factor_type}")
     
     # 加权求和
     major_score = sum(
@@ -408,7 +426,8 @@ def calculate_score1(
     p_factor: float,
     r_factor: float,
     d_factor: float,
-    weight_scheme: str = "Balanced"
+    weight_scheme: str = "Balanced",
+    custom_weights: Dict[str, float] = None  # 自定义权重
 ) -> float:
     """
     计算Score₁（仪器分析阶段，6因子含P）
@@ -419,14 +438,20 @@ def calculate_score1(
         r_factor: R因子（可回收性，0-100分，从0-1分制转换）
         d_factor: D因子（可降解性，0-100分，从0-1分制转换）
         weight_scheme: 权重方案（Balanced/Safety_Priority/Eco_Priority/Efficiency_Priority）
+        custom_weights: 自定义权重（当weight_scheme为"Custom"时使用）
     
     返回：
         float: Score₁（0-100）
     """
-    if weight_scheme not in INSTRUMENT_STAGE_WEIGHTS:
-        raise ValueError(f"未知的仪器阶段权重方案：{weight_scheme}")
-    
-    weights = INSTRUMENT_STAGE_WEIGHTS[weight_scheme]
+    # 如果是Custom方案，使用自定义权重
+    if weight_scheme == "Custom":
+        if custom_weights is None:
+            raise ValueError(f"Custom权重方案需要提供custom_weights参数")
+        weights = custom_weights
+    else:
+        if weight_scheme not in INSTRUMENT_STAGE_WEIGHTS:
+            raise ValueError(f"未知的仪器阶段权重方案：{weight_scheme}")
+        weights = INSTRUMENT_STAGE_WEIGHTS[weight_scheme]
     
     score1 = (
         major_factors["S"] * weights["S"] +
@@ -445,7 +470,8 @@ def calculate_score2(
     r_factor: float,
     d_factor: float,
     p_factor: float = 0.0,
-    weight_scheme: str = "Balanced"
+    weight_scheme: str = "Balanced",
+    custom_weights: Dict[str, float] = None  # 自定义权重
 ) -> float:
     """
     计算Score₂（样品前处理阶段，6因子含P）
@@ -456,14 +482,20 @@ def calculate_score2(
         d_factor: D因子（可降解性，0-100分）
         p_factor: P因子（能耗，0-100分，默认为0）
         weight_scheme: 权重方案（Balanced/Operation_Protection/Circular_Economy/Environmental_Tower）
+        custom_weights: 自定义权重（当weight_scheme为"Custom"时使用）
     
     返回：
         float: Score₂（0-100）
     """
-    if weight_scheme not in PREPARATION_STAGE_WEIGHTS:
-        raise ValueError(f"未知的前处理阶段权重方案：{weight_scheme}")
-    
-    weights = PREPARATION_STAGE_WEIGHTS[weight_scheme]
+    # 如果是Custom方案，使用自定义权重
+    if weight_scheme == "Custom":
+        if custom_weights is None:
+            raise ValueError(f"Custom权重方案需要提供custom_weights参数")
+        weights = custom_weights
+    else:
+        if weight_scheme not in PREPARATION_STAGE_WEIGHTS:
+            raise ValueError(f"未知的前处理阶段权重方案：{weight_scheme}")
+        weights = PREPARATION_STAGE_WEIGHTS[weight_scheme]
     
     score2 = (
         major_factors["S"] * weights["S"] +
@@ -484,7 +516,8 @@ def calculate_score2(
 def calculate_score3(
     score1: float,
     score2: float,
-    weight_scheme: str = "Standard"
+    weight_scheme: str = "Standard",
+    custom_weights: Dict[str, float] = None  # 自定义权重
 ) -> float:
     """
     计算Score₃（最终绿色化学总分）
@@ -495,14 +528,20 @@ def calculate_score3(
         score1: 仪器分析阶段得分
         score2: 样品前处理阶段得分
         weight_scheme: 最终汇总权重方案（Standard/Complex_Prep/Direct_Online/Equal）
+        custom_weights: 自定义权重（当weight_scheme为"Custom"时使用）
     
     返回：
         float: Score₃（0-100）
     """
-    if weight_scheme not in FINAL_WEIGHTS:
-        raise ValueError(f"未知的最终权重方案：{weight_scheme}")
-    
-    weights = FINAL_WEIGHTS[weight_scheme]
+    # 如果是Custom方案，使用自定义权重
+    if weight_scheme == "Custom":
+        if custom_weights is None:
+            raise ValueError(f"Custom权重方案需要提供custom_weights参数")
+        weights = custom_weights
+    else:
+        if weight_scheme not in FINAL_WEIGHTS:
+            raise ValueError(f"未知的最终权重方案：{weight_scheme}")
+        weights = FINAL_WEIGHTS[weight_scheme]
     
     score3 = (score1 * weights["instrument"]) + (score2 * weights["preparation"])
     
@@ -541,7 +580,8 @@ def calculate_full_scores(
     environment_scheme: str = "PBT_Balanced",
     instrument_stage_scheme: str = "Balanced",
     prep_stage_scheme: str = "Balanced",
-    final_scheme: str = "Standard"
+    final_scheme: str = "Standard",
+    custom_weights: Dict[str, Dict[str, float]] = None  # 自定义权重配置
 ) -> Dict:
     """
     执行完整的评分流程，返回所有层级的评分结果
@@ -586,6 +626,7 @@ def calculate_full_scores(
     print(f"  - Instrument Stage: {instrument_stage_scheme}")
     print(f"  - Prep Stage: {prep_stage_scheme}")
     print(f"  - Final: {final_scheme}")
+    print(f"🎯 自定义权重 (custom_weights): {custom_weights}")
     print("=" * 80 + "\n")
     
     # ========== 仪器分析阶段 ==========
@@ -607,9 +648,18 @@ def calculate_full_scores(
     print(f"🔍 仪器分析小因子得分: {inst_sub_scores}")
     
     # Layer 3: 大因子合成
-    inst_major_S = calculate_major_factor(inst_sub_scores, "S", safety_scheme)
-    inst_major_H = calculate_major_factor(inst_sub_scores, "H", health_scheme)
-    inst_major_E = calculate_major_factor(inst_sub_scores, "E", environment_scheme)
+    inst_major_S = calculate_major_factor(
+        inst_sub_scores, "S", safety_scheme, 
+        custom_weights=custom_weights.get('safety') if custom_weights and safety_scheme == 'Custom' else None
+    )
+    inst_major_H = calculate_major_factor(
+        inst_sub_scores, "H", health_scheme,
+        custom_weights=custom_weights.get('health') if custom_weights and health_scheme == 'Custom' else None
+    )
+    inst_major_E = calculate_major_factor(
+        inst_sub_scores, "E", environment_scheme,
+        custom_weights=custom_weights.get('environment') if custom_weights and environment_scheme == 'Custom' else None
+    )
     inst_major_factors = {"S": inst_major_S, "H": inst_major_H, "E": inst_major_E}
     
     print(f"🎯 仪器分析大因子得分: S={inst_major_S:.2f}, H={inst_major_H:.2f}, E={inst_major_E:.2f}")
@@ -620,7 +670,8 @@ def calculate_full_scores(
         p_factor,
         instrument_r_factor,
         instrument_d_factor,
-        instrument_stage_scheme
+        instrument_stage_scheme,
+        custom_weights=custom_weights.get('stage') if custom_weights and instrument_stage_scheme == 'Custom' else None
     )
     
     print(f"📊 仪器分析阶段 Score₁ = {score1:.2f} (使用权重方案: {instrument_stage_scheme})")
@@ -638,9 +689,18 @@ def calculate_full_scores(
     print(f"🔍 前处理小因子得分: {prep_sub_scores}")
     
     # Layer 3: 大因子合成
-    prep_major_S = calculate_major_factor(prep_sub_scores, "S", safety_scheme)
-    prep_major_H = calculate_major_factor(prep_sub_scores, "H", health_scheme)
-    prep_major_E = calculate_major_factor(prep_sub_scores, "E", environment_scheme)
+    prep_major_S = calculate_major_factor(
+        prep_sub_scores, "S", safety_scheme,
+        custom_weights=custom_weights.get('safety') if custom_weights and safety_scheme == 'Custom' else None
+    )
+    prep_major_H = calculate_major_factor(
+        prep_sub_scores, "H", health_scheme,
+        custom_weights=custom_weights.get('health') if custom_weights and health_scheme == 'Custom' else None
+    )
+    prep_major_E = calculate_major_factor(
+        prep_sub_scores, "E", environment_scheme,
+        custom_weights=custom_weights.get('environment') if custom_weights and environment_scheme == 'Custom' else None
+    )
     prep_major_factors = {"S": prep_major_S, "H": prep_major_H, "E": prep_major_E}
     
     print(f"🎯 前处理大因子得分: S={prep_major_S:.2f}, H={prep_major_H:.2f}, E={prep_major_E:.2f}")
@@ -651,7 +711,8 @@ def calculate_full_scores(
         pretreatment_r_factor,
         pretreatment_d_factor,
         p_factor=pretreatment_p_factor,  # 使用传入的前处理阶段P因子
-        weight_scheme=prep_stage_scheme
+        weight_scheme=prep_stage_scheme,
+        custom_weights=custom_weights.get('stage') if custom_weights and prep_stage_scheme == 'Custom' else None
     )
     
     print(f"📊 前处理阶段 Score₂ = {score2:.2f} (使用权重方案: {prep_stage_scheme})")
@@ -664,7 +725,10 @@ def calculate_full_scores(
     )
     
     # ========== Layer 5: 最终总分 ==========
-    score3 = calculate_score3(score1, score2, final_scheme)
+    score3 = calculate_score3(
+        score1, score2, final_scheme,
+        custom_weights=custom_weights.get('final') if custom_weights and final_scheme == 'Custom' else None
+    )
     
     print(f"🏆 最终总分 Score₃ = {score3:.2f} (使用权重方案: {final_scheme})")
     print(f"   仪器阶段贡献: {score1:.2f}, 前处理阶段贡献: {score2:.2f}")

@@ -483,7 +483,7 @@ const GraphPage: React.FC = () => {
 
   return (
     <div className="graph-page">
-      <Title level={2}>Green Chemistry Assessment Scores</Title>
+      <Title level={2}>Green Analytical Chemistry Assessment Scores</Title>
 
       {/* 6个大因子的分数卡片 */}
       {hasData && (
@@ -538,7 +538,7 @@ const GraphPage: React.FC = () => {
             transition: 'all 0.3s ease'
           }}>
             <div style={{ fontSize: 16, opacity: 0.95, marginBottom: 8, fontWeight: 500 }}>
-              Final Green Chemistry Score (Score₃)
+              Final Green Analytical Chemistry Score (Score₃)
             </div>
             <div style={{ fontSize: 52, fontWeight: 'bold', marginBottom: 12, textShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
               {totalScore.toFixed(2)}

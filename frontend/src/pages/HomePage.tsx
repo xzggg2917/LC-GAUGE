@@ -16,20 +16,16 @@ const HomePage: React.FC = () => {
 
   console.log('🏠 HomePage Render - currentFilePath:', currentFilePath)
 
-  // Trigger menu click events
+  // 触发文件操作的函数
   const handleNewFileClick = () => {
-    // Trigger File menu's New File click event
-    const event = new CustomEvent('triggerNewFile')
-    window.dispatchEvent(event)
+    window.dispatchEvent(new CustomEvent('triggerNewFile'))
   }
 
   const handleOpenFileClick = () => {
-    // Trigger File menu's Open File click event
-    const event = new CustomEvent('triggerOpenFile')
-    window.dispatchEvent(event)
+    window.dispatchEvent(new CustomEvent('triggerOpenFile'))
   }
 
-  // If no file is open, show guidance interface
+  // 如果没有打开文件，显示欢迎页面
   if (!currentFilePath) {
     return (
       <div style={{ textAlign: 'center', padding: '60px 20px' }}>
@@ -82,8 +78,8 @@ const HomePage: React.FC = () => {
 
           <div style={{ marginTop: 60, maxWidth: 800, margin: '60px auto 0' }}>
             <Card title="System Features" bordered={false}>
-              <Row gutter={24}>
-                <Col span={8}>
+              <Row gutter={[16, 16]}>
+                <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                   <div style={{ textAlign: 'center', padding: 20 }}>
                     <ExperimentOutlined style={{ fontSize: 32, color: '#1890ff' }} />
                     <Title level={5} style={{ marginTop: 16 }}>Methods</Title>
@@ -92,7 +88,7 @@ const HomePage: React.FC = () => {
                     </Paragraph>
                   </div>
                 </Col>
-                <Col span={8}>
+                <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                   <div style={{ textAlign: 'center', padding: 20 }}>
                     <SafetyOutlined style={{ fontSize: 32, color: '#52c41a' }} />
                     <Title level={5} style={{ marginTop: 16 }}>Factors</Title>
@@ -101,7 +97,7 @@ const HomePage: React.FC = () => {
                     </Paragraph>
                   </div>
                 </Col>
-                <Col span={8}>
+                <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                   <div style={{ textAlign: 'center', padding: 20 }}>
                     <BarChartOutlined style={{ fontSize: 32, color: '#faad14' }} />
                     <Title level={5} style={{ marginTop: 16 }}>Results</Title>
@@ -118,11 +114,11 @@ const HomePage: React.FC = () => {
     )
   }
 
-  // If file is open, show the original statistics interface
+  // 如果已打开文件，显示项目介绍页面
   return (
     <div>
       <Title level={2}>Welcome to LC GAUGE</Title>
-      <Paragraph>
+      <Paragraph style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
         Current File: <Text strong>{currentFilePath}</Text>
       </Paragraph>
       <Paragraph>
@@ -131,8 +127,8 @@ const HomePage: React.FC = () => {
         reduce environmental impact, and improve experimental efficiency.
       </Paragraph>
 
-      <Row gutter={16} style={{ marginTop: 32 }}>
-        <Col span={8}>
+      <Row gutter={[16, 16]} style={{ marginTop: 32 }}>
+        <Col xs={24} sm={24} md={8} lg={8} xl={8}>
           <Card>
             <div style={{ textAlign: 'center', padding: 20 }}>
               <ExperimentOutlined style={{ fontSize: 32, color: '#1890ff' }} />
@@ -143,7 +139,7 @@ const HomePage: React.FC = () => {
             </div>
           </Card>
         </Col>
-        <Col span={8}>
+        <Col xs={24} sm={24} md={8} lg={8} xl={8}>
           <Card>
             <div style={{ textAlign: 'center', padding: 20 }}>
               <SafetyOutlined style={{ fontSize: 32, color: '#52c41a' }} />
@@ -154,7 +150,7 @@ const HomePage: React.FC = () => {
             </div>
           </Card>
         </Col>
-        <Col span={8}>
+        <Col xs={24} sm={24} md={8} lg={8} xl={8}>
           <Card>
             <div style={{ textAlign: 'center', padding: 20 }}>
               <BarChartOutlined style={{ fontSize: 32, color: '#faad14' }} />
@@ -167,8 +163,8 @@ const HomePage: React.FC = () => {
         </Col>
       </Row>
 
-      <Row gutter={16} style={{ marginTop: 24 }}>
-        <Col span={12}>
+      <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
+        <Col xs={24} sm={24} md={12} lg={12} xl={12}>
           <Card title="System Features" bordered={false}>
             <Paragraph>
               <ul>
@@ -181,7 +177,7 @@ const HomePage: React.FC = () => {
             </Paragraph>
           </Card>
         </Col>
-        <Col span={12}>
+        <Col xs={24} sm={24} md={12} lg={12} xl={12}>
           <Card title="Quick Start" bordered={false}>
             <Paragraph>
               <ol>

@@ -52,7 +52,7 @@ const LoginPage: React.FC = () => {
           <div className="logo-wrapper">
             <GaugeIcon className="logo-icon" size={150} />
             <Title level={1} className="system-title">
-              LC Green Chemistry Analysis System
+              LC Green Analytical Chemistry System
             </Title>
             <Title level={4} className="system-subtitle">
               Comprehensive LC Method Assessment & Environmental Impact Evaluation
@@ -61,7 +61,7 @@ const LoginPage: React.FC = () => {
           
           <div className="system-description">
             <Paragraph className="description-text">
-              <Text strong>Professional LC Green Chemistry Assessment Platform</Text>
+              <Text strong>Professional LC Green Analytical Chemistry Assessment Platform</Text>
             </Paragraph>
             <Space direction="vertical" size="small" className="features-list">
               <Text>🧪 Full-Process Assessment: Sample Preparation to Final Analysis</Text>
@@ -222,7 +222,7 @@ const LoginPage: React.FC = () => {
 
           <div className="footer-text">
             <Text type="secondary">
-              © 2025 LC Green Chemistry Analysis System | Professional, Secure, Eco-friendly
+              © 2025 LC Green Analytical Chemistry System | Professional, Secure, Eco-friendly
             </Text>
           </div>
         </div>

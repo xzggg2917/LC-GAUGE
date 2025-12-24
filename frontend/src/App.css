@@ -1,20 +1,20 @@
-/* ========== 全局缩放稳定性设置 ========== */
+/* ========== 全局响应式布局设置 ========== */
 
 /* 
   核心原则:
-  1. 使用固定px单位,避免相对单位(vw, %, em)在缩放时产生意外变化
-  2. 设置较大的min-width确保内容不会被挤压
-  3. 允许横向滚动,而不是强制内容适应缩放后的窗口
-  4. 完全禁用所有响应式字体大小和布局变化
+  1. 支持小屏笔记本电脑（1024px+）
+  2. 使用合理的最小宽度，允许内容自适应
+  3. 表格等宽内容使用局部横向滚动
+  4. 响应式布局可以正常工作
 */
 
 * {
   box-sizing: border-box;
 }
 
-/* 确保Layout在缩放时保持固定宽度 */
+/* 确保Layout支持小屏设备 - 降低到900px以支持更小的屏幕 */
 .ant-layout {
-  min-width: 1400px !important;
+  min-width: 900px !important;
   overflow-x: auto;
 }
 
@@ -34,20 +34,30 @@
   width: 0 !important;
 }
 
-/* 主内容区域 - 固定边距 */
+/* 主内容区域 - 自适应宽度 */
 .site-layout {
   margin-left: 200px !important;
-  min-width: 1200px;
+  min-width: 800px;
   transition: none !important; /* 移除所有过渡动画 */
 }
 
-/* Header 固定高度和样式 */
+/* Header 固定高度和样式 - 优化小屏显示 */
 .ant-layout-header {
   height: 64px !important;
+  min-height: 64px !important;
   line-height: 64px !important;
-  padding: 0 24px !important;
+  padding: 0 16px !important;
   white-space: nowrap !important;
-  min-width: 0;
+  overflow: visible !important;
+}
+
+/* Header内部flex容器优化 - 响应式布局 */
+.ant-layout-header > div {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  flex-wrap: nowrap !important;
+  min-width: 0 !important;
 }
 
 /* Content 固定内边距 */
@@ -75,7 +85,7 @@
 }
 
 .ant-table {
-  min-width: 800px !important;
+  min-width: 600px !important; /* 降低最小宽度，让小屏也能查看 */
 }
 
 /* Canvas和SVG固定最大宽度 */
@@ -85,10 +95,10 @@ svg {
   height: auto;
 }
 
-/* 防止任何元素在缩放时换行 */
-.ant-row {
+/* 允许响应式换行 - 移除强制nowrap */
+/* .ant-row {
   flex-wrap: nowrap !important;
-}
+} */
 
 /* Ant Design Col 固定行为 */
 .ant-col {
@@ -225,4 +235,40 @@ svg {
 */
 
 /* 如果确实需要移动端适配,使用更精确的检测方式 */
+
+/* 响应式 Header 布局 - 确保不同屏幕尺寸下文字不被截断 */
+@media (max-width: 1600px) {
+  .ant-layout-header > div:first-child > div {
+    max-width: none !important;
+    flex: 1 1 auto !important;
+  }
+  
+  .ant-layout-header > div:first-child > div > span {
+    display: inline-block !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+}
+
+@media (max-width: 1200px) {
+  .ant-layout-header {
+    padding: 0 12px !important;
+  }
+  
+  .ant-layout-header > div:first-child {
+    gap: 12px !important;
+  }
+}
+
+@media (max-width: 992px) {
+  .ant-layout-header {
+    padding: 0 8px !important;
+  }
+  
+  .ant-layout-header > div:first-child {
+    gap: 8px !important;
+  }
+}
 

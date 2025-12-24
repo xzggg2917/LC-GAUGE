@@ -1,5 +1,6 @@
-const { app, BrowserWindow, ipcMain, globalShortcut, dialog } = require('electron')
+const { app, BrowserWindow, ipcMain, globalShortcut, dialog, Menu } = require('electron')
 const path = require('path')
+const url = require('url')
 const fs = require('fs').promises
 const fsSync = require('fs')
 const isDev = require('electron-is-dev')
@@ -8,6 +9,198 @@ const { autoUpdater } = require('electron-updater')
 
 let mainWindow
 let backendProcess
+let splashWindow
+let progressWindow
+
+// 创建启动画面
+function createSplashWindow() {
+  splashWindow = new BrowserWindow({
+    width: 400,
+    height: 300,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    webPreferences: {
+      nodeIntegration: false,
+    }
+  })
+  
+  // 创建简单的HTML启动画面
+  const splashHTML = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body {
+          margin: 0;
+          padding: 0;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100vh;
+          background: rgba(0, 0, 0, 0.8);
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+          color: white;
+        }
+        .container {
+          text-align: center;
+          padding: 40px;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          border-radius: 20px;
+          box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+          margin: 0 0 20px 0;
+          font-size: 28px;
+          font-weight: 600;
+        }
+        .spinner {
+          width: 50px;
+          height: 50px;
+          margin: 20px auto;
+          border: 4px solid rgba(255,255,255,0.3);
+          border-top-color: white;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        p {
+          margin: 10px 0;
+          font-size: 14px;
+          opacity: 0.9;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h1>LC GAUGE</h1>
+        <div class="spinner"></div>
+        <p>Starting application...</p>
+        <p>Please wait</p>
+      </div>
+    </body>
+    </html>
+  `
+  
+  splashWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(splashHTML)}`)
+}
+
+// 创建更新进度窗口
+function createProgressWindow() {
+  progressWindow = new BrowserWindow({
+    width: 450,
+    height: 250,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    alwaysOnTop: true,
+    center: true,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false
+    }
+  })
+
+  const progressHTML = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100vh;
+          background: transparent;
+        }
+        .container {
+          width: 100%;
+          padding: 30px;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          border-radius: 16px;
+          box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+          color: white;
+        }
+        .title {
+          font-size: 20px;
+          font-weight: 600;
+          margin-bottom: 20px;
+          text-align: center;
+        }
+        .status {
+          font-size: 14px;
+          margin-bottom: 15px;
+          text-align: center;
+          opacity: 0.9;
+        }
+        .progress-container {
+          width: 100%;
+          height: 8px;
+          background: rgba(255,255,255,0.2);
+          border-radius: 4px;
+          overflow: hidden;
+          margin-bottom: 10px;
+        }
+        .progress-bar {
+          height: 100%;
+          background: white;
+          border-radius: 4px;
+          transition: width 0.3s ease;
+          width: 0%;
+        }
+        .progress-text {
+          font-size: 13px;
+          text-align: center;
+          opacity: 0.85;
+        }
+        .speed {
+          font-size: 12px;
+          text-align: center;
+          margin-top: 8px;
+          opacity: 0.75;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="title">🔄 Downloading Update</div>
+        <div class="status" id="status">Preparing download...</div>
+        <div class="progress-container">
+          <div class="progress-bar" id="progress"></div>
+        </div>
+        <div class="progress-text" id="progressText">0%</div>
+        <div class="speed" id="speed"></div>
+      </div>
+      <script>
+        const { ipcRenderer } = require('electron')
+        
+        ipcRenderer.on('download-progress', (event, data) => {
+          const percent = data.percent.toFixed(1)
+          document.getElementById('progress').style.width = percent + '%'
+          document.getElementById('progressText').innerHTML = percent + '%'
+          document.getElementById('status').innerHTML = 'Downloading update...'
+          
+          const speedMB = (data.bytesPerSecond / 1024 / 1024).toFixed(2)
+          const transferredMB = (data.transferred / 1024 / 1024).toFixed(1)
+          const totalMB = (data.total / 1024 / 1024).toFixed(1)
+          document.getElementById('speed').innerHTML = 
+            transferredMB + ' MB / ' + totalMB + ' MB · ' + speedMB + ' MB/s'
+        })
+      </script>
+    </body>
+    </html>
+  `
+
+  progressWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(progressHTML)}`)
+}
 
 // 获取用户数据存储目录
 const USER_DATA_PATH = app.getPath('userData')
@@ -23,17 +216,45 @@ function createWindow() {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
     },
-    icon: path.join(__dirname, '../build/icon.png'),
   })
+
+  // 隐藏默认菜单栏
+  Menu.setApplicationMenu(null)
 
   // 开发模式加载本地服务器，生产模式加载打包后的文件
   const startUrl = isDev
     ? 'http://localhost:5173'
-    : `file://${path.join(__dirname, '..', 'frontend', 'dist', 'index.html')}`
+    : url.pathToFileURL(path.join(__dirname, '..', 'frontend', 'dist', 'index.html')).href
+
+  console.log('='.repeat(60))
+  console.log('Loading URL:', startUrl)
+  console.log('isDev:', isDev)
+  console.log('__dirname:', __dirname)
+  console.log('='.repeat(60))
 
   mainWindow.loadURL(startUrl)
 
   // 开发模式打开DevTools
+  if (isDev) {
+    mainWindow.webContents.openDevTools()
+  }
+  
+  // 监听渲染进程的控制台消息
+  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    console.log(`[Renderer ${level}] ${message} (${sourceId}:${line})`)
+  })
+  
+  // 监听页面加载完成
+  mainWindow.webContents.on('did-finish-load', () => {
+    console.log('✅ 页面加载完成')
+  })
+  
+  // 监听页面加载失败
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+    console.log('❌ 页面加载失败:', errorCode, errorDescription)
+  })
+
+  // 开发模式打开DevTools（这行现在冗余了）
   if (isDev) {
     mainWindow.webContents.openDevTools()
   }
@@ -43,30 +264,59 @@ function createWindow() {
     // 设置更新检查（延迟启动避免阻塞）
     setTimeout(() => {
       autoUpdater.checkForUpdatesAndNotify().catch(err => {
-        console.log('自动更新检查失败（可能是首次发布）:', err.message)
+        console.log('Auto-update check failed (possibly first release):', err.message)
       })
     }, 3000)
     
-    // 监听更新事件
-    autoUpdater.on('update-available', () => {
+    // 监听更新事件 - 发现新版本
+    autoUpdater.on('update-available', (info) => {
       dialog.showMessageBox(mainWindow, {
         type: 'info',
         title: 'Update Available',
-        message: 'A new version is available. Downloading now...'
+        message: `A new version ${info.version} is available. Downloading now...`,
+        buttons: ['OK']
       })
     })
+
+    // 监听下载进度
+    autoUpdater.on('download-progress', (progressObj) => {
+      // 创建进度窗口（如果还没创建）
+      if (!progressWindow) {
+        createProgressWindow()
+      }
+      // 发送进度数据到窗口
+      if (progressWindow) {
+        progressWindow.webContents.send('download-progress', progressObj)
+      }
+    })
     
-    autoUpdater.on('update-downloaded', () => {
+    // 监听更新下载完成
+    autoUpdater.on('update-downloaded', (info) => {
+      // 关闭进度窗口
+      if (progressWindow) {
+        progressWindow.close()
+        progressWindow = null
+      }
+
       dialog.showMessageBox(mainWindow, {
         type: 'info',
         title: 'Update Ready',
-        message: 'Update downloaded. The application will restart to install the update.',
-        buttons: ['Restart', 'Later']
+        message: `Version ${info.version} has been downloaded. The application will restart to install the update.`,
+        buttons: ['Restart Now', 'Later']
       }).then((result) => {
         if (result.response === 0) {
           autoUpdater.quitAndInstall()
         }
       })
+    })
+
+    // 监听更新错误
+    autoUpdater.on('error', (err) => {
+      if (progressWindow) {
+        progressWindow.close()
+        progressWindow = null
+      }
+      console.error('Update error:', err)
     })
   }
 
@@ -86,14 +336,58 @@ function createWindow() {
       event.preventDefault()
       mainWindow.webContents.reloadIgnoringCache()
     }
+    // Ctrl+Shift+I 或 F12 打开/关闭开发者工具
+    if ((input.control && input.shift && input.key.toLowerCase() === 'i') || input.key === 'F12') {
+      event.preventDefault()
+      if (mainWindow.webContents.isDevToolsOpened()) {
+        mainWindow.webContents.closeDevTools()
+      } else {
+        mainWindow.webContents.openDevTools()
+      }
+    }
   })
 }
 
-function startBackend() {
+// 检查后端健康状态
+async function checkBackendHealth(maxRetries = 30, delayMs = 1000) {
+  const http = require('http')
+  
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      await new Promise((resolve, reject) => {
+        const req = http.get('http://127.0.0.1:8000/', (res) => {
+          if (res.statusCode === 200 || res.statusCode === 404) {
+            resolve(true)
+          } else {
+            reject(new Error(`Unexpected status: ${res.statusCode}`))
+          }
+        })
+        req.on('error', reject)
+        req.setTimeout(1000, () => {
+          req.destroy()
+          reject(new Error('Timeout'))
+        })
+      })
+      console.log(`✅ Backend service is ready (attempt ${i + 1}/${maxRetries})`)
+      return true
+    } catch (error) {
+      if (i < maxRetries - 1) {
+        console.log(`⏳ Waiting for backend to start... (attempt ${i + 1}/${maxRetries})`)
+        await new Promise(resolve => setTimeout(resolve, delayMs))
+      }
+    }
+  }
+  console.error('❌ Backend service startup timeout')
+  return false
+}
+
+async function startBackend() {
   // 在生产环境启动后端服务（如果存在）
   if (!isDev) {
+    // 后端exe被解压到app.asar.unpacked目录
     const backendPath = path.join(
       process.resourcesPath,
+      'app.asar.unpacked',
       'backend',
       'dist',
       'hplc-backend.exe'
@@ -101,8 +395,9 @@ function startBackend() {
     
     // 检查后端文件是否存在
     if (fsSync.existsSync(backendPath)) {
+      console.log('🚀 Starting backend service:', backendPath)
       backendProcess = spawn(backendPath, [], {
-        cwd: path.join(process.resourcesPath, 'backend'),
+        cwd: path.join(process.resourcesPath, 'app.asar.unpacked', 'backend'),
       })
 
       backendProcess.stdout.on('data', (data) => {
@@ -116,17 +411,43 @@ function startBackend() {
       backendProcess.on('close', (code) => {
         console.log(`Backend process exited with code ${code}`)
       })
+      
+      console.log('✅ Backend process started, PID:', backendProcess.pid)
+      
+      // 等待后端服务完全启动
+      const isHealthy = await checkBackendHealth()
+      if (!isHealthy) {
+        dialog.showErrorBox(
+          'Backend Service Failed to Start',
+          'Unable to start backend service, the application may not work properly.\nPlease check logs or contact technical support.'
+        )
+      }
+      return isHealthy
     } else {
-      console.log('后端服务未打包，将使用远程API')
+      console.log('⚠️ Backend service not found:', backendPath)
+      console.log('Will use remote API (if configured)')
+      return false
     }
   } else {
-    console.log('开发模式：请手动启动后端服务 (python backend/main.py)')
+    console.log('Development mode: Please manually start backend service (python backend/main.py)')
+    return true
   }
 }
 
-app.whenReady().then(() => {
-  startBackend()
+app.whenReady().then(async () => {
+  // 显示启动画面
+  createSplashWindow()
+  
+  // 先启动后端，等待其完全启动后再创建窗口
+  await startBackend()
+  
+  // 关闭启动画面，显示主窗口
   createWindow()
+  
+  if (splashWindow) {
+    splashWindow.close()
+    splashWindow = null
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

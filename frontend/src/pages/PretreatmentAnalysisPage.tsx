@@ -14,6 +14,7 @@ const PretreatmentAnalysisPage: React.FC = () => {
   const [radarColor, setRadarColor] = useState<string>('#1890ff')
   const [hasData, setHasData] = useState(false)
   const [score2, setScore2] = useState<number>(0)
+  const [refreshKey, setRefreshKey] = useState<number>(0) // ǿ��ˢ����
   const [mainFactorScores, setMainFactorScores] = useState({
     S: 0,
     H: 0,
@@ -35,7 +36,7 @@ const PretreatmentAnalysisPage: React.FC = () => {
   })
 
   useEffect(() => {
-    // 页面挂载时，直接加载已有数据
+    // ҳ�����ʱ��ֱ�Ӽ�����������?
     loadPretreatmentData()
 
     const handleDataUpdate = () => {
@@ -45,7 +46,7 @@ const PretreatmentAnalysisPage: React.FC = () => {
     
     const handleMethodsDataUpdated = async () => {
       console.log('PretreatmentAnalysisPage: Methods data updated, triggering recalculation')
-      // Methods 数据变化时，请求重新计算
+      // Methods ���ݱ仯ʱ���������¼���
       window.dispatchEvent(new CustomEvent('requestScoreRecalculation'))
     }
 
@@ -78,7 +79,7 @@ const PretreatmentAnalysisPage: React.FC = () => {
       const prepMajor = prep.major_factors || { S: 0, H: 0, E: 0 }
       const additionalFactors = scoreResults.additional_factors || {}
 
-      // 构建雷达图数据（9个小因子）
+      // �����״�ͼ���ݣ�9��С���ӣ�
       const subFactorValues = [
         subFactors.S1 || 0,
         subFactors.S2 || 0,
@@ -107,17 +108,17 @@ const PretreatmentAnalysisPage: React.FC = () => {
       setRadarData(chartData)
       setRadarColor(radarColorData.color)
 
-      // 设置大因子（包括前处理阶段的P因子）
+      // ���ô����ӣ�����ǰ�����׶ε�P���ӣ�
       setMainFactorScores({
         S: prepMajor.S || 0,
         H: prepMajor.H || 0,
         E: prepMajor.E || 0,
         R: additionalFactors.pretreatment_R || 0,
         D: additionalFactors.pretreatment_D || 0,
-        P: additionalFactors.pretreatment_P || 0 // 前处理阶段的能耗因子
+        P: additionalFactors.pretreatment_P || 0 // ǰ�����׶ε��ܺ�����
       })
 
-      // 设置小因子
+      // ����С����
       setSubFactorScores({
         releasePotential: subFactors.S1 || 0,
         fireExplos: subFactors.S2 || 0,
@@ -132,6 +133,8 @@ const PretreatmentAnalysisPage: React.FC = () => {
 
       setScore2(prep.score2 || 0)
       setHasData(true)
+      setRefreshKey(prev => prev + 1) // ǿ��ˢ�����?
+      console.log('PretreatmentAnalysisPage: Data loaded, score2 =', prep.score2)
     } catch (error) {
       console.error('PretreatmentAnalysisPage: Error loading data:', error)
       setHasData(false)
@@ -188,7 +191,7 @@ const PretreatmentAnalysisPage: React.FC = () => {
   if (!hasData) {
     return (
       <div style={{ padding: '24px' }}>
-        <Title level={2}>Sample Pretreatment Green Chemistry Analysis</Title>
+        <Title level={2}>Sample Pretreatment Green Analytical Chemistry Assessment</Title>
         <Alert
           message="No Data Available"
           description="Please complete the configuration on the Methods page and click the Calculate button to perform scoring"
@@ -201,8 +204,8 @@ const PretreatmentAnalysisPage: React.FC = () => {
   }
 
   return (
-    <div style={{ padding: '24px', background: '#f0f2f5', minHeight: '100vh' }}>
-      <Title level={2}>Sample Pretreatment Green Chemistry Analysis</Title>
+    <div key={refreshKey} style={{ padding: '24px', background: '#f0f2f5', minHeight: '100vh' }}>
+      <Title level={2}>Sample Pretreatment Green Analytical Chemistry Assessment</Title>
       
       {/* Total Score Card */}
       <Card style={{ marginBottom: 24 }}>
@@ -215,7 +218,7 @@ const PretreatmentAnalysisPage: React.FC = () => {
           boxShadow: `0 4px 16px ${getColorRGBA(score2, 0.3)}`
         }}>
           <div style={{ fontSize: 16, opacity: 0.95, marginBottom: 8 }}>
-            Sample Pretreatment Stage Green Chemistry Score (Score₂)
+            Sample Pretreatment Stage Green Analytical Chemistry Score (Score₁)
           </div>
           <div style={{ fontSize: 52, fontWeight: 'bold', marginBottom: 12 }}>
             {score2.toFixed(2)}
@@ -232,61 +235,61 @@ const PretreatmentAnalysisPage: React.FC = () => {
         </div>
       </Card>
 
-      {/* 大因子分数卡片 */}
+      {/* �����ӷ�����Ƭ */}
       <Card style={{ marginBottom: 24 }}>
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-around', 
-          alignItems: 'center',
-          gap: '20px',
-          flexWrap: 'wrap'
-        }}>
-          <div style={{ textAlign: 'center', minWidth: '120px' }}>
-            <div style={{ fontSize: 14, color: '#666', marginBottom: 8, fontWeight: 500 }}>Safety (S)</div>
-            <div style={{ fontSize: 24, fontWeight: 'bold', color: getColorHex(mainFactorScores.S) }}>
-              {mainFactorScores.S.toFixed(2)}
-            </div>
-          </div>
-          <div style={{ textAlign: 'center', minWidth: '120px' }}>
-            <div style={{ fontSize: 14, color: '#666', marginBottom: 8, fontWeight: 500 }}>Health (H)</div>
-            <div style={{ fontSize: 24, fontWeight: 'bold', color: getColorHex(mainFactorScores.H) }}>
-              {mainFactorScores.H.toFixed(2)}
-            </div>
-          </div>
-          <div style={{ textAlign: 'center', minWidth: '120px' }}>
-            <div style={{ fontSize: 14, color: '#666', marginBottom: 8, fontWeight: 500 }}>Environment (E)</div>
-            <div style={{ fontSize: 24, fontWeight: 'bold', color: getColorHex(mainFactorScores.E) }}>
-              {mainFactorScores.E.toFixed(2)}
-            </div>
-          </div>
-          <div style={{ textAlign: 'center', minWidth: '120px' }}>
-            <div style={{ fontSize: 14, color: '#666', marginBottom: 8, fontWeight: 500 }}>Regeneration (R)</div>
-            <div style={{ fontSize: 24, fontWeight: 'bold', color: getColorHex(mainFactorScores.R) }}>
-              {mainFactorScores.R.toFixed(2)}
-            </div>
-          </div>
-          <div style={{ textAlign: 'center', minWidth: '120px' }}>
-            <div style={{ fontSize: 14, color: '#666', marginBottom: 8, fontWeight: 500 }}>Disposal (D)</div>
-            <div style={{ fontSize: 24, fontWeight: 'bold', color: getColorHex(mainFactorScores.D) }}>
-              {mainFactorScores.D.toFixed(2)}
-            </div>
-          </div>
-          <div style={{ textAlign: 'center', minWidth: '120px' }}>
-            <div style={{ fontSize: 14, color: '#666', marginBottom: 8, fontWeight: 500 }}>Power (P)</div>
-            <div style={{ fontSize: 24, fontWeight: 'bold', color: getColorHex(mainFactorScores.P) }}>
-              {mainFactorScores.P.toFixed(2)}
-            </div>
-          </div>
-        </div>
+        <Row gutter={[16, 16]} justify="space-around">
+          <Col xs={12} sm={8} md={8} lg={4} xl={4} style={{ textAlign: 'center' }}>
+            <Statistic
+              title="Safety (S)"
+              value={mainFactorScores.S.toFixed(2)}
+              valueStyle={{ color: getColorHex(mainFactorScores.S), fontSize: '20px', fontWeight: 'bold' }}
+            />
+          </Col>
+          <Col xs={12} sm={8} md={8} lg={4} xl={4} style={{ textAlign: 'center' }}>
+            <Statistic
+              title="Health (H)"
+              value={mainFactorScores.H.toFixed(2)}
+              valueStyle={{ color: getColorHex(mainFactorScores.H), fontSize: '20px', fontWeight: 'bold' }}
+            />
+          </Col>
+          <Col xs={12} sm={8} md={8} lg={4} xl={4} style={{ textAlign: 'center' }}>
+            <Statistic
+              title="Environment (E)"
+              value={mainFactorScores.E.toFixed(2)}
+              valueStyle={{ color: getColorHex(mainFactorScores.E), fontSize: '20px', fontWeight: 'bold' }}
+            />
+          </Col>
+          <Col xs={12} sm={8} md={8} lg={4} xl={4} style={{ textAlign: 'center' }}>
+            <Statistic
+              title="Regeneration (R)"
+              value={mainFactorScores.R.toFixed(2)}
+              valueStyle={{ color: getColorHex(mainFactorScores.R), fontSize: '20px', fontWeight: 'bold' }}
+            />
+          </Col>
+          <Col xs={12} sm={8} md={8} lg={4} xl={4} style={{ textAlign: 'center' }}>
+            <Statistic
+              title="Disposal (D)"
+              value={mainFactorScores.D.toFixed(2)}
+              valueStyle={{ color: getColorHex(mainFactorScores.D), fontSize: '20px', fontWeight: 'bold' }}
+            />
+          </Col>
+          <Col xs={12} sm={8} md={8} lg={4} xl={4} style={{ textAlign: 'center' }}>
+            <Statistic
+              title="Power (P)"
+              value={mainFactorScores.P.toFixed(2)}
+              valueStyle={{ color: getColorHex(mainFactorScores.P), fontSize: '20px', fontWeight: 'bold' }}
+            />
+          </Col>
+        </Row>
       </Card>
 
-      {/* 四个图表：2行2列 */}
+      {/* �ĸ�ͼ����2��2�� */}
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-        {/* 第一行 */}
-        {/* 雷达图 */}
-        <Col xs={24} xl={12}>
-          <Card title="Radar Chart Analysis" style={{ height: '550px' }}>
-            <div style={{ width: '100%', height: '500px' }}>
+        {/* ��һ�� */}
+        {/* �״�ͼ */}
+        <Col xs={24} sm={24} md={24} lg={12} xl={12}>
+          <Card title="Radar Chart Analysis" style={{ height: 'auto', minHeight: '350px' }}>
+            <div style={{ width: '100%', height: '450px', minHeight: '350px' }}>
               <ResponsiveContainer>
                 <RadarChart data={radarData} margin={{ top: 50, right:20, bottom: 30, left: 30 }}>
                   <PolarGrid stroke="#000" />
@@ -306,10 +309,10 @@ const PretreatmentAnalysisPage: React.FC = () => {
           </Card>
         </Col>
 
-        {/* 切向极坐标条形图 */}
-        <Col xs={24} xl={12}>
-          <Card title="Tangential Polar Bar Chart" style={{ height: '550px' }}>
-            <div style={{ width: '100%', height: '500px' }}>
+        {/* ������������ͼ */}
+        <Col xs={24} sm={24} md={24} lg={12} xl={12}>
+          <Card title="Tangential Polar Bar Chart" style={{ height: 'auto', minHeight: '350px' }}>
+            <div style={{ width: '100%', height: '450px', minHeight: '350px' }}>
               <PolarBarChart scores={mainFactorScores} />
             </div>
           </Card>
@@ -317,20 +320,20 @@ const PretreatmentAnalysisPage: React.FC = () => {
       </Row>
 
       <Row gutter={[16, 16]}>
-        {/* 第二行 */}
-        {/* 扇形图 */}
-        <Col xs={24} xl={12}>
-          <Card title="Fan Chart Visualization" style={{ height: '550px' }}>
-            <div style={{ width: '100%', height: '500px' }}>
+        {/* �ڶ��� */}
+        {/* ����ͼ */}
+        <Col xs={24} sm={24} md={24} lg={12} xl={12}>
+          <Card title="Fan Chart Visualization" style={{ height: 'auto', minHeight: '350px' }}>
+            <div style={{ width: '100%', height: '450px', minHeight: '350px' }}>
               <FanChart scores={mainFactorScores} />
             </div>
           </Card>
         </Col>
 
-        {/* 嵌套环形图 */}
-        <Col xs={24} xl={12}>
-          <Card title="Nested Pie Chart - Main & Sub Factors" style={{ height: '550px' }}>
-            <div style={{ width: '100%', height: '500px' }}>
+        {/* Ƕ�׻���ͼ */}
+        <Col xs={24} sm={24} md={24} lg={12} xl={12}>
+          <Card title="Nested Pie Chart - Main & Sub Factors" style={{ height: 'auto', minHeight: '350px' }}>
+            <div style={{ width: '100%', height: '450px', minHeight: '350px' }}>
               <NestedPieChart 
                 mainFactors={mainFactorScores}
                 subFactors={subFactorScores}

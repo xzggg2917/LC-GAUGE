@@ -29,6 +29,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const initAuth = async () => {
       try {
+        // 1. 检查是否需要创建默认管理员账号
+        const users = await StorageHelper.getUsers()
+        if (!users || users.length === 0) {
+          console.log('🔧 首次运行，创建默认管理员账号 (admin/admin)')
+          const defaultAdmin = {
+            username: 'admin',
+            password: 'admin',
+            registeredAt: new Date().toISOString()
+          }
+          await StorageHelper.setUsers([defaultAdmin])
+          console.log('✅ 默认管理员账号已创建')
+        }
+        
+        // 2. 恢复已登录用户
         const savedUser = await StorageHelper.getCurrentUser()
         if (savedUser) {
           setCurrentUser(savedUser)
