@@ -261,10 +261,14 @@ function createWindow() {
 
   // 🔄 配置自动更新（仅在生产环境）
   if (!isDev) {
+    // 配置自动更新选项
+    autoUpdater.autoDownload = false  // 不自动下载，等用户确认
+    autoUpdater.autoInstallOnAppQuit = true  // 退出时自动安装
+    
     // 设置更新检查（延迟启动避免阻塞）
     setTimeout(() => {
-      autoUpdater.checkForUpdatesAndNotify().catch(err => {
-        console.log('Auto-update check failed (possibly first release):', err.message)
+      autoUpdater.checkForUpdates().catch(err => {
+        console.log('Auto-update check failed:', err.message)
       })
     }, 3000)
     
@@ -272,9 +276,16 @@ function createWindow() {
     autoUpdater.on('update-available', (info) => {
       dialog.showMessageBox(mainWindow, {
         type: 'info',
-        title: 'Update Available',
-        message: `A new version ${info.version} is available. Downloading now...`,
-        buttons: ['OK']
+        title: '发现新版本',
+        message: `发现新版本 ${info.version}，是否立即下载更新？\n\n当前版本：${app.getVersion()}\n最新版本：${info.version}`,
+        buttons: ['立即下载', '稍后提醒'],
+        defaultId: 0,
+        cancelId: 1
+      }).then((result) => {
+        if (result.response === 0) {
+          // 用户点击"立即下载"，开始下载
+          autoUpdater.downloadUpdate()
+        }
       })
     })
 
@@ -300,14 +311,22 @@ function createWindow() {
 
       dialog.showMessageBox(mainWindow, {
         type: 'info',
-        title: 'Update Ready',
-        message: `Version ${info.version} has been downloaded. The application will restart to install the update.`,
-        buttons: ['Restart Now', 'Later']
+        title: '更新已下载',
+        message: `新版本 ${info.version} 已下载完成，是否立即重启安装？\n\n点击"立即安装"将重启应用并安装更新\n点击"稍后安装"将在下次启动时安装`,
+        buttons: ['立即安装', '稍后安装'],
+        defaultId: 0,
+        cancelId: 1
       }).then((result) => {
         if (result.response === 0) {
-          autoUpdater.quitAndInstall()
+          // 立即退出并安装
+          autoUpdater.quitAndInstall(false, true)
         }
       })
+    })
+    
+    // 监听没有可用更新
+    autoUpdater.on('update-not-available', (info) => {
+      console.log('当前已是最新版本:', info.version)
     })
 
     // 监听更新错误
