@@ -558,42 +558,48 @@ const MethodEvaluationPage: React.FC = () => {
             <Col xs={12} sm={8} md={8} lg={4} xl={4}>
               <Statistic
                 title="Safety (S)"
-                value={mainFactorScores.S.toFixed(3)}
+                value={mainFactorScores.S}
+                precision={3}
                 valueStyle={{ color: '#52c41a', fontSize: '20px', fontWeight: 'bold' }}
               />
             </Col>
             <Col xs={12} sm={8} md={8} lg={4} xl={4}>
               <Statistic
                 title="Health (H)"
-                value={mainFactorScores.H.toFixed(3)}
+                value={mainFactorScores.H}
+                precision={3}
                 valueStyle={{ color: '#fa8c16', fontSize: '20px', fontWeight: 'bold' }}
               />
             </Col>
             <Col xs={12} sm={8} md={8} lg={4} xl={4}>
               <Statistic
                 title="Environment (E)"
-                value={mainFactorScores.E.toFixed(3)}
+                value={mainFactorScores.E}
+                precision={3}
                 valueStyle={{ color: '#1890ff', fontSize: '20px', fontWeight: 'bold' }}
               />
             </Col>
             <Col xs={12} sm={8} md={8} lg={4} xl={4}>
               <Statistic
                 title="Regeneration (R)"
-                value={mainFactorScores.R.toFixed(3)}
+                value={mainFactorScores.R}
+                precision={3}
                 valueStyle={{ color: '#f5222d', fontSize: '20px', fontWeight: 'bold' }}
               />
             </Col>
             <Col xs={12} sm={8} md={8} lg={4} xl={4}>
               <Statistic
                 title="Disposal (D)"
-                value={mainFactorScores.D.toFixed(3)}
+                value={mainFactorScores.D}
+                precision={3}
                 valueStyle={{ color: '#722ed1', fontSize: '20px', fontWeight: 'bold' }}
               />
             </Col>
             <Col xs={12} sm={8} md={8} lg={4} xl={4}>
               <Statistic
                 title="Power (P)"
-                value={mainFactorScores.P.toFixed(3)}
+                value={mainFactorScores.P}
+                precision={3}
                 valueStyle={{ color: '#eb2f96', fontSize: '20px', fontWeight: 'bold' }}
               />
             </Col>
@@ -640,7 +646,7 @@ const MethodEvaluationPage: React.FC = () => {
       {!hasData ? (
         <Alert
           message="No Data Available"
-          description="Please complete Factors, Methods, and HPLC Gradient configuration, then refresh this page."
+          description="Please complete Factors, Methods, and LC Gradient configuration, then refresh this page."
           type="info"
           showIcon
           style={{ marginBottom: 24 }}

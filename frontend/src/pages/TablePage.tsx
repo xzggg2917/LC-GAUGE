@@ -645,7 +645,7 @@ const TablePage: React.FC = () => {
       {!hasData ? (
         <Alert
           message="No Data Available"
-          description="Please complete Factors, Methods, and HPLC Gradient configuration first."
+          description="Please complete Factors, Methods, and LC Gradient configuration first."
           type="info"
           showIcon
           style={{ marginBottom: 24 }}

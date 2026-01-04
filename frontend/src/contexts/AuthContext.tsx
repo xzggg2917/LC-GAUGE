@@ -70,7 +70,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       // 检查用户名是否已存在
       if (users.some((u: any) => u.username === username)) {
-        return { success: false, message: '用户名已存在' }
+        return { success: false, message: 'Username already exists' }
       }
 
       // 创建新用户（实际应用中应该加密密码）

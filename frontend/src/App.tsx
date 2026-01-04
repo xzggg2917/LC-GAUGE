@@ -534,7 +534,7 @@ const AppContent: React.FC = () => {
         await setCurrentFilePath(fileName)
         setIsDirty(false)
         
-        message.success(`文件已保存: ${fileName}`)
+        message.success(`File saved: ${fileName}`)
       } else {
         console.log('💾 保存到现有文件:', currentFilePath)
         
@@ -546,7 +546,7 @@ const AppContent: React.FC = () => {
         }
         
         setIsDirty(false)
-        message.success('文件保存成功')
+        message.success('File saved successfully')
       }
       console.log('✅ Save completed, current isDirty should be false')
     } catch (error: any) {

@@ -750,12 +750,12 @@ const HPLCGradientPage: React.FC = () => {
       
       // 详细计算说明
       calculationNotes: {
-        description: '梯度程序计算结果',
+        description: 'Gradient program calculation results',
         formulas: {
-          totalVolume: '总体积 = 总时间 × 平均流速',
-          avgPercentage: '平均百分比 = 曲线积分面积 / 总时间',
-          phaseVolume: '流动相体积 = 总体积 × 平均百分比 / 100',
-          reagentVolume: '试剂体积 = 流动相体积 × 试剂在流动相中的比例'
+          totalVolume: 'Total Volume = Total Time × Average Flow Rate',
+          avgPercentage: 'Average Percentage = Curve Integral Area / Total Time',
+          phaseVolume: 'Phase Volume = Total Volume × Average Percentage / 100',
+          reagentVolume: 'Reagent Volume = Phase Volume × Reagent Ratio in Phase'
         }
       }
     }

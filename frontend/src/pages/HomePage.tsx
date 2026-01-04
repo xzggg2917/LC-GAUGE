@@ -52,7 +52,7 @@ const HomePage: React.FC = () => {
               <FileAddOutlined style={{ fontSize: 48, color: '#1890ff', marginBottom: 16 }} />
               <Title level={4}>Create New File</Title>
               <Paragraph style={{ color: '#666', marginBottom: 24 }}>
-                Start a new HPLC analysis project
+                Start a new LC analysis project
               </Paragraph>
               <Button type="primary" size="large">
                 New File
@@ -171,7 +171,7 @@ const HomePage: React.FC = () => {
                 <li>Solvent System Green Chemistry Scoring</li>
                 <li>Eco-Scale Assessment</li>
                 <li>Automated Chromatogram Data Analysis</li>
-                <li>HPLC Analysis Record Management</li>
+                <li>LC Analysis Record Management</li>
                 <li>Environmental Impact Assessment Reports</li>
               </ul>
             </Paragraph>

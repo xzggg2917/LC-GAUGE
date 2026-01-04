@@ -1534,7 +1534,7 @@ const MethodsPage: React.FC = () => {
         let warningMsg = 'Please check: '
         const checks = []
         if (!instrumentData.time_points.length) {
-          checks.push('HPLC Gradient configuration')
+          checks.push('LC Gradient configuration')
         }
         if (Object.keys(instrumentData.composition).length === 0) {
           checks.push('Mobile Phase A/B reagent setup')
@@ -1589,7 +1589,7 @@ const MethodsPage: React.FC = () => {
       console.error('错误详情:', error.response?.data)
       
       // 更好的错误信息显示
-      let errorMessage = '评分计算失败'
+      let errorMessage = 'Score calculation failed'
       if (error.response?.data?.detail) {
         if (typeof error.response.data.detail === 'string') {
           errorMessage += ': ' + error.response.data.detail
@@ -1822,7 +1822,7 @@ const MethodsPage: React.FC = () => {
     })
     setIsDirty(true)
 
-    message.success('Data saved, navigating to HPLC Gradient Program')
+    message.success('Data saved, navigating to LC Gradient Program')
     
     // 触发自定义事件，通知其他组件数据已更新
     window.dispatchEvent(new CustomEvent('methodsDataUpdated', { detail: {

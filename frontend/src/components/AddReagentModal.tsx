@@ -201,17 +201,17 @@ const RD_STEP4_OPTIONS = [
 const AT_PATH_OPTIONS = [
   { 
     value: 'A', 
-    label: '[Path A] Common HPLC Organic Solvents or Volatile Acids/Bases',
+    label: '[Path A] Common LC Organic Solvents or Volatile Acids/Bases',
     description: 'Liquid, with obvious volatility, IDLH (ppm) value available'
   },
   { 
     value: 'B', 
-    label: '[Path B] HPLC Solid Additives or Inorganic Salts',
+    label: '[Path B] LC Solid Additives or Inorganic Salts',
     description: 'Solid powder, non-volatile, usually no IDLH value but has LD50 value'
   }
 ]
 
-// Standard IDLH recommended values for common HPLC solvents
+// Standard IDLH recommended values for common LC solvents
 const COMMON_IDLH_VALUES = [
   { name: 'Methanol', value: 6000 },
   { name: 'Acetonitrile', value: 500, note: 'Note: Do not use 137' },
@@ -232,7 +232,7 @@ const IRR_Q1_OPTIONS = [
 
 // Irritation 问题2选项：明显刺激性
 const IRR_Q2_OPTIONS = [
-  { value: 'yes', label: 'Yes - Contains any of R36/R37/R38/R41/R48', result: 0.625 },
+  { value: 'yes', label: 'Yes - Contains any of R36/R37/R41/R48', result: 0.625 },
   { value: 'ethanol', label: 'Special case: This substance is Ethanol', result: 0.000, note: 'Directly enter 0' },
   { value: 'no', label: 'No - Does not contain the above codes', continueToQ3: true }
 ]
@@ -261,6 +261,11 @@ const IRR_Q3_PH_RANGES = [
 
 // Irritation 问题4选项：微量危害代码
 const IRR_Q4_CODES = [
+  { 
+    code: 'R38', 
+    label: 'R38 (skin irritation)', 
+    value: 0.220 
+  },
   { 
     code: 'R40', 
     label: 'R40 (possible carcinogenicity)', 
@@ -348,46 +353,76 @@ const CT_Q5_OPTIONS = [
 const PERSISTENCY_Q1_OPTIONS = [
   { 
     value: 'A', 
-    label: 'A. Inorganic Strong Acid', 
-    description: 'Strong acid ≥ 90% conc. (e.g., 96% H₂SO₄)',
+    label: 'A. Strong Inorganic Acid', 
+    description: 'Concentrated inorganic strong acid (e.g., 96% H₂SO₄)',
     result: 0.485
   },
   { 
     value: 'B', 
-    label: 'B. Other Inorganic Substances', 
-    description: 'E.g., ammonia aq., KH₂PO₄, ammonium carbonate, HCl, NaOH',
+    label: 'B. General Inorganic', 
+    description: 'E.g., water, inorganic salts, bases',
     result: 0.000
   },
   { 
     value: 'C', 
-    label: 'C. Organic Substances', 
-    description: 'E.g., methanol, acetonitrile, isooctane, formic acid, acetic acid, halogenated hydrocarbons'
+    label: 'C. None of the Above (Organic Substances)', 
+    description: 'All organic compounds'
+  }
+]
+
+const PERSISTENCY_Q2_OPTIONS = [
+  {
+    value: 'A',
+    label: 'A. Extremely Low Bioaccumulation: BCF (Bioconcentration Factor) < 1.6',
+    description: 'Very low bioaccumulation potential',
+    result: 0.000
+  },
+  {
+    value: 'B',
+    label: 'B. Readily Biodegradable Organics: Biodegradation Half-Life (t₁/₂) < 4.5 days',
+    description: 'Rapidly biodegradable',
+    result: 0.026
+  },
+  {
+    value: 'C',
+    label: 'C. High Volatility Halogenated: RB = 0 (Not Readily Biodeg.) and kOH > 1.3 × 10⁻¹³',
+    description: 'Persistent but volatile halogenated compounds',
+    result: 0.023
+  },
+  {
+    value: 'D',
+    label: 'D. Rapid Metabolism Ketones: Ketone structure and Fish Biotransformation Half-Life < 0.17 days',
+    description: 'Ketones with rapid biotransformation',
+    result: 0.126
+  },
+  {
+    value: 'E',
+    label: 'E. None of the Above',
+    description: 'Proceed to next step'
   }
 ]
 
 const PERSISTENCY_Q3_OPTIONS = [
   {
     value: 'A',
-    label: 'A. Very Rapid Biodegradation/Low Accumulation',
-    description: 'Biodeg. Half-Life < 4.5 days, or BCF < 1.6',
-    result: 0.000
+    label: 'A. Alcohols: Contains hydroxyl group (-OH) with non-toxic or low molecular weight',
+    description: 'E.g., ethanol, isopropanol, methanol',
+    result: 0.282
   },
   {
     value: 'B',
-    label: 'B. Alcohol or Similar Low Accumulation',
-    description: 'ReadyBiodeg = 0, and Atmos. Hydroxylation Rate > 1.3e-13',
-    result: 0.020
+    label: 'B. Halogenated: Contains Cl, Br, F in organic molecules',
+    description: 'E.g., chloroform, dichloromethane'
   },
   {
     value: 'C',
-    label: 'C. Special Metabolized Substance',
-    description: 'Fish Biotrans. Half-Life < 0.17 days',
-    result: 0.130
+    label: 'C. Ethers: Contains ether bond (C-O-C) structure',
+    description: 'E.g., THF, MTBE'
   },
   {
     value: 'D',
-    label: 'D. None of the above',
-    description: 'Please proceed to Stage 4 core calculation'
+    label: 'D. General Organics: Alkanes, esters, nitriles not covered above',
+    description: 'E.g., acetonitrile, ethyl acetate, hexane'
   }
 ]
 
@@ -401,16 +436,16 @@ const PERSISTENCY_READY_BIODEG_OPTIONS = [
   { value: 0, label: '0 (Not Readily Biodegradable)' }
 ]
 
-const PERSISTENCY_CHEMICAL_TYPE_OPTIONS = [
+const PERSISTENCY_Q6_OPTIONS = [
   {
-    value: '2a',
-    label: '2a. Halogenated Hydrocarbons',
-    description: 'Contains Cl/Br, and BCF > 5.0'
+    value: 'A',
+    label: 'A. Yes: Meets RB = 0 (Not Readily Biodeg.) or BCF > 200 (High Accumulation)',
+    description: 'Persistent or bioaccumulative'
   },
   {
-    value: '2b',
-    label: '2b. Ethers or Branched Alkanes',
-    description: 'BCF < 5.0'
+    value: 'B',
+    label: 'B. No: Readily Biodegradable (RB = 1) and Low Accumulation',
+    description: 'Neither persistent nor bioaccumulative'
   }
 ]
 
@@ -810,9 +845,10 @@ const AddReagentModal: React.FC<AddReagentModalProps> = ({ visible, onCancel, on
   
   // Persistency 的状态
   const [persQ1, setPersQ1] = useState<string>('') // A/B/C (物质身份)
-  const [persQ3, setPersQ3] = useState<string>('') // A/B/C/D (快速通道)
-  const [persReadyBiodeg, setPersReadyBiodeg] = useState<number | undefined>(undefined) // 0/1
-  const [persChemicalType, setPersChemicalType] = useState<string>('') // 2a/2b
+  const [persQ2, setPersQ2] = useState<string>('') // A/B/C/D/E (快速筛选)
+  const [persQ3, setPersQ3] = useState<string>('') // A/B/C/D (结构分类)
+  const [persReadyBiodeg, setPersReadyBiodeg] = useState<number | undefined>(undefined) // 0/1 (保留，但不用于计算)
+  const [persQ6, setPersQ6] = useState<string>('') // A/B (难降解/高累积)
   const [persCalculatedValue, setPersCalculatedValue] = useState<number>(0)
   
   // Water Hazard 的状态
@@ -929,8 +965,8 @@ const AddReagentModal: React.FC<AddReagentModalProps> = ({ visible, onCancel, on
       // 快速判断规则
       if (ld50 >= 2000) return 0.000
       if (ld50 <= 20) return 1.000
-      // Acute Value = 1.65 - 0.5 × log₁₀(LD50)
-      const acuteValue = 1.65 - 0.5 * Math.log10(ld50)
+      // Index = 1.74 - 0.53 × log₁₀(LD50)
+      const acuteValue = 1.74 - 0.53 * Math.log10(ld50)
       // 修正断裂规则
       if (acuteValue < 0) return 0.000
       if (acuteValue >= 1) return 1.000
@@ -965,6 +1001,7 @@ const AddReagentModal: React.FC<AddReagentModalProps> = ({ visible, onCancel, on
     // 问题 4：微量危害累加
     if (q3Ph === 'neutral' && q4Codes && q4Codes.length > 0) {
       let total = 0
+      if (q4Codes.includes('R38')) total += 0.220
       if (q4Codes.includes('R40')) total += 0.236
       if (q4Codes.includes('R20series')) total += 0.113
       if (q4Codes.includes('R50series')) total += 0.110
@@ -1030,63 +1067,78 @@ const AddReagentModal: React.FC<AddReagentModalProps> = ({ visible, onCancel, on
   // 计算 Persistency
   const calculatePersistency = (
     q1: string,
+    q2?: string,
     q3?: string,
     biodegHalfLife?: number,
     dataSource?: string,
-    readyBiodeg?: number,
-    bcf?: number,
-    atmosRate?: number,
-    fishHalfLife?: number,
-    chemicalType?: string
+    q6?: string
   ): number => {
     // 第一阶段：物质身份确认
     if (q1 === 'A') {
-      // 无机强酸
+      // 浓无机强酸
       return 0.485
     }
     if (q1 === 'B') {
-      // 其他无机物
+      // 一般无机物
       return 0.000
     }
     
-    // 第三阶段：快速通道
+    // 第二阶段：快速路径筛选
+    if (q2 === 'A') {
+      // 极低生物累积
+      return 0.000
+    }
+    if (q2 === 'B') {
+      // 易降解有机物
+      return 0.026
+    }
+    if (q2 === 'C') {
+      // 高挥发性低累积
+      return 0.023
+    }
+    if (q2 === 'D') {
+      // 快速代谢酮类
+      return 0.126
+    }
+    
+    // 第三阶段：结构分类
     if (q3 === 'A') {
-      // 极快降解/低蓄积
-      return 0.000
-    }
-    if (q3 === 'B') {
-      // 醇或类似性低蓄积
-      return 0.020
-    }
-    if (q3 === 'C') {
-      // 特殊代谢物质
-      return 0.130
+      // 醇类
+      return 0.282
     }
     
-    // 第四阶段：核心计算
-    if (q3 === 'D' && biodegHalfLife !== undefined && readyBiodeg !== undefined) {
+    // 第四/五阶段：数据采集与核心计算
+    if ((q3 === 'B' || q3 === 'C' || q3 === 'D') && biodegHalfLife !== undefined && biodegHalfLife > 0) {
       const t = biodegHalfLife
+      let result = 0
       
-      if (readyBiodeg === 1) {
-        // 路径1: 易降解
-        let result = 0.45 * Math.log10(t)
-        // Predicted数据修正
-        if (dataSource === 'Predicted') {
-          result -= 0.03
+      if (q3 === 'B') {
+        // 卤代烃 (Halogenated)
+        // I_per = 0.32 × log10(t)
+        result = 0.32 * Math.log10(t)
+      } else if (q3 === 'C') {
+        // 醚类 (Ethers)
+        // I_per = 0.45 × log10(t) + 0.18 + 结构修正
+        result = 0.45 * Math.log10(t) + 0.18
+        // 结构修正：如果Q6选了A（难降解），加0.14
+        if (q6 === 'A') {
+          result += 0.14
         }
-        return Number(result.toFixed(3))
-      } else if (readyBiodeg === 0) {
-        // 路径2: 难降解，需要判断化学类型
-        if (chemicalType === '2a') {
-          // 2a. 卤代烃类
-          const result = 0.32 * Math.log10(t)
-          return Number(result.toFixed(3))
-        } else if (chemicalType === '2b') {
-          // 2b. 醚类或支链烷烃
-          const result = 0.45 * Math.log10(t) + 0.32
-          return Number(result.toFixed(3))
+      } else if (q3 === 'D') {
+        // 通用有机物 (General Organics)
+        // I_per = 0.45 × log10(t) + 结构修正 - 数据修正
+        result = 0.45 * Math.log10(t)
+        // 结构修正：如果Q6选了A（难降解/高累积），加0.05
+        if (q6 === 'A') {
+          result += 0.05
+        }
+        // 数据修正：如果Q5选了B（预测值），减0.05
+        if (dataSource === 'Predicted') {
+          result -= 0.05
         }
       }
+      
+      return Number(result.toFixed(3))
     }
     
     return 0
@@ -1153,7 +1205,19 @@ const AddReagentModal: React.FC<AddReagentModalProps> = ({ visible, onCancel, on
     
     if (sum > 0) {
       // 情形A：Sum > 0
-      s4 = 0
+      // 新规则：判断是否是难降解
+      // 如果是难降解（q3_1 === 'B'），则计算修正值 Corr = 6 / LC50
+      // S4 = Corr（不是 Sum + Corr，因为最后total会加上s1+s2+s3）
+      if (q3_1 === 'B') {
+        if (lc50 !== undefined && lc50 > 0) {
+          s4 = 6.0 / lc50  // 只存储Corr
+        } else {
+          s4 = 0
+        }
+      } else {
+        // 如果不是难降解，S4 = 0
+        s4 = 0
+      }
     } else {
       // 情形B：Sum = 0，需要计算微量残差
       if (lc50 !== undefined && lc50 > 0 && kValue !== undefined) {
@@ -1161,7 +1225,7 @@ const AddReagentModal: React.FC<AddReagentModalProps> = ({ visible, onCancel, on
       }
     }
     
-    const total = s1 + s2 + s3 + s4
+    const total = s1 + s2 + s3 + s4  // total = sum + s4 = sum + corr
     return Number(total.toFixed(3))
   }
 
@@ -1429,39 +1493,50 @@ const AddReagentModal: React.FC<AddReagentModalProps> = ({ visible, onCancel, on
         setPersCalculatedValue(pers)
         form.setFieldsValue({ persistency: pers })
       }
-      // 选择C时，不清空，等待后续Q3选择
+      // 选择C时，不清空，等待后续Q2选择
     }
     
-    // Q3快速通道
-    if (allValues.persQ1 === 'C' && changedValues.persQ3 !== undefined) {
-      setPersQ3(changedValues.persQ3)
-      // 如果选择了A/B/C，立即计算
-      if (changedValues.persQ3 === 'A' || changedValues.persQ3 === 'B' || changedValues.persQ3 === 'C') {
-        const pers = calculatePersistency('C', changedValues.persQ3)
+    // Q2快速路径筛选
+    if (allValues.persQ1 === 'C' && changedValues.persQ2 !== undefined) {
+      setPersQ2(changedValues.persQ2)
+      // 如果选择了A/B/C/D，立即计算
+      if (changedValues.persQ2 === 'A' || changedValues.persQ2 === 'B' || changedValues.persQ2 === 'C' || changedValues.persQ2 === 'D') {
+        const pers = calculatePersistency('C', changedValues.persQ2)
         setPersCalculatedValue(pers)
         form.setFieldsValue({ persistency: pers })
       }
-      // 选择D时，尝试立即计算（如果已有数据）
-      if (changedValues.persQ3 === 'D') {
+      // 选择E时，清空计算结果，等待Q3
+      if (changedValues.persQ2 === 'E') {
+        setPersCalculatedValue(0)
+        form.setFieldsValue({ persistency: 0 })
+      }
+    }
+    
+    // Q3结构分类
+    if (allValues.persQ1 === 'C' && allValues.persQ2 === 'E' && changedValues.persQ3 !== undefined) {
+      setPersQ3(changedValues.persQ3)
+      // 如果选择了A（醇类），立即计算
+      if (changedValues.persQ3 === 'A') {
+        const pers = calculatePersistency('C', 'E', 'A')
+        setPersCalculatedValue(pers)
+        form.setFieldsValue({ persistency: pers })
+      }
+      // 选择B/C/D时，尝试立即计算（如果已有数据）
+      if (changedValues.persQ3 === 'B' || changedValues.persQ3 === 'C' || changedValues.persQ3 === 'D') {
         const biodegHalfLife = allValues.persBiodegHalfLife
         const dataSource = allValues.persDataSource
-        const readyBiodeg = allValues.persReadyBiodeg
-        const chemicalType = allValues.persChemicalType
+        const q6 = allValues.persQ6
         
-        if (biodegHalfLife !== undefined && biodegHalfLife > 0 && readyBiodeg !== undefined) {
-          if (readyBiodeg === 0) {
-            if (chemicalType) {
-              const pers = calculatePersistency(
-                'C', 'D', biodegHalfLife, dataSource, readyBiodeg, 
-                undefined, undefined, undefined, chemicalType
-              )
-              setPersCalculatedValue(pers)
-              form.setFieldsValue({ persistency: pers })
-            }
-          } else {
-            const pers = calculatePersistency(
-              'C', 'D', biodegHalfLife, dataSource, readyBiodeg
-            )
+        if (biodegHalfLife !== undefined && biodegHalfLife > 0) {
+          // 对于卤代烃（B），不需要Q6
+          if (changedValues.persQ3 === 'B') {
+            const pers = calculatePersistency('C', 'E', 'B', biodegHalfLife, dataSource)
+            setPersCalculatedValue(pers)
+            form.setFieldsValue({ persistency: pers })
+          }
+          // 对于醚类（C）和通用有机物（D），如果有Q6数据就计算
+          else if ((changedValues.persQ3 === 'C' || changedValues.persQ3 === 'D') && q6) {
+            const pers = calculatePersistency('C', 'E', changedValues.persQ3, biodegHalfLife, dataSource, q6)
             setPersCalculatedValue(pers)
             form.setFieldsValue({ persistency: pers })
           }
@@ -1469,55 +1544,37 @@ const AddReagentModal: React.FC<AddReagentModalProps> = ({ visible, onCancel, on
       }
     }
     
-    // Q3选D时的核心计算（监听所有相关字段的变化）
-    if (allValues.persQ1 === 'C' && allValues.persQ3 === 'D') {
+    // Q4/Q5数据采集的变化（监听所有相关字段）
+    if (allValues.persQ1 === 'C' && allValues.persQ2 === 'E' && (allValues.persQ3 === 'B' || allValues.persQ3 === 'C' || allValues.persQ3 === 'D')) {
       const needsCalculation = 
         changedValues.persBiodegHalfLife !== undefined ||
         changedValues.persDataSource !== undefined ||
-        changedValues.persReadyBiodeg !== undefined ||
-        changedValues.persChemicalType !== undefined ||
-        changedValues.persQ3 !== undefined  // Q3刚选D时也要尝试计算
+        changedValues.persQ6 !== undefined
         
       if (needsCalculation) {
         const biodegHalfLife = allValues.persBiodegHalfLife
         const dataSource = allValues.persDataSource
-        const readyBiodeg = allValues.persReadyBiodeg
-        const chemicalType = allValues.persChemicalType
+        const q3 = allValues.persQ3
+        const q6 = allValues.persQ6
         
-        if (biodegHalfLife !== undefined && biodegHalfLife > 0 && readyBiodeg !== undefined) {
-          // 如果是难降解(0)，必须选择化学类型才能计算
-          if (readyBiodeg === 0) {
-            if (chemicalType) {
-              const pers = calculatePersistency(
-                'C', 'D', biodegHalfLife, dataSource, readyBiodeg, 
-                undefined, undefined, undefined, chemicalType
-              )
-              setPersCalculatedValue(pers)
-              form.setFieldsValue({ persistency: pers })
-            }
-          } else {
-            // 易降解(1)直接计算
-            const pers = calculatePersistency(
-              'C', 'D', biodegHalfLife, dataSource, readyBiodeg
-            )
+        if (biodegHalfLife !== undefined && biodegHalfLife > 0) {
+          // 卤代烃（B）不需要Q6
+          if (q3 === 'B') {
+            const pers = calculatePersistency('C', 'E', 'B', biodegHalfLife, dataSource)
+            setPersCalculatedValue(pers)
+            form.setFieldsValue({ persistency: pers })
+          }
+          // 醚类（C）和通用有机物（D）需要Q6
+          else if ((q3 === 'C' || q3 === 'D') && q6) {
+            const pers = calculatePersistency('C', 'E', q3, biodegHalfLife, dataSource, q6)
             setPersCalculatedValue(pers)
             form.setFieldsValue({ persistency: pers })
           }
         }
       }
       
-      // 处理ReadyBiodeg变化，显示/隐藏化学类型选择
-      if (changedValues.persReadyBiodeg !== undefined) {
-        setPersReadyBiodeg(changedValues.persReadyBiodeg)
-        // 如果切换到易降解(1)，清空化学类型
-        if (changedValues.persReadyBiodeg === 1) {
-          form.setFieldsValue({ persChemicalType: undefined })
-          setPersChemicalType('')
-        }
-      }
-      
-      if (changedValues.persChemicalType !== undefined) {
-        setPersChemicalType(changedValues.persChemicalType)
+      if (changedValues.persQ6 !== undefined) {
+        setPersQ6(changedValues.persQ6)
       }
     }
     
@@ -1700,9 +1757,10 @@ const AddReagentModal: React.FC<AddReagentModalProps> = ({ visible, onCancel, on
     setCtQ3('')
     setCtCalculatedValue(0)
     setPersQ1('')
+    setPersQ2('')
     setPersQ3('')
     setPersReadyBiodeg(undefined)
-    setPersChemicalType('')
+    setPersQ6('')
     setPersCalculatedValue(0)
     setWhQ1('')
     setWhQ2('')
@@ -1764,6 +1822,7 @@ const AddReagentModal: React.FC<AddReagentModalProps> = ({ visible, onCancel, on
           ctQ5Alcohol: undefined,
           ctSubstanceName: undefined,
           persQ1: undefined,
+          persQ2: undefined,
           persQ3: undefined,
           persBiodegHalfLife: undefined,
           persDataSource: undefined,
@@ -1771,7 +1830,7 @@ const AddReagentModal: React.FC<AddReagentModalProps> = ({ visible, onCancel, on
           persBcf: undefined,
           persAtmosRate: undefined,
           persFishHalfLife: undefined,
-          persChemicalType: undefined,
+          persQ6: undefined,
           whQ1: undefined,
           whQ2: undefined,
           whQ3_1: undefined,
@@ -2688,10 +2747,10 @@ const AddReagentModal: React.FC<AddReagentModalProps> = ({ visible, onCancel, on
             label={<Text strong>Question 2: Any obvious irritation or severe damage codes?</Text>}
             name="irrQ2"
             rules={[{ required: true, message: 'Please select' }]}
-            tooltip="Check if it contains R36/R37/R38/R41/R48"
+            tooltip="Check if it contains R36/R37/R41/R48"
           >
             <Select 
-              placeholder="Does this substance contain any of the following codes: R36/R37/R38/R41/R48?"
+              placeholder="Does this substance contain any of the following codes: R36/R37/R41/R48?"
               onChange={(value) => setIrrQ2(value)}
             >
               {IRR_Q2_OPTIONS.map(opt => (
@@ -2786,7 +2845,7 @@ const AddReagentModal: React.FC<AddReagentModalProps> = ({ visible, onCancel, on
               message="Calculation Formula"
               description={
                 <Text>
-                  Irritation = 0 + (R40 score) + (R20 series score) + (R50 series score)
+                  Irritation = 0 + (R38 score) + (R40 score) + (R20 series score) + (R50 series score)
                   <br />
                   <Text type="secondary" style={{ fontSize: 12 }}>
                     Note: If none of the above applies and pH is neutral, the result is 0
@@ -3052,15 +3111,15 @@ const AddReagentModal: React.FC<AddReagentModalProps> = ({ visible, onCancel, on
           </Text>
         </div>
 
-        {/* 第一阶段：物质身份确认 */}
+        {/* 第一步：无机物筛查 (Q1) */}
         <Form.Item
-          label={<Text strong>Stage 1: Substance Identity Confirmation</Text>}
+          label={<Text strong>Q1: Inorganic Substance Check</Text>}
           name="persQ1"
           rules={[{ required: true, message: 'Please select chemical property' }]}
-          tooltip="What is the chemical property of this substance?"
+          tooltip="Does this substance belong to the following inorganic categories?"
         >
           <Select 
-            placeholder="What is the chemical property of this substance? (Single choice)"
+            placeholder="Select substance category"
             onChange={(value) => setPersQ1(value)}
           >
             {PERSISTENCY_Q1_OPTIONS.map(opt => (
@@ -3069,46 +3128,27 @@ const AddReagentModal: React.FC<AddReagentModalProps> = ({ visible, onCancel, on
                 value={opt.value}
                 title={opt.description}
               >
-                {opt.label} {opt.result !== undefined && `(Result: ${opt.result.toFixed(3)})`}
+                {opt.label} {opt.result !== undefined && `(Final: ${opt.result.toFixed(3)})`}
               </Option>
             ))}
           </Select>
         </Form.Item>
 
-        {/* 第二阶段：数据提取（仅当Q1选C时显示） */}
+        {/* 第二步：快速路径筛选 (Q2) - 仅当Q1选C时显示 */}
         {persQ1 === 'C' && (
           <>
-            <div style={{ background: '#e6f7ff', padding: '16px', borderRadius: '8px', marginBottom: 16 }}>
-              <div style={{ marginBottom: 12 }}>
-                <Text strong style={{ fontSize: 14, color: '#1890ff' }}>
-                  📊 Stage 2: Data Extraction (Please check CompTox Database)
-                </Text>
-              </div>
-              <Button 
-                type="primary" 
-                icon={<LinkOutlined />}
-                href="https://comptox.epa.gov/dashboard/" 
-                target="_blank"
-                style={{ marginBottom: 8 }}
-              >
-                Open CompTox Dashboard
-              </Button>
-              <br />
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                Please open the CompTox website to find the "Env. Fate/Transport" page for this substance,
-                Extract the following 5 data points (if no data available, fill in N/A or leave blank):
-              </Text>
-            </div>
-
             <Alert
-              message="💡 Data Extraction Tips"
+              message="💡 Data Collection Tip"
               description={
                 <div style={{ fontSize: 12 }}>
-                  <Text>1. Search substance name in CompTox website</Text>
-                  <br />
-                  <Text>2. Click "Env. Fate/Transport" tab</Text>
-                  <br />
-                  <Text>3. Find and extract the 5 required data items below</Text>
+                  <Text>Before answering Q2, please check the <Button 
+                    type="link" 
+                    size="small"
+                    icon={<LinkOutlined />}
+                    href="https://comptox.epa.gov/dashboard/" 
+                    target="_blank"
+                    style={{ padding: 0 }}
+                  >CompTox Database</Button> to extract relevant environmental data (BCF, biodeg half-life, kOH, fish biotransformation, etc.)</Text>
                 </div>
               }
               type="info"
@@ -3116,149 +3156,75 @@ const AddReagentModal: React.FC<AddReagentModalProps> = ({ visible, onCancel, on
               style={{ marginBottom: 16 }}
             />
 
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item
-                  label={<Text strong>Q2.1 Biodeg. Half-Life (Days)</Text>}
-                  name="persBiodegHalfLife"
-                  tooltip="Biodegradation half-life (days), denoted as t"
-                >
-                  <InputNumber
-                    style={{ width: '100%' }}
-                    placeholder="Enter days (e.g.: 4.5)"
-                    addonAfter="days"
-                    min={0}
-                    step={0.1}
-                    precision={2}
-                  />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item
-                  label={<Text>Data Source (Experimental or Predicted)</Text>}
-                  name="persDataSource"
-                  tooltip="Is the data source experimental value or predicted value? Predicted values need to be corrected by -0.03"
-                >
-                  <Select placeholder="Select data source">
-                    {PERSISTENCY_DATA_SOURCE_OPTIONS.map(opt => (
-                      <Option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Row gutter={16}>
-              <Col span={8}>
-                <Form.Item
-                  label={<Text strong>Q2.2 ReadyBiodeg (Readily Biodegradable)</Text>}
-                  name="persReadyBiodeg"
-                  tooltip="0 = Hardly biodegradable, 1 = Readily biodegradable"
-                >
-                  <Select 
-                    placeholder="Select 0 or 1"
-                    onChange={(value) => setPersReadyBiodeg(value)}
+            <Form.Item
+              label={<Text strong>Q2: Fast Track Filter</Text>}
+              name="persQ2"
+              rules={[{ required: true, message: 'Please select' }]}
+              tooltip="Does this organic substance meet any of the following rapid clearance or special metabolism conditions?"
+            >
+              <Select 
+                placeholder="Does it meet any fast track conditions?"
+                onChange={(value) => setPersQ2(value)}
+              >
+                {PERSISTENCY_Q2_OPTIONS.map(opt => (
+                  <Option 
+                    key={opt.value} 
+                    value={opt.value}
+                    title={opt.description}
                   >
-                    {PERSISTENCY_READY_BIODEG_OPTIONS.map(opt => (
-                      <Option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-              <Col span={8}>
-                <Form.Item
-                  label={<Text strong>Q2.3 BCF (Bioconcentration Factor)</Text>}
-                  name="persBcf"
-                  tooltip="Bioconcentration Factor (BCF)"
-                >
-                  <InputNumber
-                    style={{ width: '100%' }}
-                    placeholder="Enter value"
-                    min={0}
-                    step={0.1}
-                    precision={2}
-                  />
-                </Form.Item>
-              </Col>
-              <Col span={8}>
-                <Form.Item
-                  label={<Text strong>Q2.4 Atmos. Hydroxylation Rate</Text>}
-                  name="persAtmosRate"
-                  tooltip="Atmospheric hydroxylation rate (e.g., 1.4e-13)"
-                >
-                  <Input placeholder="e.g.: 1.4e-13" />
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item
-                  label={<Text strong>Q2.5 Fish Biotrans. Half-Life</Text>}
-                  name="persFishHalfLife"
-                  tooltip="Biotransformation half-life in fish (days)"
-                >
-                  <InputNumber
-                    style={{ width: '100%' }}
-                    placeholder="Enter days"
-                    addonAfter="days"
-                    min={0}
-                    step={0.01}
-                    precision={2}
-                  />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Alert
-                  message="After completion, please continue to Stage 3 selection"
-                  type="success"
-                  showIcon
-                  style={{ marginTop: 30 }}
-                />
-              </Col>
-            </Row>
+                    {opt.label} {opt.result !== undefined && `(Final: ${opt.result.toFixed(3)})`}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
           </>
         )}
 
-        {/* 第三阶段：特殊物质快速通道（仅当Q1选C且填写了Q2数据后显示） */}
-        {persQ1 === 'C' && (
+        {/* 第三步：通用结构分类 (Q3) - 仅当Q2选E时显示 */}
+        {persQ1 === 'C' && persQ2 === 'E' && (
           <Form.Item
-            label={<Text strong>Stage 3: Special Substance Fast Track</Text>}
+            label={<Text strong>Q3: Structure Classification</Text>}
             name="persQ3"
-            rules={[{ required: true, message: 'Please select' }]}
-            tooltip="Does this substance meet any of the following rapid determination criteria?"
+            rules={[{ required: true, message: 'Please select structure type' }]}
+            tooltip="Based on chemical structure, which category does this substance belong to?"
           >
             <Select 
-              placeholder="Does this substance meet any of the following conditions? (Single choice)"
+              placeholder="Select structure category"
               onChange={(value) => setPersQ3(value)}
             >
               {PERSISTENCY_Q3_OPTIONS.map(opt => (
-                <Option key={opt.value} value={opt.value} title={opt.description}>
-                  {opt.label} {opt.result !== undefined && `(Result: ${opt.result.toFixed(3)})`}
+                <Option 
+                  key={opt.value} 
+                  value={opt.value}
+                  title={opt.description}
+                >
+                  {opt.label} {opt.result !== undefined && `(Final: ${opt.result.toFixed(3)})`}
                 </Option>
               ))}
             </Select>
           </Form.Item>
         )}
 
-        {/* 第四阶段：核心计算（仅当Q1选C且Q3选D时显示） */}
-        {persQ1 === 'C' && persQ3 === 'D' && (
+        {/* 第四步：数据采集 (Q4 & Q5) - 仅当Q3选B/C/D时显示 */}
+        {persQ1 === 'C' && persQ2 === 'E' && (persQ3 === 'B' || persQ3 === 'C' || persQ3 === 'D') && (
           <>
+            <div style={{ background: '#e6f7ff', padding: '16px', borderRadius: '8px', marginBottom: 16 }}>
+              <Text strong style={{ fontSize: 14, color: '#1890ff' }}>
+                📊 Q4 & Q5: Data Collection
+              </Text>
+            </div>
+
             <Row gutter={16}>
-              <Col span={8}>
+              <Col span={12}>
                 <Form.Item
-                  label={<Text strong>Q2.1 Biodeg. Half-Life</Text>}
+                  label={<Text strong>Q4: Biodegradation Half-Life</Text>}
                   name="persBiodegHalfLife"
-                  rules={[{ required: true, message: 'Please enter half-life' }]}
-                  tooltip="🧮 Stage 4: Core Calculation Formula (applicable to most organic solvents) - such as n-hexane, ethanol, acetonitrile, MTBE, isooctane, chloroform, etc. Biodegradation half-life (days), denoted as t"
+                  rules={[{ required: true, message: 'Please enter biodegradation half-life' }]}
+                  tooltip="Biodegradation half-life (days), denoted as t"
                 >
                   <InputNumber
                     style={{ width: '100%' }}
-                    placeholder="Enter days"
+                    placeholder="Enter days (e.g., 10.5)"
                     addonAfter="days"
                     min={0}
                     step={0.1}
@@ -3266,11 +3232,12 @@ const AddReagentModal: React.FC<AddReagentModalProps> = ({ visible, onCancel, on
                   />
                 </Form.Item>
               </Col>
-              <Col span={8}>
+              <Col span={12}>
                 <Form.Item
-                  label={<Text strong>Data Source</Text>}
+                  label={<Text strong>Q5: Data Source</Text>}
                   name="persDataSource"
-                  tooltip="Is the data source experimental value or predicted value? Predicted values need correction"
+                  rules={[{ required: true, message: 'Please select data source' }]}
+                  tooltip="Is the half-life data from experimental measurement or software prediction?"
                 >
                   <Select placeholder="Select data source">
                     {PERSISTENCY_DATA_SOURCE_OPTIONS.map(opt => (
@@ -3281,148 +3248,85 @@ const AddReagentModal: React.FC<AddReagentModalProps> = ({ visible, onCancel, on
                   </Select>
                 </Form.Item>
               </Col>
-              <Col span={8}>
-                <Form.Item
-                  label={<Text strong>Q2.2 ReadyBiodeg</Text>}
-                  name="persReadyBiodeg"
-                  rules={[{ required: true, message: 'Please select' }]}
-                  tooltip="0 = Hardly biodegradable, 1 = Readily biodegradable"
-                >
-                  <Select 
-                    placeholder="Select 0 or 1"
-                    onChange={(value) => setPersReadyBiodeg(value)}
-                  >
-                    {PERSISTENCY_READY_BIODEG_OPTIONS.map(opt => (
-                      <Option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
             </Row>
 
-            {/* 路径1: ReadyBiodeg = 1 (易降解) */}
-            {persReadyBiodeg === 1 && (
+            {/* Q3选了C (醚类) 或 D (通用有机物) 时，显示Q6 */}
+            {(persQ3 === 'C' || persQ3 === 'D') && (
+              <Form.Item
+                label={<Text strong>Q6: Difficult Degradation / High Accumulation Check</Text>}
+                name="persQ6"
+                rules={[{ required: true, message: 'Please select' }]}
+                tooltip="Does this substance have difficult degradation (RB = 0) or high accumulation (BCF > 200) characteristics?"
+              >
+                <Select placeholder="Does it have difficult degradation or high accumulation?">
+                  {PERSISTENCY_Q6_OPTIONS.map(opt => (
+                    <Option key={opt.value} value={opt.value} title={opt.description}>
+                      {opt.label}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            )}
+
+            {/* 显示计算公式说明 */}
+            {persQ3 === 'B' && (
               <Alert
-                message="✅ Path 1: Readily Biodegradable Substance (ReadyBiodeg = 1)"
+                message="📐 Halogenated Hydrocarbon Calculation"
                 description={
                   <div>
-                    <Text strong>Calculation Formula:</Text>
+                    <Text strong>Formula:</Text> <Text code>Persistency = 0.32 × log₁₀(t)</Text>
                     <br />
-                    <Text code>Persistency = 0.45 × log₁₀(t)</Text>
-                    <br /><br />
-                    <Text strong>Correction Term:</Text>
-                    <br />
-                    <Text>• If data source is <Text code>Predicted</Text> (predicted value), result needs to <Text strong>subtract 0.03</Text></Text>
-                    <br />
-                    <Text>• If it's <Text code>Experimental</Text> (experimental value), no subtraction</Text>
-                    <br /><br />
                     <Text type="secondary" style={{ fontSize: 12 }}>
-                      (Typical examples: ethanol, acetonitrile, n-hexane, acetone)
+                      (Typical examples: chloroform, dichloromethane)
                     </Text>
                   </div>
                 }
-                type="success"
+                type="info"
                 showIcon
                 style={{ marginBottom: 16 }}
               />
             )}
 
-            {/* 路径2: ReadyBiodeg = 0 (难降解) - 需要判断化学类型 */}
-            {persReadyBiodeg === 0 && (
-              <>
-                <Alert
-                  message="⚠️ Path 2: Persistent Substance (ReadyBiodeg = 0)"
-                  description={
-                    <div>
-                      <Text strong>Need to determine chemical structure type:</Text>
-                      <br />
-                      <Text>• 2a. Halogenated Hydrocarbons (Contains Cl/Br, and BCF &gt; 5.0)</Text>
-                      <br />
-                      <Text>• 2b. Ethers or Branched Alkanes (BCF &lt; 5.0)</Text>
-                    </div>
-                  }
-                  type="warning"
-                  showIcon
-                  style={{ marginBottom: 16 }}
-                />
+            {persQ3 === 'C' && (
+              <Alert
+                message="📐 Ether Calculation"
+                description={
+                  <div>
+                    <Text strong>Base Formula:</Text> <Text code>Persistency = 0.45 × log₁₀(t) + 0.18</Text>
+                    <br />
+                    <Text strong>Structure Correction:</Text> If Q6 = A (difficult degradation/high accumulation), add <Text code>+0.14</Text>
+                    <br />
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      (Typical examples: THF, MTBE)
+                    </Text>
+                  </div>
+                }
+                type="info"
+                showIcon
+                style={{ marginBottom: 16 }}
+              />
+            )}
 
-                <Row gutter={16}>
-                  <Col span={12}>
-                    <Form.Item
-                      label={<Text strong>Q2.3 BCF Value</Text>}
-                      name="persBcf"
-                      tooltip="Bioconcentration Factor (BCF), used to determine chemical type"
-                    >
-                      <InputNumber
-                        style={{ width: '100%' }}
-                        placeholder="Enter BCF value"
-                        min={0}
-                        step={0.1}
-                        precision={2}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item
-                      label={<Text strong>Chemical Structure Type</Text>}
-                      name="persChemicalType"
-                      rules={[{ required: true, message: 'Persistent substance must select chemical type' }]}
-                      tooltip="Determined based on BCF value and chemical structure"
-                    >
-                      <Select 
-                        placeholder="Select chemical type"
-                        onChange={(value) => setPersChemicalType(value)}
-                      >
-                        {PERSISTENCY_CHEMICAL_TYPE_OPTIONS.map(opt => (
-                          <Option key={opt.value} value={opt.value}>{opt.label}</Option>
-                        ))}
-                      </Select>
-                    </Form.Item>
-                  </Col>
-                </Row>
-
-                {persChemicalType === '2a' && (
-                  <Alert
-                    message="Path 2a: Halogenated Hydrocarbons (Cl/Br, BCF &gt; 5.0)"
-                    description={
-                      <div>
-                        <Text strong>Calculation Formula:</Text>
-                        <br />
-                        <Text code>Persistency = 0.32 × log₁₀(t)</Text>
-                        <br /><br />
-                        <Text type="secondary" style={{ fontSize: 12 }}>
-                          (Typical example: chloroform)
-                        </Text>
-                      </div>
-                    }
-                    type="info"
-                    showIcon
-                    style={{ marginBottom: 16 }}
-                  />
-                )}
-
-                {persChemicalType === '2b' && (
-                  <Alert
-                    message="Path 2b: Ethers or Branched Alkanes (BCF &lt; 5.0)"
-                    description={
-                      <div>
-                        <Text strong>Calculation Formula:</Text>
-                        <br />
-                        <Text code>Persistency = 0.45 × log₁₀(t) + 0.32</Text>
-                        <br /><br />
-                        <Text type="secondary" style={{ fontSize: 12 }}>
-                          (Typical examples: MTBE, isooctane)
-                        </Text>
-                      </div>
-                    }
-                    type="info"
-                    showIcon
-                    style={{ marginBottom: 16 }}
-                  />
-                )}
-              </>
+            {persQ3 === 'D' && (
+              <Alert
+                message="📐 General Organic Calculation"
+                description={
+                  <div>
+                    <Text strong>Base Formula:</Text> <Text code>Persistency = 0.45 × log₁₀(t)</Text>
+                    <br />
+                    <Text strong>Structure Correction:</Text> If Q6 = A (difficult degradation/high accumulation), add <Text code>+0.05</Text>
+                    <br />
+                    <Text strong>Data Correction:</Text> If Q5 = B (Predicted), subtract <Text code>-0.05</Text>
+                    <br />
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      (Typical examples: alkanes, esters, nitriles, acetonitrile, n-hexane)
+                    </Text>
+                  </div>
+                }
+                type="info"
+                showIcon
+                style={{ marginBottom: 16 }}
+              />
             )}
           </>
         )}
@@ -3440,14 +3344,16 @@ const AddReagentModal: React.FC<AddReagentModalProps> = ({ visible, onCancel, on
                   }}>{persCalculatedValue.toFixed(3)}</Text>
                   <br />
                   <Text type="secondary" style={{ fontSize: 12 }}>
-                    {persQ1 === 'A' && '(Reason: Inorganic strong acid, fixed value = 0.485)'}
-                    {persQ1 === 'B' && '(Reason: Other inorganic substances, fixed value = 0.000)'}
-                    {persQ3 === 'A' && '(Reason: Extremely rapid degradation/low accumulation, fixed value = 0.000)'}
-                    {persQ3 === 'B' && '(Reason: Alcohol or similar low accumulation, fixed value = 0.020)'}
-                    {persQ3 === 'C' && '(Reason: Special metabolized substance, fixed value = 0.130)'}
-                    {persQ3 === 'D' && persReadyBiodeg === 1 && '(Reason: Calculated by readily biodegradable formula)'}
-                    {persQ3 === 'D' && persReadyBiodeg === 0 && persChemicalType === '2a' && '(Reason: Calculated by halogenated hydrocarbon formula)'}
-                    {persQ3 === 'D' && persReadyBiodeg === 0 && persChemicalType === '2b' && '(Reason: Calculated by ether/branched alkane formula)'}
+                    {persQ1 === 'A' && '(Reason: Strong inorganic acid, fixed value = 0.485)'}
+                    {persQ1 === 'B' && '(Reason: General inorganic substance, fixed value = 0.000)'}
+                    {persQ2 === 'A' && '(Reason: Extremely low bioaccumulation (BCF < 1.6), fixed value = 0.000)'}
+                    {persQ2 === 'B' && '(Reason: Readily biodegradable organic (t1/2 < 4.5 days), fixed value = 0.026)'}
+                    {persQ2 === 'C' && '(Reason: High volatility low accumulation (RB=0, kOH>1.3e-13), fixed value = 0.023)'}
+                    {persQ2 === 'D' && '(Reason: Fast metabolism ketone (fish biotrans. < 0.17 days), fixed value = 0.126)'}
+                    {persQ3 === 'A' && '(Reason: Alcohol with low molecular weight, fixed value = 0.282)'}
+                    {persQ3 === 'B' && '(Reason: Halogenated hydrocarbon calculated formula)'}
+                    {persQ3 === 'C' && '(Reason: Ether calculated formula)'}
+                    {persQ3 === 'D' && '(Reason: General organic calculated formula)'}
                   </Text>
                 </Text>
               </div>

@@ -564,7 +564,7 @@ const GraphPage: React.FC = () => {
       {!hasData ? (
         <Alert
           message="No Data Available"
-          description="Please complete Factors, Methods, and HPLC Gradient configuration, then refresh this page."
+          description="Please complete Factors, Methods, and LC Gradient configuration, then refresh this page."
           type="info"
           showIcon
           style={{ marginBottom: 24 }}
