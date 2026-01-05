@@ -1,4 +1,4 @@
-ï»¿import React, { useState, useEffect, useLayoutEffect, useCallback } from 'react'
+import React, { useState, useEffect, useLayoutEffect, useCallback } from 'react'
 import { Card, Typography, InputNumber, Select, Button, Row, Col, message, Tooltip, Divider, Spin, Statistic } from 'antd'
 import { PlusOutlined, DeleteOutlined, QuestionCircleOutlined, TrophyOutlined, ExperimentOutlined } from '@ant-design/icons'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -18,7 +18,7 @@ const MethodsPage: React.FC = () => {
   const location = useLocation()
   const { data, updateMethodsData, setIsDirty } = useAppContext()
   
-  // ä½¿ç”¨ç©ºæ•°ç»„åˆå§‹åŒ–ï¼Œå®Œå…¨ä»storageåŠ è½½ï¼ˆä¸ä¾èµ–Contextï¼Œé¿å…å¼•ç”¨å…±äº«ï¼‰
+  // Ê¹ÓÃ¿ÕÊı×é³õÊ¼»¯£¬ÍêÈ«´Óstorage¼ÓÔØ£¨²»ÒÀÀµContext£¬±ÜÃâÒıÓÃ¹²Ïí£©
   const [sampleCount, setSampleCount] = useState<number | null>(null)
   const [sampleCountError, setSampleCountError] = useState<string>('')
   const [preTreatmentReagents, setPreTreatmentReagents] = useState<PreTreatmentReagent[]>([])
@@ -26,53 +26,53 @@ const MethodsPage: React.FC = () => {
   const [mobilePhaseB, setMobilePhaseB] = useState<Reagent[]>([])
   
   // Power Factor (P) calculation states
-  const [instrumentEnergy, setInstrumentEnergy] = useState<number>(data.methods.instrumentEnergy || 0)  // ä»ªå™¨åˆ†æèƒ½è€— (kWh)
-  const [pretreatmentEnergy, setPretreatmentEnergy] = useState<number>(data.methods.pretreatmentEnergy || 0)  // å‰å¤„ç†èƒ½è€— (kWh)
+  const [instrumentEnergy, setInstrumentEnergy] = useState<number>(data.methods.instrumentEnergy || 0)  // ÒÇÆ÷·ÖÎöÄÜºÄ (kWh)
+  const [pretreatmentEnergy, setPretreatmentEnergy] = useState<number>(data.methods.pretreatmentEnergy || 0)  // Ç°´¦ÀíÄÜºÄ (kWh)
 
-  // æƒé‡æ–¹æ¡ˆé€‰æ‹©çŠ¶æ€ - ä» Context åˆå§‹åŒ–
+  // È¨ÖØ·½°¸Ñ¡Ôñ×´Ì¬ - ´Ó Context ³õÊ¼»¯
   const [safetyScheme, setSafetyScheme] = useState<string>(data.methods.weightSchemes?.safetyScheme || 'PBT_Balanced')
   const [healthScheme, setHealthScheme] = useState<string>(data.methods.weightSchemes?.healthScheme || 'Absolute_Balance')
   const [environmentScheme, setEnvironmentScheme] = useState<string>(data.methods.weightSchemes?.environmentScheme || 'PBT_Balanced')
   const [stageScheme, setStageScheme] = useState<string>(data.methods.weightSchemes?.instrumentStageScheme || 'Balanced')
   const [finalScheme, setFinalScheme] = useState<string>(data.methods.weightSchemes?.finalScheme || 'Direct_Online')
   
-  // è‡ªå®šä¹‰æƒé‡çŠ¶æ€
+  // ×Ô¶¨ÒåÈ¨ÖØ×´Ì¬
   const [customWeights, setCustomWeights] = useState<any>(() => {
     const initial = data.methods.weightSchemes?.customWeights || {};
-    console.log('ğŸ¯ [Init] customWeightsåˆå§‹å€¼:', initial);
-    console.log('ğŸ¯ [Init] data.methods.weightSchemes:', data.methods.weightSchemes);
+    console.log('?? [Init] customWeights³õÊ¼Öµ:', initial);
+    console.log('?? [Init] data.methods.weightSchemes:', data.methods.weightSchemes);
     return initial;
   })
   const [customWeightModalVisible, setCustomWeightModalVisible] = useState<boolean>(false)
   const [customWeightType, setCustomWeightType] = useState<'safety' | 'health' | 'environment' | 'stage' | 'final'>('safety')
 
-  // è¯„åˆ†ç»“æœçŠ¶æ€ï¼ˆæ–°å¢ï¼‰
+  // ÆÀ·Ö½á¹û×´Ì¬£¨ĞÂÔö£©
   const [scoreResults, setScoreResults] = useState<any>(null)
 
   const [isCalculatingScore, setIsCalculatingScore] = useState<boolean>(false)
   const [availableSchemes, setAvailableSchemes] = useState<any>(null)
 
-  // ä» Factors é¡µé¢åŠ è½½è¯•å‰‚åˆ—è¡¨
+  // ´Ó Factors Ò³Ãæ¼ÓÔØÊÔ¼ÁÁĞ±í
   const [availableReagents, setAvailableReagents] = useState<string[]>([])
   const [factorsData, setFactorsData] = useState<ReagentFactor[]>([])
-  const [forceRenderKey, setForceRenderKey] = useState(0)  // å¼ºåˆ¶åˆ·æ–°ç”¨
+  const [forceRenderKey, setForceRenderKey] = useState(0)  // Ç¿ÖÆË¢ĞÂÓÃ
   
-  // æ¢¯åº¦è®¡ç®—æ•°æ®çŠ¶æ€ï¼ˆç”¨äºUIæ˜¾ç¤ºï¼‰
+  // Ìİ¶È¼ÆËãÊı¾İ×´Ì¬£¨ÓÃÓÚUIÏÔÊ¾£©
   const [gradientCalculations, setGradientCalculations] = useState<any>(null)
   
-  // æ•°æ®åŠ è½½çŠ¶æ€æ ‡è®°ï¼ˆé¿å…åŠ è½½ä¸­æ¸…ç©ºå›¾è¡¨ï¼‰
+  // Êı¾İ¼ÓÔØ×´Ì¬±ê¼Ç£¨±ÜÃâ¼ÓÔØÖĞÇå¿ÕÍ¼±í£©
   const [isDataLoading, setIsDataLoading] = useState(true)
   
-  // å›¾è¡¨çºµåæ ‡èŒƒå›´æ§åˆ¶ (null = è‡ªåŠ¨)
+  // Í¼±í×İ×ø±ê·¶Î§¿ØÖÆ (null = ×Ô¶¯)
   const [preTreatmentYMax, setPreTreatmentYMax] = useState<number | null>(null)
   const [phaseAYMax, setPhaseAYMax] = useState<number | null>(null)
   const [phaseBYMax, setPhaseBYMax] = useState<number | null>(null)
   
-  // å›¾è¡¨æ•°æ®ç¼“å­˜ï¼ˆä½¿ç”¨stateè€ŒéuseMemoï¼Œå› ä¸ºè®¡ç®—æ˜¯å¼‚æ­¥çš„ï¼‰
+  // Í¼±íÊı¾İ»º´æ£¨Ê¹ÓÃstate¶ø·ÇuseMemo£¬ÒòÎª¼ÆËãÊÇÒì²½µÄ£©
   const [phaseAChartData, setPhaseAChartData] = useState<any>([])
   const [phaseBChartData, setPhaseBChartData] = useState<any>([])
 
-  // ä½¿ç”¨ useMemo ç¼“å­˜ filterOption å‡½æ•°ï¼Œé¿å…æ¯æ¬¡æ¸²æŸ“éƒ½åˆ›å»ºæ–°å‡½æ•°
+  // Ê¹ÓÃ useMemo »º´æ filterOption º¯Êı£¬±ÜÃâÃ¿´ÎäÖÈ¾¶¼´´½¨ĞÂº¯Êı
   const selectFilterOption = React.useMemo(
     () => (input: string, option: any) => {
       const children = String(option?.children || '')
@@ -81,48 +81,48 @@ const MethodsPage: React.FC = () => {
     []
   )
 
-  // é¡µé¢æ¯æ¬¡æ˜¾ç¤ºæ—¶éƒ½é‡æ–°åŠ è½½æ•°æ®ï¼ˆè§£å†³ä»å…¶ä»–é¡µé¢è¿”å›æ—¶å›¾è¡¨æ¶ˆå¤±çš„é—®é¢˜ï¼‰
+  // Ò³ÃæÃ¿´ÎÏÔÊ¾Ê±¶¼ÖØĞÂ¼ÓÔØÊı¾İ£¨½â¾ö´ÓÆäËûÒ³Ãæ·µ»ØÊ±Í¼±íÏûÊ§µÄÎÊÌâ£©
   const pageVisibleCount = React.useRef(0)
   const hasInitialLoad = React.useRef(false)
   
   useEffect(() => {
     pageVisibleCount.current += 1
     const currentCount = pageVisibleCount.current
-    console.log(`ğŸ‘ï¸ MethodsPage ç¬¬ ${currentCount} æ¬¡æ˜¾ç¤º`)
+    console.log(`??? MethodsPage µÚ ${currentCount} ´ÎÏÔÊ¾`)
     
-    // åŠ è½½ Factors æ•°æ®ï¼ˆå®šä¹‰åœ¨useEffecté¡¶å±‚ï¼Œç¡®ä¿æ‰€æœ‰åœ°æ–¹éƒ½èƒ½è®¿é—®ï¼‰
+    // ¼ÓÔØ Factors Êı¾İ£¨¶¨ÒåÔÚuseEffect¶¥²ã£¬È·±£ËùÓĞµØ·½¶¼ÄÜ·ÃÎÊ£©
     const loadFactorsData = async () => {
-      console.log('ğŸ”„ MethodsPage: å¼€å§‹åŠ è½½factorsæ•°æ®')
+      console.log('?? MethodsPage: ¿ªÊ¼¼ÓÔØfactorsÊı¾İ')
       try {
         const factors = await StorageHelper.getJSON<any[]>(STORAGE_KEYS.FACTORS)
-        console.log('  - å­˜å‚¨ä¸­çš„factors:', factors ? `å­˜åœ¨(${factors.length}ä¸ª)` : 'ä¸å­˜åœ¨')
+        console.log('  - ´æ´¢ÖĞµÄfactors:', factors ? `´æÔÚ(${factors.length}¸ö)` : '²»´æÔÚ')
         if (factors && factors.length > 0) {
-          console.log(`  - è§£æå‡º${factors.length}ä¸ªè¯•å‰‚`)
-          console.log('  - ç¬¬ä¸€ä¸ªè¯•å‰‚æ ·ä¾‹:', factors[0])
+          console.log(`  - ½âÎö³ö${factors.length}¸öÊÔ¼Á`)
+          console.log('  - µÚÒ»¸öÊÔ¼ÁÑùÀı:', factors[0])
           setFactorsData(factors)
           
-          // æå–è¯•å‰‚åç§°ï¼Œå»é‡å¹¶æ’åºï¼Œç¡®ä¿æ•°ç»„ç¨³å®š
+          // ÌáÈ¡ÊÔ¼ÁÃû³Æ£¬È¥ÖØ²¢ÅÅĞò£¬È·±£Êı×éÎÈ¶¨
           const reagentNames = Array.from(
             new Set(factors.map((f: any) => f.name).filter((n: string) => n && n.trim()))
           ).sort()
           
-          console.log(`  - æå–å‡º${reagentNames.length}ä¸ªè¯•å‰‚åç§°:`, reagentNames.slice(0, 5))
-          console.log('  - å®Œæ•´è¯•å‰‚åˆ—è¡¨:', reagentNames)
+          console.log(`  - ÌáÈ¡³ö${reagentNames.length}¸öÊÔ¼ÁÃû³Æ:`, reagentNames.slice(0, 5))
+          console.log('  - ÍêÕûÊÔ¼ÁÁĞ±í:', reagentNames)
           
-          // ç›´æ¥æ›´æ–°ï¼Œä¸åšæ¯”è¾ƒï¼ˆé¿å…åˆå§‹åŒ–æ—¶çš„é—®é¢˜ï¼‰
-          console.log('  âœ… æ›´æ–°availableReagentsçŠ¶æ€')
+          // Ö±½Ó¸üĞÂ£¬²»×ö±È½Ï£¨±ÜÃâ³õÊ¼»¯Ê±µÄÎÊÌâ£©
+          console.log('  ? ¸üĞÂavailableReagents×´Ì¬')
           setAvailableReagents(reagentNames as string[])
           
-          // å¼ºåˆ¶è§¦å‘é‡æ–°æ¸²æŸ“
+          // Ç¿ÖÆ´¥·¢ÖØĞÂäÖÈ¾
           setTimeout(() => {
             setForceRenderKey(prev => prev + 1)
-            console.log('  ğŸ”„ è§¦å‘å¼ºåˆ¶åˆ·æ–°')
+            console.log('  ?? ´¥·¢Ç¿ÖÆË¢ĞÂ')
           }, 100)
           
-          // ğŸ”¥ è¯•å‰‚åº“æ›´æ–°åï¼Œå°è¯•è‡ªåŠ¨é‡æ–°è®¡ç®—è¯„åˆ†ï¼ˆä½†è¦å…ˆæ£€æŸ¥æ•°æ®å®Œæ•´æ€§ï¼‰
+          // ?? ÊÔ¼Á¿â¸üĞÂºó£¬³¢ÊÔ×Ô¶¯ÖØĞÂ¼ÆËãÆÀ·Ö£¨µ«ÒªÏÈ¼ì²éÊı¾İÍêÕûĞÔ£©
           setTimeout(async () => {
             try {
-              // æ£€æŸ¥æ˜¯å¦æœ‰åŸºæœ¬çš„é…ç½®æ•°æ®
+              // ¼ì²éÊÇ·ñÓĞ»ù±¾µÄÅäÖÃÊı¾İ
               const methodsData = await StorageHelper.getJSON(STORAGE_KEYS.METHODS)
               const gradientData = await StorageHelper.getJSON(STORAGE_KEYS.GRADIENT)
               
@@ -134,81 +134,81 @@ const MethodsPage: React.FC = () => {
               )
               
               if (hasValidConfig) {
-                console.log('ğŸ¯ è¯•å‰‚åº“æ›´æ–°åè‡ªåŠ¨é‡æ–°è®¡ç®—è¯„åˆ†ï¼ˆæ•°æ®å®Œæ•´ï¼‰')
+                console.log('?? ÊÔ¼Á¿â¸üĞÂºó×Ô¶¯ÖØĞÂ¼ÆËãÆÀ·Ö£¨Êı¾İÍêÕû£©')
                 calculateFullScoreAPI({ silent: true }).catch(err => {
-                  console.warn('âš ï¸ è‡ªåŠ¨é‡æ–°è®¡ç®—è¯„åˆ†å¤±è´¥ï¼ˆå·²å¿½ç•¥ï¼‰:', err)
+                  console.warn('?? ×Ô¶¯ÖØĞÂ¼ÆËãÆÀ·ÖÊ§°Ü£¨ÒÑºöÂÔ£©:', err)
                 })
               } else {
-                console.log('â„¹ï¸ è·³è¿‡è‡ªåŠ¨è¯„åˆ†è®¡ç®—ï¼ˆé…ç½®æ•°æ®ä¸å®Œæ•´ï¼‰')
+                console.log('?? Ìø¹ı×Ô¶¯ÆÀ·Ö¼ÆËã£¨ÅäÖÃÊı¾İ²»ÍêÕû£©')
               }
             } catch (err) {
-              console.warn('âš ï¸ æ£€æŸ¥é…ç½®æ•°æ®å¤±è´¥:', err)
+              console.warn('?? ¼ì²éÅäÖÃÊı¾İÊ§°Ü:', err)
             }
           }, 800)
           
         } else {
-          console.log('  âš ï¸ å­˜å‚¨ä¸­æ²¡æœ‰factorsæ•°æ®ï¼Œæ¸…ç©ºè¯•å‰‚åˆ—è¡¨')
+          console.log('  ?? ´æ´¢ÖĞÃ»ÓĞfactorsÊı¾İ£¬Çå¿ÕÊÔ¼ÁÁĞ±í')
           setFactorsData([])
           setAvailableReagents([])
         }
       } catch (error) {
-        console.error('âŒ åŠ è½½ Factors æ•°æ®å¤±è´¥:', error)
+        console.error('? ¼ÓÔØ Factors Êı¾İÊ§°Ü:', error)
       }
     }
 
-    // åŠ è½½è¯„åˆ†ç»“æœï¼ˆå®šä¹‰åœ¨useEffecté¡¶å±‚ï¼‰
+    // ¼ÓÔØÆÀ·Ö½á¹û£¨¶¨ÒåÔÚuseEffect¶¥²ã£©
     const loadScoreResults = async () => {
-      console.log('ğŸ”„ MethodsPage: å¼€å§‹åŠ è½½è¯„åˆ†ç»“æœ')
+      console.log('?? MethodsPage: ¿ªÊ¼¼ÓÔØÆÀ·Ö½á¹û')
       try {
         const results = await StorageHelper.getJSON(STORAGE_KEYS.SCORE_RESULTS)
         if (results) {
-          console.log('âœ… è¯„åˆ†ç»“æœåŠ è½½æˆåŠŸ:', results)
+          console.log('? ÆÀ·Ö½á¹û¼ÓÔØ³É¹¦:', results)
           setScoreResults(results)
         } else {
-          console.log('  â„¹ï¸ å­˜å‚¨ä¸­æ²¡æœ‰è¯„åˆ†ç»“æœ')
+          console.log('  ?? ´æ´¢ÖĞÃ»ÓĞÆÀ·Ö½á¹û')
         }
       } catch (error) {
-        console.error('âŒ åŠ è½½è¯„åˆ†ç»“æœå¤±è´¥:', error)
+        console.error('? ¼ÓÔØÆÀ·Ö½á¹ûÊ§°Ü:', error)
       }
     }
     
-    // åªåœ¨é¦–æ¬¡åŠ è½½æ—¶æ‰§è¡Œå®Œæ•´çš„æ•°æ®åŠ è½½
+    // Ö»ÔÚÊ×´Î¼ÓÔØÊ±Ö´ĞĞÍêÕûµÄÊı¾İ¼ÓÔØ
     if (!hasInitialLoad.current) {
-      console.log('ğŸ”„ é¦–æ¬¡åŠ è½½ï¼Œæ‰§è¡Œå®Œæ•´æ•°æ®åŠ è½½')
+      console.log('?? Ê×´Î¼ÓÔØ£¬Ö´ĞĞÍêÕûÊı¾İ¼ÓÔØ')
       hasInitialLoad.current = true
 
-    // ç»Ÿä¸€åŠ è½½æ‰€æœ‰æ•°æ®ï¼Œç¡®ä¿æ•°æ®å®Œæ•´æ€§
+    // Í³Ò»¼ÓÔØËùÓĞÊı¾İ£¬È·±£Êı¾İÍêÕûĞÔ
     const loadAllData = async () => {
       setIsDataLoading(true)
-      console.log('ğŸ”„ å¼€å§‹åŠ è½½æ‰€æœ‰æ•°æ®...')
+      console.log('?? ¿ªÊ¼¼ÓÔØËùÓĞÊı¾İ...')
       
-      // å…ˆåŠ è½½ factors
+      // ÏÈ¼ÓÔØ factors
       await loadFactorsData()
       
-      // åŠ è½½ Methods æ•°æ®ï¼ˆåŒ…æ‹¬æƒé‡æ–¹æ¡ˆã€èƒ½è€—ã€Mobile Phaseç­‰ï¼‰
+      // ¼ÓÔØ Methods Êı¾İ£¨°üÀ¨È¨ÖØ·½°¸¡¢ÄÜºÄ¡¢Mobile PhaseµÈ£©
       const methodsData = await StorageHelper.getJSON(STORAGE_KEYS.METHODS)
-      console.log('ğŸ“‹ [loadAllData] åŠ è½½åˆ°çš„Methodsæ•°æ®:', methodsData)
-      console.log('ğŸ“‹ [loadAllData] weightSchemes:', methodsData?.weightSchemes)
-      console.log('ğŸ“‹ [loadAllData] customWeights from storage:', methodsData?.weightSchemes?.customWeights)
+      console.log('?? [loadAllData] ¼ÓÔØµ½µÄMethodsÊı¾İ:', methodsData)
+      console.log('?? [loadAllData] weightSchemes:', methodsData?.weightSchemes)
+      console.log('?? [loadAllData] customWeights from storage:', methodsData?.weightSchemes?.customWeights)
       
-      // âœ… å…ˆåŠ è½½æ‰€æœ‰ç°æœ‰æ•°æ®åˆ°stateï¼ˆç¡®ä¿æ•°æ®ä¸ä¸¢å¤±ï¼‰
+      // ? ÏÈ¼ÓÔØËùÓĞÏÖÓĞÊı¾İµ½state£¨È·±£Êı¾İ²»¶ªÊ§£©
       if (methodsData) {
-        // åŠ è½½æƒé‡æ–¹æ¡ˆ
+        // ¼ÓÔØÈ¨ÖØ·½°¸
         if (methodsData.weightSchemes) {
-          console.log('âœ… [loadAllData] æ¢å¤æƒé‡æ–¹æ¡ˆ:', methodsData.weightSchemes)
+          console.log('? [loadAllData] »Ö¸´È¨ÖØ·½°¸:', methodsData.weightSchemes)
           setSafetyScheme(methodsData.weightSchemes.safetyScheme || 'PBT_Balanced')
           setHealthScheme(methodsData.weightSchemes.healthScheme || 'Absolute_Balance')
           setEnvironmentScheme(methodsData.weightSchemes.environmentScheme || 'PBT_Balanced')
           setStageScheme(methodsData.weightSchemes.instrumentStageScheme || 'Balanced')
           setFinalScheme(methodsData.weightSchemes.finalScheme || 'Direct_Online')
           
-          // æ¢å¤è‡ªå®šä¹‰æƒé‡
+          // »Ö¸´×Ô¶¨ÒåÈ¨ÖØ
           const restoredCustomWeights = methodsData.weightSchemes.customWeights || {};
-          console.log('âœ… [loadAllData] å³å°†è®¾ç½®customWeightsåˆ°state:', restoredCustomWeights);
+          console.log('? [loadAllData] ¼´½«ÉèÖÃcustomWeightsµ½state:', restoredCustomWeights);
           setCustomWeights(restoredCustomWeights);
-          console.log('âœ… [loadAllData] customWeightså·²è®¾ç½®å®Œæˆ');
+          console.log('? [loadAllData] customWeightsÒÑÉèÖÃÍê³É');
         } else {
-          console.log('âš ï¸ [loadAllData] weightSchemesä¸å­˜åœ¨ï¼Œè®¾ç½®é»˜è®¤å€¼');
+          console.log('?? [loadAllData] weightSchemes²»´æÔÚ£¬ÉèÖÃÄ¬ÈÏÖµ');
           setSafetyScheme('PBT_Balanced')
           setHealthScheme('Absolute_Balance')
           setEnvironmentScheme('PBT_Balanced')
@@ -217,121 +217,121 @@ const MethodsPage: React.FC = () => {
           setCustomWeights({})
         }
       } else {
-        console.log('âš ï¸ [loadAllData] methodsDataä¸å­˜åœ¨ï¼Œè®¾ç½®é»˜è®¤å€¼');
+        console.log('?? [loadAllData] methodsData²»´æÔÚ£¬ÉèÖÃÄ¬ÈÏÖµ');
         setCustomWeights({})
       }
       
-      // âš ï¸ èƒ½è€—æ•°æ®ä¸åœ¨æ­¤å¤„åŠ è½½ï¼Œç”±ç‹¬ç«‹çš„useEffectç®¡ç†ï¼ˆé¿å…è¢«åˆ·æ–°è¦†ç›–ï¼‰
+      // ?? ÄÜºÄÊı¾İ²»ÔÚ´Ë´¦¼ÓÔØ£¬ÓÉ¶ÀÁ¢µÄuseEffect¹ÜÀí£¨±ÜÃâ±»Ë¢ĞÂ¸²¸Ç£©
       
       if (methodsData) {
-        // âš ï¸ å…³é”®ï¼šåŠ è½½å·²æœ‰çš„Mobile Phase A/Båˆ°stateï¼ˆåˆ›å»ºæ·±æ‹·è´ï¼‰
+        // ?? ¹Ø¼ü£º¼ÓÔØÒÑÓĞµÄMobile Phase A/Bµ½state£¨´´½¨Éî¿½±´£©
         if (methodsData.mobilePhaseA && methodsData.mobilePhaseA.length > 0) {
-          console.log('âœ… æ¢å¤Mobile Phase A:', methodsData.mobilePhaseA)
+          console.log('? »Ö¸´Mobile Phase A:', methodsData.mobilePhaseA)
           setMobilePhaseA(methodsData.mobilePhaseA.map((r, index) => ({ 
             ...r,
-            id: r.id || `phaseA_${Date.now()}_${index}` // ç¡®ä¿æ¯ä¸ªè¯•å‰‚éƒ½æœ‰å”¯ä¸€ id
+            id: r.id || `phaseA_${Date.now()}_${index}` // È·±£Ã¿¸öÊÔ¼Á¶¼ÓĞÎ¨Ò» id
           })))
         }
         if (methodsData.mobilePhaseB && methodsData.mobilePhaseB.length > 0) {
-          console.log('âœ… æ¢å¤Mobile Phase B:', methodsData.mobilePhaseB)
+          console.log('? »Ö¸´Mobile Phase B:', methodsData.mobilePhaseB)
           setMobilePhaseB(methodsData.mobilePhaseB.map((r, index) => ({ 
             ...r,
-            id: r.id || `phaseB_${Date.now()}_${index}` // ç¡®ä¿æ¯ä¸ªè¯•å‰‚éƒ½æœ‰å”¯ä¸€ id
+            id: r.id || `phaseB_${Date.now()}_${index}` // È·±£Ã¿¸öÊÔ¼Á¶¼ÓĞÎ¨Ò» id
           })))
         }
         
-        // åŠ è½½å‰å¤„ç†è¯•å‰‚ï¼ˆåˆ›å»ºå®Œå…¨ç‹¬ç«‹çš„æ·±æ‹·è´ï¼‰
+        // ¼ÓÔØÇ°´¦ÀíÊÔ¼Á£¨´´½¨ÍêÈ«¶ÀÁ¢µÄÉî¿½±´£©
         if (methodsData.preTreatmentReagents && methodsData.preTreatmentReagents.length > 0) {
-          console.log('âœ… æ¢å¤å‰å¤„ç†è¯•å‰‚:', methodsData.preTreatmentReagents)
-          // åˆ›å»ºå®Œå…¨ç‹¬ç«‹çš„å‰¯æœ¬ï¼Œæ¯ä¸ªå¯¹è±¡éƒ½æ˜¯æ–°çš„ï¼Œç¡®ä¿æœ‰ id
+          console.log('? »Ö¸´Ç°´¦ÀíÊÔ¼Á:', methodsData.preTreatmentReagents)
+          // ´´½¨ÍêÈ«¶ÀÁ¢µÄ¸±±¾£¬Ã¿¸ö¶ÔÏó¶¼ÊÇĞÂµÄ£¬È·±£ÓĞ id
           const reagentsCopy = methodsData.preTreatmentReagents.map((r, index) => ({
-            id: r.id || `pretreatment_${Date.now()}_${index}`, // ç¡®ä¿æ¯ä¸ªè¯•å‰‚éƒ½æœ‰å”¯ä¸€ id
+            id: r.id || `pretreatment_${Date.now()}_${index}`, // È·±£Ã¿¸öÊÔ¼Á¶¼ÓĞÎ¨Ò» id
             name: r.name,
             volume: Number(r.volume)
           }))
-          console.log('âœ… åˆ›å»ºçš„ç‹¬ç«‹å‰¯æœ¬:', reagentsCopy)
+          console.log('? ´´½¨µÄ¶ÀÁ¢¸±±¾:', reagentsCopy)
           setPreTreatmentReagents(reagentsCopy)
         } else {
-          // æ²¡æœ‰æ•°æ®æ—¶åˆå§‹åŒ–ä¸€ä¸ªç©ºè¯•å‰‚
-          console.log('âš ï¸ æ²¡æœ‰å‰å¤„ç†è¯•å‰‚æ•°æ®ï¼Œåˆ›å»ºé»˜è®¤ç©ºè¯•å‰‚')
+          // Ã»ÓĞÊı¾İÊ±³õÊ¼»¯Ò»¸ö¿ÕÊÔ¼Á
+          console.log('?? Ã»ÓĞÇ°´¦ÀíÊÔ¼ÁÊı¾İ£¬´´½¨Ä¬ÈÏ¿ÕÊÔ¼Á')
           setPreTreatmentReagents([{ id: Date.now().toString(), name: '', volume: 0 }])
         }
         
-        // åŠ è½½æ ·å“æ•°é‡
+        // ¼ÓÔØÑùÆ·ÊıÁ¿
         if (methodsData.sampleCount !== undefined && methodsData.sampleCount !== null) {
-          console.log('âœ… æ¢å¤æ ·å“æ•°é‡:', methodsData.sampleCount)
+          console.log('? »Ö¸´ÑùÆ·ÊıÁ¿:', methodsData.sampleCount)
           setSampleCount(methodsData.sampleCount)
         }
       }
       
-      // å†åŠ è½½ gradientï¼ˆä¾èµ– factorsï¼‰
+      // ÔÙ¼ÓÔØ gradient£¨ÒÀÀµ factors£©
       const gradientData = await StorageHelper.getJSON(STORAGE_KEYS.GRADIENT)
       if (gradientData?.calculations) {
         setGradientCalculations(gradientData.calculations)
-        console.log('âœ… åˆå§‹åŠ è½½gradientæ•°æ®æˆåŠŸ')
+        console.log('? ³õÊ¼¼ÓÔØgradientÊı¾İ³É¹¦')
         
         let needsSave = false
         let updatedMethodsData = { ...methodsData }
         
-        // ğŸ”§ åªåœ¨storageä¸­çš„mobilePhaseA/Bä¸ºç©ºæ—¶ï¼Œæ‰ä»gradient calculationsè‡ªåŠ¨å¡«å……
-        // ï¼ˆæ³¨æ„ï¼šè¿™é‡Œæ£€æŸ¥çš„æ˜¯methodsDataï¼Œä¸æ˜¯stateï¼‰
+        // ?? Ö»ÔÚstorageÖĞµÄmobilePhaseA/BÎª¿ÕÊ±£¬²Å´Ógradient calculations×Ô¶¯Ìî³ä
+        // £¨×¢Òâ£ºÕâÀï¼ì²éµÄÊÇmethodsData£¬²»ÊÇstate£©
         if ((!methodsData?.mobilePhaseA || methodsData.mobilePhaseA.length === 0) && 
             gradientData.calculations.mobilePhaseA?.components?.length > 0) {
-          console.log('ğŸ”„ storageä¸­çš„mobilePhaseAä¸ºç©ºï¼Œä»gradientè‡ªåŠ¨åŒæ­¥')
+          console.log('?? storageÖĞµÄmobilePhaseAÎª¿Õ£¬´Ógradient×Ô¶¯Í¬²½')
           const phaseAReagents = gradientData.calculations.mobilePhaseA.components.map((c: any, index: number) => ({
-            id: `phaseA_${Date.now()}_${index}`, // æ·»åŠ å”¯ä¸€ id
+            id: `phaseA_${Date.now()}_${index}`, // Ìí¼ÓÎ¨Ò» id
             name: c.reagentName,
             percentage: c.percentage || 100
           }))
           setMobilePhaseA(phaseAReagents)
           updatedMethodsData.mobilePhaseA = phaseAReagents
           needsSave = true
-          console.log('  âœ… å·²åŒæ­¥Mobile Phase A:', phaseAReagents)
+          console.log('  ? ÒÑÍ¬²½Mobile Phase A:', phaseAReagents)
         }
         
         if ((!methodsData?.mobilePhaseB || methodsData.mobilePhaseB.length === 0) && 
             gradientData.calculations.mobilePhaseB?.components?.length > 0) {
-          console.log('ğŸ”„ storageä¸­çš„mobilePhaseBä¸ºç©ºï¼Œä»gradientè‡ªåŠ¨åŒæ­¥')
+          console.log('?? storageÖĞµÄmobilePhaseBÎª¿Õ£¬´Ógradient×Ô¶¯Í¬²½')
           const phaseBReagents = gradientData.calculations.mobilePhaseB.components.map((c: any, index: number) => ({
-            id: `phaseB_${Date.now()}_${index}`, // æ·»åŠ å”¯ä¸€ id
+            id: `phaseB_${Date.now()}_${index}`, // Ìí¼ÓÎ¨Ò» id
             name: c.reagentName,
             percentage: c.percentage || 100
           }))
           setMobilePhaseB(phaseBReagents)
           updatedMethodsData.mobilePhaseB = phaseBReagents
           needsSave = true
-          console.log('  âœ… å·²åŒæ­¥Mobile Phase B:', phaseBReagents)
+          console.log('  ? ÒÑÍ¬²½Mobile Phase B:', phaseBReagents)
         }
         
-        // ğŸ”§ åŒæ­¥Sample PreTreatmentæ•°æ®
+        // ?? Í¬²½Sample PreTreatmentÊı¾İ
         if ((!methodsData?.preTreatmentReagents || methodsData.preTreatmentReagents.length === 0) && 
             gradientData.calculations.samplePreTreatment?.components?.length > 0) {
-          console.log('ğŸ”„ storageä¸­çš„preTreatmentReagentsä¸ºç©ºï¼Œä»gradientè‡ªåŠ¨åŒæ­¥')
+          console.log('?? storageÖĞµÄpreTreatmentReagentsÎª¿Õ£¬´Ógradient×Ô¶¯Í¬²½')
           const preTreatmentReagents = gradientData.calculations.samplePreTreatment.components.map((c: any, index: number) => ({
-            id: `pretreatment_${Date.now()}_${index}`, // æ·»åŠ å”¯ä¸€ id
+            id: `pretreatment_${Date.now()}_${index}`, // Ìí¼ÓÎ¨Ò» id
             name: c.reagentName,
             volume: c.volume || 0
           }))
           setPreTreatmentReagents(preTreatmentReagents)
           updatedMethodsData.preTreatmentReagents = preTreatmentReagents
           needsSave = true
-          console.log('  âœ… å·²åŒæ­¥Sample PreTreatment:', preTreatmentReagents)
+          console.log('  ? ÒÑÍ¬²½Sample PreTreatment:', preTreatmentReagents)
         }
         
-        // ğŸ”§ åŒæ­¥æ ·å“æ•°é‡
+        // ?? Í¬²½ÑùÆ·ÊıÁ¿
         if ((!methodsData?.sampleCount || methodsData.sampleCount === 0) && 
             gradientData.calculations.sampleCount) {
-          console.log('ğŸ”„ storageä¸­çš„sampleCountä¸ºç©ºï¼Œä»gradientè‡ªåŠ¨åŒæ­¥')
+          console.log('?? storageÖĞµÄsampleCountÎª¿Õ£¬´Ógradient×Ô¶¯Í¬²½')
           setSampleCount(gradientData.calculations.sampleCount)
           updatedMethodsData.sampleCount = gradientData.calculations.sampleCount
           needsSave = true
-          console.log('  âœ… å·²åŒæ­¥Sample Count:', gradientData.calculations.sampleCount)
+          console.log('  ? ÒÑÍ¬²½Sample Count:', gradientData.calculations.sampleCount)
         }
         
-        // ğŸ’¾ å¦‚æœæœ‰æ•°æ®è¢«åŒæ­¥ï¼Œç«‹å³ä¿å­˜åˆ°storage
+        // ?? Èç¹ûÓĞÊı¾İ±»Í¬²½£¬Á¢¼´±£´æµ½storage
         if (needsSave) {
-          console.log('ğŸ’¾ ä¿å­˜åŒæ­¥çš„æ•°æ®åˆ°storage')
-          // âš ï¸ ä¿ç•™åŸæœ‰èƒ½è€—æ•°æ®ï¼ˆä»gradientåŒæ­¥ä¸ä¼šè¦†ç›–èƒ½è€—ï¼‰
+          console.log('?? ±£´æÍ¬²½µÄÊı¾İµ½storage')
+          // ?? ±£ÁôÔ­ÓĞÄÜºÄÊı¾İ£¨´ÓgradientÍ¬²½²»»á¸²¸ÇÄÜºÄ£©
           if (methodsData?.instrumentEnergy !== undefined) {
             updatedMethodsData.instrumentEnergy = methodsData.instrumentEnergy
           }
@@ -339,7 +339,7 @@ const MethodsPage: React.FC = () => {
             updatedMethodsData.pretreatmentEnergy = methodsData.pretreatmentEnergy
           }
           
-          // ä¿ç•™æƒé‡æ–¹æ¡ˆ
+          // ±£ÁôÈ¨ÖØ·½°¸
           if (!updatedMethodsData.weightSchemes) {
             updatedMethodsData.weightSchemes = {
               safetyScheme: 'PBT_Balanced',
@@ -351,55 +351,55 @@ const MethodsPage: React.FC = () => {
             }
           }
           await StorageHelper.setJSON(STORAGE_KEYS.METHODS, updatedMethodsData)
-          console.log('  âœ… å·²ä¿å­˜åŒæ­¥åçš„æ•°æ®')
+          console.log('  ? ÒÑ±£´æÍ¬²½ºóµÄÊı¾İ')
         }
       } else {
-        console.log('âš ï¸ gradientæ•°æ®ä¸å®Œæ•´')
+        console.log('?? gradientÊı¾İ²»ÍêÕû')
         setGradientCalculations(null)
       }
       
-      // åŠ è½½è¯„åˆ†ç»“æœï¼Œå¹¶å°è¯•ä»ä¸­æ¢å¤èƒ½è€—æ•°æ®
+      // ¼ÓÔØÆÀ·Ö½á¹û£¬²¢³¢ÊÔ´ÓÖĞ»Ö¸´ÄÜºÄÊı¾İ
       await loadScoreResults()
       
-      // ğŸ”§ å¦‚æœèƒ½è€—ä¸º0ï¼Œå°è¯•ä»score_resultsåæ¨
+      // ?? Èç¹ûÄÜºÄÎª0£¬³¢ÊÔ´Óscore_results·´ÍÆ
       const scoreResults = await StorageHelper.getJSON(STORAGE_KEYS.SCORE_RESULTS)
       if (scoreResults && (!methodsData?.instrumentEnergy || methodsData.instrumentEnergy === 0)) {
-        // æ³¨æ„ï¼šæ— æ³•ä»På› å­åæ¨ç²¾ç¡®çš„èƒ½è€—å€¼ï¼Œå› ä¸ºPå› å­æ˜¯è¯„åˆ†ç»“æœ
-        // ä½†æˆ‘ä»¬å¯ä»¥æ£€æŸ¥æ˜¯å¦ä¹‹å‰æœ‰ä¿å­˜çš„èƒ½è€—æ•°æ®
-        console.log('â„¹ï¸ èƒ½è€—æ•°æ®ä¸º0ï¼Œç”¨æˆ·éœ€è¦æ‰‹åŠ¨è¾“å…¥')
+        // ×¢Òâ£ºÎŞ·¨´ÓPÒò×Ó·´ÍÆ¾«È·µÄÄÜºÄÖµ£¬ÒòÎªPÒò×ÓÊÇÆÀ·Ö½á¹û
+        // µ«ÎÒÃÇ¿ÉÒÔ¼ì²éÊÇ·ñÖ®Ç°ÓĞ±£´æµÄÄÜºÄÊı¾İ
+        console.log('?? ÄÜºÄÊı¾İÎª0£¬ÓÃ»§ĞèÒªÊÖ¶¯ÊäÈë')
       }
       
-      // æ•°æ®åŠ è½½å®Œæˆ
+      // Êı¾İ¼ÓÔØÍê³É
       setIsDataLoading(false)
-      console.log('âœ… æ‰€æœ‰æ•°æ®åŠ è½½å®Œæˆ')
+      console.log('? ËùÓĞÊı¾İ¼ÓÔØÍê³É')
     }
     
       loadAllData()
     } else {
-      // éé¦–æ¬¡åŠ è½½ï¼ŒéªŒè¯æ•°æ®å®Œæ•´æ€§å¹¶æ¢å¤æƒé‡æ–¹æ¡ˆ
-      console.log('ğŸ”„ åç»­è®¿é—®ï¼ŒéªŒè¯æ•°æ®å®Œæ•´æ€§å¹¶æ¢å¤æƒé‡æ–¹æ¡ˆ')
+      // ·ÇÊ×´Î¼ÓÔØ£¬ÑéÖ¤Êı¾İÍêÕûĞÔ²¢»Ö¸´È¨ÖØ·½°¸
+      console.log('?? ºóĞø·ÃÎÊ£¬ÑéÖ¤Êı¾İÍêÕûĞÔ²¢»Ö¸´È¨ÖØ·½°¸')
       const verifyData = async () => {
-        // æ¢å¤æƒé‡æ–¹æ¡ˆï¼ˆæ¯æ¬¡éƒ½è¦åŠ è½½ï¼‰
+        // »Ö¸´È¨ÖØ·½°¸£¨Ã¿´Î¶¼Òª¼ÓÔØ£©
         const methodsData = await StorageHelper.getJSON(STORAGE_KEYS.METHODS)
-        console.log('ğŸ“‹ [verifyData] è¯»å–åˆ°çš„Methodsæ•°æ®:', methodsData)
-        console.log('ğŸ“‹ [verifyData] weightSchemes:', methodsData?.weightSchemes)
-        console.log('ğŸ“‹ [verifyData] customWeights from storage:', methodsData?.weightSchemes?.customWeights)
+        console.log('?? [verifyData] ¶ÁÈ¡µ½µÄMethodsÊı¾İ:', methodsData)
+        console.log('?? [verifyData] weightSchemes:', methodsData?.weightSchemes)
+        console.log('?? [verifyData] customWeights from storage:', methodsData?.weightSchemes?.customWeights)
         
         if (methodsData?.weightSchemes) {
-          console.log('âœ… [verifyData] æ¢å¤æƒé‡æ–¹æ¡ˆ:', methodsData.weightSchemes)
+          console.log('? [verifyData] »Ö¸´È¨ÖØ·½°¸:', methodsData.weightSchemes)
           setSafetyScheme(methodsData.weightSchemes.safetyScheme || 'PBT_Balanced')
           setHealthScheme(methodsData.weightSchemes.healthScheme || 'Absolute_Balance')
           setEnvironmentScheme(methodsData.weightSchemes.environmentScheme || 'PBT_Balanced')
           setStageScheme(methodsData.weightSchemes.instrumentStageScheme || 'Balanced')
           setFinalScheme(methodsData.weightSchemes.finalScheme || 'Direct_Online')
           
-          // æ¢å¤è‡ªå®šä¹‰æƒé‡
+          // »Ö¸´×Ô¶¨ÒåÈ¨ÖØ
           const restoredCustomWeights = methodsData.weightSchemes.customWeights || {};
-          console.log('âœ… [verifyData] å³å°†è®¾ç½®customWeightsåˆ°state:', restoredCustomWeights);
+          console.log('? [verifyData] ¼´½«ÉèÖÃcustomWeightsµ½state:', restoredCustomWeights);
           setCustomWeights(restoredCustomWeights);
-          console.log('âœ… [verifyData] customWeightså·²è®¾ç½®å®Œæˆ');
+          console.log('? [verifyData] customWeightsÒÑÉèÖÃÍê³É');
         } else {
-          console.log('âš ï¸ [verifyData] weightSchemesä¸å­˜åœ¨ï¼Œè®¾ç½®é»˜è®¤å€¼');
+          console.log('?? [verifyData] weightSchemes²»´æÔÚ£¬ÉèÖÃÄ¬ÈÏÖµ');
           setSafetyScheme('PBT_Balanced')
           setHealthScheme('Absolute_Balance')
           setEnvironmentScheme('PBT_Balanced')
@@ -411,110 +411,110 @@ const MethodsPage: React.FC = () => {
         const factors = await StorageHelper.getJSON<any[]>(STORAGE_KEYS.FACTORS)
         const gradientData = await StorageHelper.getJSON(STORAGE_KEYS.GRADIENT)
         
-        // åªæœ‰æ•°æ®çœŸçš„ä¸å­˜åœ¨æ—¶æ‰é‡æ–°åŠ è½½
+        // Ö»ÓĞÊı¾İÕæµÄ²»´æÔÚÊ±²ÅÖØĞÂ¼ÓÔØ
         if (!factors || factors.length === 0 || !gradientData?.calculations) {
-          console.log('âš ï¸ æ•°æ®ç¼ºå¤±ï¼Œé‡æ–°åŠ è½½')
-          hasInitialLoad.current = false // é‡ç½®æ ‡è®°ï¼Œä¸‹æ¬¡å®Œæ•´åŠ è½½
-          // è§¦å‘é‡æ–°æ¸²æŸ“ï¼Œè®©ä¸Šé¢çš„é€»è¾‘é‡æ–°æ‰§è¡Œ
+          console.log('?? Êı¾İÈ±Ê§£¬ÖØĞÂ¼ÓÔØ')
+          hasInitialLoad.current = false // ÖØÖÃ±ê¼Ç£¬ÏÂ´ÎÍêÕû¼ÓÔØ
+          // ´¥·¢ÖØĞÂäÖÈ¾£¬ÈÃÉÏÃæµÄÂß¼­ÖØĞÂÖ´ĞĞ
           setForceRenderKey(prev => prev + 1)
         } else {
-          console.log('âœ“ æ•°æ®å®Œæ•´ï¼Œæ— éœ€é‡æ–°åŠ è½½')
+          console.log('? Êı¾İÍêÕû£¬ÎŞĞèÖØĞÂ¼ÓÔØ')
         }
       }
       verifyData()
     }
 
-    // ç›‘å¬ HPLC Gradient æ•°æ®æ›´æ–°
+    // ¼àÌı HPLC Gradient Êı¾İ¸üĞÂ
     const handleGradientDataUpdated = async () => {
-      console.log('ğŸ”” æ£€æµ‹åˆ° HPLC Gradient æ•°æ®æ›´æ–°ï¼Œåˆ·æ–°å›¾è¡¨...')
+      console.log('?? ¼ì²âµ½ HPLC Gradient Êı¾İ¸üĞÂ£¬Ë¢ĞÂÍ¼±í...')
       const gradientData = await StorageHelper.getJSON(STORAGE_KEYS.GRADIENT)
-      console.log('ğŸ“Š Gradient æ•°æ®:', gradientData ? 'å­˜åœ¨' : 'ä¸å­˜åœ¨')
+      console.log('?? Gradient Êı¾İ:', gradientData ? '´æÔÚ' : '²»´æÔÚ')
       if (gradientData) {
-        console.log('âœ… Gradient æ•°æ®åŠ è½½æˆåŠŸ:', gradientData.calculations)
-        setGradientCalculations(gradientData.calculations || null) // æ›´æ–°state
+        console.log('? Gradient Êı¾İ¼ÓÔØ³É¹¦:', gradientData.calculations)
+        setGradientCalculations(gradientData.calculations || null) // ¸üĞÂstate
         
-        // ğŸ¯ æ¢¯åº¦æ•°æ®æ›´æ–°åï¼Œè‡ªåŠ¨é‡æ–°è®¡ç®—è¯„åˆ†
-        console.log('ğŸ¯ MethodsPage: æ¢¯åº¦æ•°æ®å˜åŒ–ï¼Œè‡ªåŠ¨é‡æ–°è®¡ç®—è¯„åˆ†')
+        // ?? Ìİ¶ÈÊı¾İ¸üĞÂºó£¬×Ô¶¯ÖØĞÂ¼ÆËãÆÀ·Ö
+        console.log('?? MethodsPage: Ìİ¶ÈÊı¾İ±ä»¯£¬×Ô¶¯ÖØĞÂ¼ÆËãÆÀ·Ö')
         calculateFullScoreAPI({ silent: true }).catch(err => {
-          console.warn('âš ï¸ æ¢¯åº¦æ•°æ®æ›´æ–°åè‡ªåŠ¨è®¡ç®—è¯„åˆ†å¤±è´¥:', err)
+          console.warn('?? Ìİ¶ÈÊı¾İ¸üĞÂºó×Ô¶¯¼ÆËãÆÀ·ÖÊ§°Ü:', err)
         })
       }
     }
     
-    // æ£€æŸ¥æ‰“å¼€æ–‡ä»¶æ—¶gradientæ•°æ®æ˜¯å¦åŒ…å«calculations
+    // ¼ì²é´ò¿ªÎÄ¼şÊ±gradientÊı¾İÊÇ·ñ°üº¬calculations
     const checkGradientDataOnLoad = async () => {
       const gradientData = await StorageHelper.getJSON(STORAGE_KEYS.GRADIENT)
       if (gradientData) {
-        // è®¾ç½®gradientè®¡ç®—æ•°æ®ä¾›UIä½¿ç”¨
+        // ÉèÖÃgradient¼ÆËãÊı¾İ¹©UIÊ¹ÓÃ
         setGradientCalculations(gradientData.calculations || null)
         
-        // å¦‚æœgradientæ˜¯æ•°ç»„æˆ–æ²¡æœ‰calculationsï¼Œæç¤ºç”¨æˆ·éœ€è¦é‡æ–°è®¡ç®—
+        // Èç¹ûgradientÊÇÊı×é»òÃ»ÓĞcalculations£¬ÌáÊ¾ÓÃ»§ĞèÒªÖØĞÂ¼ÆËã
         if (Array.isArray(gradientData) || !gradientData.calculations) {
-          console.warn('âš ï¸ æ‰“å¼€çš„æ–‡ä»¶ç¼ºå°‘gradient calculationsæ•°æ®')
+          console.warn('?? ´ò¿ªµÄÎÄ¼şÈ±ÉÙgradient calculationsÊı¾İ')
           message.warning('This file is missing gradient calculation data. Please go to Time Gradient Curve page and click "Confirm" to recalculate', 5)
         }
       }
     }
     
-    // å»¶è¿Ÿæ£€æŸ¥ï¼Œç­‰å¾…æ–‡ä»¶æ•°æ®åŠ è½½å®Œæˆ
+    // ÑÓ³Ù¼ì²é£¬µÈ´ıÎÄ¼şÊı¾İ¼ÓÔØÍê³É
     const checkTimer = setTimeout(checkGradientDataOnLoad, 500)
     
-    // ç›‘å¬æ–‡ä»¶æ•°æ®å˜æ›´äº‹ä»¶ï¼ˆæ‰“å¼€æ–‡ä»¶ã€æ–°å»ºæ–‡ä»¶æ—¶è§¦å‘ï¼‰
+    // ¼àÌıÎÄ¼şÊı¾İ±ä¸üÊÂ¼ş£¨´ò¿ªÎÄ¼ş¡¢ĞÂ½¨ÎÄ¼şÊ±´¥·¢£©
     const handleFileDataChanged = async (e: Event) => {
       const customEvent = e as CustomEvent
-      console.log('ğŸ“¢ MethodsPage: æ¥æ”¶åˆ° fileDataChanged äº‹ä»¶', customEvent.detail)
+      console.log('?? MethodsPage: ½ÓÊÕµ½ fileDataChanged ÊÂ¼ş', customEvent.detail)
       
-      // ğŸ¯ æ¢å¤æƒé‡æ–¹æ¡ˆå’Œè‡ªå®šä¹‰æƒé‡ï¼ˆé˜²æ­¢æ–‡ä»¶æ±¡æŸ“ï¼‰
+      // ?? »Ö¸´È¨ÖØ·½°¸ºÍ×Ô¶¨ÒåÈ¨ÖØ£¨·ÀÖ¹ÎÄ¼şÎÛÈ¾£©
       const methodsData = await StorageHelper.getJSON(STORAGE_KEYS.METHODS)
-      console.log('ğŸ“‹ [æ–‡ä»¶åˆ‡æ¢] è¯»å–åˆ°çš„Methodsæ•°æ®:', methodsData)
-      console.log('ğŸ“‹ [æ–‡ä»¶åˆ‡æ¢] weightSchemes:', methodsData?.weightSchemes)
-      console.log('ğŸ“‹ [æ–‡ä»¶åˆ‡æ¢] customWeights from storage:', methodsData?.weightSchemes?.customWeights)
+      console.log('?? [ÎÄ¼şÇĞ»»] ¶ÁÈ¡µ½µÄMethodsÊı¾İ:', methodsData)
+      console.log('?? [ÎÄ¼şÇĞ»»] weightSchemes:', methodsData?.weightSchemes)
+      console.log('?? [ÎÄ¼şÇĞ»»] customWeights from storage:', methodsData?.weightSchemes?.customWeights)
       
       if (methodsData?.weightSchemes) {
-        console.log('âœ… [æ–‡ä»¶åˆ‡æ¢] æ¢å¤æƒé‡æ–¹æ¡ˆ:', methodsData.weightSchemes)
+        console.log('? [ÎÄ¼şÇĞ»»] »Ö¸´È¨ÖØ·½°¸:', methodsData.weightSchemes)
         setSafetyScheme(methodsData.weightSchemes.safetyScheme || 'PBT_Balanced')
         setHealthScheme(methodsData.weightSchemes.healthScheme || 'Absolute_Balance')
         setEnvironmentScheme(methodsData.weightSchemes.environmentScheme || 'PBT_Balanced')
         setStageScheme(methodsData.weightSchemes.instrumentStageScheme || 'Balanced')
         setFinalScheme(methodsData.weightSchemes.finalScheme || 'Direct_Online')
         
-        // æ¢å¤è‡ªå®šä¹‰æƒé‡
+        // »Ö¸´×Ô¶¨ÒåÈ¨ÖØ
         const restoredCustomWeights = methodsData.weightSchemes.customWeights || {};
-        console.log('âœ… [æ–‡ä»¶åˆ‡æ¢] å³å°†è®¾ç½®customWeightsåˆ°state:', restoredCustomWeights);
+        console.log('? [ÎÄ¼şÇĞ»»] ¼´½«ÉèÖÃcustomWeightsµ½state:', restoredCustomWeights);
         setCustomWeights(restoredCustomWeights);
-        console.log('âœ… [æ–‡ä»¶åˆ‡æ¢] customWeightså·²è®¾ç½®å®Œæˆ');
+        console.log('? [ÎÄ¼şÇĞ»»] customWeightsÒÑÉèÖÃÍê³É');
       } else {
-        // å¦‚æœæ˜¯æ–°æ–‡ä»¶ï¼Œé‡ç½®ä¸ºé»˜è®¤å€¼
-        console.log('â„¹ï¸ [æ–‡ä»¶åˆ‡æ¢] æ–°æ–‡ä»¶æˆ–æ²¡æœ‰weightSchemesï¼Œé‡ç½®ä¸ºé»˜è®¤æƒé‡æ–¹æ¡ˆ')
+        // Èç¹ûÊÇĞÂÎÄ¼ş£¬ÖØÖÃÎªÄ¬ÈÏÖµ
+        console.log('?? [ÎÄ¼şÇĞ»»] ĞÂÎÄ¼ş»òÃ»ÓĞweightSchemes£¬ÖØÖÃÎªÄ¬ÈÏÈ¨ÖØ·½°¸')
         setSafetyScheme('PBT_Balanced')
         setHealthScheme('Absolute_Balance')
         setEnvironmentScheme('PBT_Balanced')
         setStageScheme('Balanced')
         setFinalScheme('Direct_Online')
         setCustomWeights({})
-        console.log('âœ… [æ–‡ä»¶åˆ‡æ¢] å·²é‡ç½®ä¸ºé»˜è®¤å€¼');
+        console.log('? [ÎÄ¼şÇĞ»»] ÒÑÖØÖÃÎªÄ¬ÈÏÖµ');
       }
       
-      // å»¶è¿Ÿé‡æ–°åŠ è½½factorsæ•°æ®ï¼ˆç­‰å¾…FactorsPageåˆå§‹åŒ–é¢„å®šä¹‰æ•°æ®ï¼‰
+      // ÑÓ³ÙÖØĞÂ¼ÓÔØfactorsÊı¾İ£¨µÈ´ıFactorsPage³õÊ¼»¯Ô¤¶¨ÒåÊı¾İ£©
       setTimeout(() => {
-        console.log('ğŸ”„ MethodsPage: å»¶è¿ŸåŠ è½½factorsæ•°æ®')
+        console.log('?? MethodsPage: ÑÓ³Ù¼ÓÔØfactorsÊı¾İ')
         loadFactorsData()
-        loadScoreResults() // åŒæ—¶é‡æ–°åŠ è½½è¯„åˆ†ç»“æœ
+        loadScoreResults() // Í¬Ê±ÖØĞÂ¼ÓÔØÆÀ·Ö½á¹û
       }, 100)
       
-      // ğŸ”„ æ–‡ä»¶åˆ‡æ¢æ—¶ä¸è‡ªåŠ¨è®¡ç®—è¯„åˆ†ï¼ˆå› ä¸ºloadFactorsDataå·²ç»åŒ…å«äº†æ™ºèƒ½è®¡ç®—é€»è¾‘ï¼‰
-      console.log('â„¹ï¸ æ–‡ä»¶åˆ‡æ¢å®Œæˆï¼Œç­‰å¾…ç”¨æˆ·æ‰‹åŠ¨è§¦å‘è¯„åˆ†è®¡ç®—')
+      // ?? ÎÄ¼şÇĞ»»Ê±²»×Ô¶¯¼ÆËãÆÀ·Ö£¨ÒòÎªloadFactorsDataÒÑ¾­°üº¬ÁËÖÇÄÜ¼ÆËãÂß¼­£©
+      console.log('?? ÎÄ¼şÇĞ»»Íê³É£¬µÈ´ıÓÃ»§ÊÖ¶¯´¥·¢ÆÀ·Ö¼ÆËã')
       
-      console.log('ğŸ”„ MethodsPage: å·²å¼ºåˆ¶åˆ·æ–°é¡µé¢æ•°æ®')
+      console.log('?? MethodsPage: ÒÑÇ¿ÖÆË¢ĞÂÒ³ÃæÊı¾İ')
     }
     
-    // ç›‘å¬è¯„åˆ†æ•°æ®æ›´æ–°äº‹ä»¶
+    // ¼àÌıÆÀ·ÖÊı¾İ¸üĞÂÊÂ¼ş
     const handleScoreDataUpdated = () => {
-      console.log('ğŸ“¢ MethodsPage: æ£€æµ‹åˆ°è¯„åˆ†æ•°æ®æ›´æ–°')
+      console.log('?? MethodsPage: ¼ì²âµ½ÆÀ·ÖÊı¾İ¸üĞÂ')
       loadScoreResults()
     }
     
-    // è‡ªå®šä¹‰äº‹ä»¶ç›‘å¬(åŒé¡µé¢å†…çš„æ›´æ–°)
+    // ×Ô¶¨ÒåÊÂ¼ş¼àÌı(Í¬Ò³ÃæÄÚµÄ¸üĞÂ)
     window.addEventListener('factorsDataUpdated', loadFactorsData as EventListener)
     window.addEventListener('gradientDataUpdated', handleGradientDataUpdated)
     window.addEventListener('fileDataChanged', handleFileDataChanged)
@@ -527,40 +527,40 @@ const MethodsPage: React.FC = () => {
       window.removeEventListener('fileDataChanged', handleFileDataChanged)
       window.removeEventListener('scoreDataUpdated', handleScoreDataUpdated)
     }
-  }, [location.pathname]) // æ·»åŠ  location.pathname ä¾èµ–ï¼Œæ¯æ¬¡å¯¼èˆªåˆ°æ­¤é¡µé¢éƒ½é‡æ–°åŠ è½½
+  }, [location.pathname]) // Ìí¼Ó location.pathname ÒÀÀµ£¬Ã¿´Îµ¼º½µ½´ËÒ³Ãæ¶¼ÖØĞÂ¼ÓÔØ
 
-  // ========== èƒ½è€—æ•°æ®ç‹¬ç«‹ç®¡ç† ==========
-  // èƒ½è€—æ•°æ®å®Œå…¨ç‹¬ç«‹ï¼Œä¸å—å…¶ä»–æ•°æ®åˆ·æ–°å½±å“
+  // ========== ÄÜºÄÊı¾İ¶ÀÁ¢¹ÜÀí ==========
+  // ÄÜºÄÊı¾İÍêÈ«¶ÀÁ¢£¬²»ÊÜÆäËûÊı¾İË¢ĞÂÓ°Ïì
   useEffect(() => {
     const loadEnergyData = async () => {
       const methodsData = await StorageHelper.getJSON(STORAGE_KEYS.METHODS)
       if (methodsData) {
         const instEnergy = methodsData.instrumentEnergy ?? 0
         const prepEnergy = methodsData.pretreatmentEnergy ?? 0
-        console.log('ğŸ”‹ ç‹¬ç«‹åŠ è½½èƒ½è€—æ•°æ®:', { instrumentEnergy: instEnergy, pretreatmentEnergy: prepEnergy })
+        console.log('?? ¶ÀÁ¢¼ÓÔØÄÜºÄÊı¾İ:', { instrumentEnergy: instEnergy, pretreatmentEnergy: prepEnergy })
         setInstrumentEnergy(instEnergy)
         setPretreatmentEnergy(prepEnergy)
       }
     }
     loadEnergyData()
-  }, []) // åªåœ¨ç»„ä»¶æŒ‚è½½æ—¶åŠ è½½ä¸€æ¬¡ï¼Œä¸å—å…¶ä»–æ•°æ®å½±å“
+  }, []) // Ö»ÔÚ×é¼ş¹ÒÔØÊ±¼ÓÔØÒ»´Î£¬²»ÊÜÆäËûÊı¾İÓ°Ïì
 
-  // èƒ½è€—æ•°æ®å˜åŒ–æ—¶å•ç‹¬ä¿å­˜ï¼ˆä¸è§¦å‘å…¶ä»–æ•°æ®çš„ä¿å­˜ï¼‰
+  // ÄÜºÄÊı¾İ±ä»¯Ê±µ¥¶À±£´æ£¨²»´¥·¢ÆäËûÊı¾İµÄ±£´æ£©
   useEffect(() => {
     const saveEnergyData = async () => {
       const methodsData = await StorageHelper.getJSON(STORAGE_KEYS.METHODS) || {}
       methodsData.instrumentEnergy = instrumentEnergy
       methodsData.pretreatmentEnergy = pretreatmentEnergy
       await StorageHelper.setJSON(STORAGE_KEYS.METHODS, methodsData)
-      console.log('ğŸ”‹ èƒ½è€—æ•°æ®å·²ä¿å­˜:', { instrumentEnergy, pretreatmentEnergy })
+      console.log('?? ÄÜºÄÊı¾İÒÑ±£´æ:', { instrumentEnergy, pretreatmentEnergy })
     }
-    // ä½¿ç”¨é˜²æŠ–é¿å…é¢‘ç¹ä¿å­˜
+    // Ê¹ÓÃ·À¶¶±ÜÃâÆµ·±±£´æ
     const timer = setTimeout(saveEnergyData, 300)
     return () => clearTimeout(timer)
   }, [instrumentEnergy, pretreatmentEnergy])
-  // ========== èƒ½è€—æ•°æ®ç‹¬ç«‹ç®¡ç†ç»“æŸ ==========
+  // ========== ÄÜºÄÊı¾İ¶ÀÁ¢¹ÜÀí½áÊø ==========
 
-  // ç›‘å¬Contextæ•°æ®å˜åŒ–ï¼Œæ›´æ–°æœ¬åœ°çŠ¶æ€ï¼ˆåªæ›´æ–°å¿…è¦çš„å­—æ®µï¼‰
+  // ¼àÌıContextÊı¾İ±ä»¯£¬¸üĞÂ±¾µØ×´Ì¬£¨Ö»¸üĞÂ±ØÒªµÄ×Ö¶Î£©
   const lastSyncedData = React.useRef<string>('')
   
   useEffect(() => {
@@ -573,25 +573,25 @@ const MethodsPage: React.FC = () => {
       pretreatmentEnergy: data.methods.pretreatmentEnergy
     })
     
-    // å¦‚æœæ•°æ®æ²¡æœ‰å˜åŒ–ï¼Œè·³è¿‡æ›´æ–°
+    // Èç¹ûÊı¾İÃ»ÓĞ±ä»¯£¬Ìø¹ı¸üĞÂ
     if (lastSyncedData.current === currentDataStr) {
       return
     }
     
-    console.log('ğŸ”„ MethodsPage: Contextæ•°æ®å˜åŒ–ï¼Œæ›´æ–°æœ¬åœ°çŠ¶æ€')
+    console.log('?? MethodsPage: ContextÊı¾İ±ä»¯£¬¸üĞÂ±¾µØ×´Ì¬')
     lastSyncedData.current = currentDataStr
     
-    // ğŸ”¥ è®¾ç½®æ ‡å¿—ï¼Œè¡¨ç¤ºæ­£åœ¨ä»ContextåŒæ­¥ï¼ˆé¿å…è§¦å‘è‡ªåŠ¨ä¿å­˜ï¼‰
+    // ?? ÉèÖÃ±êÖ¾£¬±íÊ¾ÕıÔÚ´ÓContextÍ¬²½£¨±ÜÃâ´¥·¢×Ô¶¯±£´æ£©
     isSyncingFromContext.current = true
     
-    // æ›´æ–°æ‰€æœ‰ç›¸å…³æ•°æ®
+    // ¸üĞÂËùÓĞÏà¹ØÊı¾İ
     setSampleCount(data.methods.sampleCount)
     setPreTreatmentReagents(data.methods.preTreatmentReagents)
     setMobilePhaseA(data.methods.mobilePhaseA)
     setMobilePhaseB(data.methods.mobilePhaseB)
     
-    // âœ… èƒ½è€—æ•°æ®ï¼šæ€»æ˜¯åŒæ­¥Contextæ•°æ®åˆ°æœ¬åœ°stateï¼ˆç¡®ä¿æ•°æ®ä¸€è‡´æ€§ï¼‰
-    // æ³¨æ„ï¼šèƒ½è€—æ•°æ®çš„çœŸå®æ¥æºæ˜¯loadAllData()ä»storageåŠ è½½ï¼Œè¿™é‡Œåªæ˜¯ä¿æŒContextåŒæ­¥
+    // ? ÄÜºÄÊı¾İ£º×ÜÊÇÍ¬²½ContextÊı¾İµ½±¾µØstate£¨È·±£Êı¾İÒ»ÖÂĞÔ£©
+    // ×¢Òâ£ºÄÜºÄÊı¾İµÄÕæÊµÀ´Ô´ÊÇloadAllData()´Óstorage¼ÓÔØ£¬ÕâÀïÖ»ÊÇ±£³ÖContextÍ¬²½
     if (data.methods.instrumentEnergy !== undefined) {
       setInstrumentEnergy(data.methods.instrumentEnergy)
     }
@@ -599,36 +599,36 @@ const MethodsPage: React.FC = () => {
       setPretreatmentEnergy(data.methods.pretreatmentEnergy)
     }
     
-    // ğŸ”¥ é‡ç½®æ ‡å¿—ï¼ˆåœ¨ä¸‹ä¸€ä¸ªäº‹ä»¶å¾ªç¯ä¸­ï¼Œç¡®ä¿çŠ¶æ€æ›´æ–°å·²å®Œæˆï¼‰
+    // ?? ÖØÖÃ±êÖ¾£¨ÔÚÏÂÒ»¸öÊÂ¼şÑ­»·ÖĞ£¬È·±£×´Ì¬¸üĞÂÒÑÍê³É£©
     setTimeout(() => {
       isSyncingFromContext.current = false
     }, 0)
   }, [data.methods.sampleCount, data.methods.preTreatmentReagents, data.methods.mobilePhaseA, data.methods.mobilePhaseB, data.methods.instrumentEnergy, data.methods.pretreatmentEnergy])
 
-  // ç›‘å¬ availableReagents å˜åŒ–
+  // ¼àÌı availableReagents ±ä»¯
   useEffect(() => {
-    console.log('ğŸ‘€ availableReagents çŠ¶æ€å˜åŒ–:', availableReagents.length, availableReagents)
+    console.log('?? availableReagents ×´Ì¬±ä»¯:', availableReagents.length, availableReagents)
   }, [availableReagents])
 
-  // è‡ªåŠ¨ä¿å­˜æ•°æ®åˆ° Context å’Œå­˜å‚¨ï¼ˆæ¯æ¬¡çŠ¶æ€å˜åŒ–æ—¶ï¼‰
-  // ä½¿ç”¨ ref æ¥é¿å…åˆå§‹åŒ–æ—¶è§¦å‘ dirty
+  // ×Ô¶¯±£´æÊı¾İµ½ Context ºÍ´æ´¢£¨Ã¿´Î×´Ì¬±ä»¯Ê±£©
+  // Ê¹ÓÃ ref À´±ÜÃâ³õÊ¼»¯Ê±´¥·¢ dirty
   const isInitialMount = React.useRef(true)
-  const isAutoCalcInitialized = React.useRef(false)  // ä¸“é—¨ç”¨äºè‡ªåŠ¨è®¡ç®—çš„åˆå§‹åŒ–æ ‡å¿—
+  const isAutoCalcInitialized = React.useRef(false)  // ×¨ÃÅÓÃÓÚ×Ô¶¯¼ÆËãµÄ³õÊ¼»¯±êÖ¾
   const lastLocalData = React.useRef<string>('')
-  const isSyncingFromContext = React.useRef(false)  // ğŸ”¥ æ–°å¢ï¼šæ ‡è®°æ˜¯å¦æ­£åœ¨ä»ContextåŒæ­¥
+  const isSyncingFromContext = React.useRef(false)  // ?? ĞÂÔö£º±ê¼ÇÊÇ·ñÕıÔÚ´ÓContextÍ¬²½
   
   useEffect(() => {
-    // ğŸ”¥ å¦‚æœæ­£åœ¨ä»ContextåŒæ­¥ï¼Œè·³è¿‡è‡ªåŠ¨ä¿å­˜ï¼ˆé¿å…å¾ªç¯ï¼‰
+    // ?? Èç¹ûÕıÔÚ´ÓContextÍ¬²½£¬Ìø¹ı×Ô¶¯±£´æ£¨±ÜÃâÑ­»·£©
     if (isSyncingFromContext.current) {
-      console.log('â­ï¸ MethodsPage: æ­£åœ¨ä»ContextåŒæ­¥ï¼Œè·³è¿‡è‡ªåŠ¨ä¿å­˜')
+      console.log('?? MethodsPage: ÕıÔÚ´ÓContextÍ¬²½£¬Ìø¹ı×Ô¶¯±£´æ')
       return
     }
     
-    // ğŸ”¥ é¦–æ¬¡æŒ‚è½½æ—¶è·³è¿‡ä¿å­˜ï¼Œé¿å…è¦†ç›–åˆšä»ContextåŠ è½½çš„æ•°æ®
+    // ?? Ê×´Î¹ÒÔØÊ±Ìø¹ı±£´æ£¬±ÜÃâ¸²¸Ç¸Õ´ÓContext¼ÓÔØµÄÊı¾İ
     if (isInitialMount.current) {
       isInitialMount.current = false
-      console.log('â­ï¸ MethodsPage: é¦–æ¬¡æŒ‚è½½ï¼Œè·³è¿‡è‡ªåŠ¨ä¿å­˜')
-      // åˆå§‹åŒ–lastLocalDataï¼Œä»¥ä¾¿åç»­èƒ½æ­£ç¡®æ£€æµ‹å˜åŒ–
+      console.log('?? MethodsPage: Ê×´Î¹ÒÔØ£¬Ìø¹ı×Ô¶¯±£´æ')
+      // ³õÊ¼»¯lastLocalData£¬ÒÔ±ãºóĞøÄÜÕıÈ·¼ì²â±ä»¯
       const initialDataStr = JSON.stringify({
         sampleCount,
         preTreatmentReagents,
@@ -642,7 +642,7 @@ const MethodsPage: React.FC = () => {
     }
     
     const saveData = async () => {
-      // è¿‡æ»¤æ‰ç©ºçš„è¯•å‰‚æ¡ç›®ï¼ˆåç§°ä¸ºç©ºæˆ–ä½“ç§¯ä¸º0ï¼‰
+      // ¹ıÂËµô¿ÕµÄÊÔ¼ÁÌõÄ¿£¨Ãû³ÆÎª¿Õ»òÌå»ıÎª0£©
       const validPreTreatmentReagents = preTreatmentReagents.filter(r => r.name && r.name.trim() && r.volume > 0)
       const validMobilePhaseA = mobilePhaseA.filter(r => r.name && r.name.trim() && r.percentage > 0)
       const validMobilePhaseB = mobilePhaseB.filter(r => r.name && r.name.trim() && r.percentage > 0)
@@ -654,7 +654,7 @@ const MethodsPage: React.FC = () => {
         mobilePhaseB: validMobilePhaseB,
         instrumentEnergy: instrumentEnergy || 0,
         pretreatmentEnergy: pretreatmentEnergy || 0,
-        // ä¿å­˜æƒé‡æ–¹æ¡ˆï¼ˆstageSchemeåŒæ—¶ä¿å­˜åˆ°ä¸¤ä¸ªå­—æ®µä»¥å…¼å®¹å‰åå¤„ç†ï¼‰
+        // ±£´æÈ¨ÖØ·½°¸£¨stageSchemeÍ¬Ê±±£´æµ½Á½¸ö×Ö¶ÎÒÔ¼æÈİÇ°ºó´¦Àí£©
         weightSchemes: {
           safetyScheme,
           healthScheme,
@@ -662,18 +662,18 @@ const MethodsPage: React.FC = () => {
           instrumentStageScheme: stageScheme,
           prepStageScheme: stageScheme,
           finalScheme,
-          customWeights: customWeights  // ğŸ¯ ä¿ç•™è‡ªå®šä¹‰æƒé‡
+          customWeights: customWeights  // ?? ±£Áô×Ô¶¨ÒåÈ¨ÖØ
         }
       }
       
       const currentLocalDataStr = JSON.stringify(dataToSave)
       
-      // ä¿å­˜åˆ°å­˜å‚¨
+      // ±£´æµ½´æ´¢
       await StorageHelper.setJSON(STORAGE_KEYS.METHODS, dataToSave)
       
       // Skip update on initial mount
       if (isInitialMount.current) {
-        console.log('â­ï¸ MethodsPage: è·³è¿‡åˆå§‹æŒ‚è½½æ—¶çš„æ›´æ–°')
+        console.log('?? MethodsPage: Ìø¹ı³õÊ¼¹ÒÔØÊ±µÄ¸üĞÂ')
         isInitialMount.current = false
         lastLocalData.current = currentLocalDataStr
         return
@@ -681,11 +681,11 @@ const MethodsPage: React.FC = () => {
       
       // Skip update if local data unchanged (may be synced from Context)
       if (lastLocalData.current === currentLocalDataStr) {
-        console.log('â­ï¸ MethodsPage: æœ¬åœ°æ•°æ®æœªå˜åŒ–ï¼Œè·³è¿‡Contextæ›´æ–°')
+        console.log('?? MethodsPage: ±¾µØÊı¾İÎ´±ä»¯£¬Ìø¹ıContext¸üĞÂ')
         return
       }
       
-      console.log('ğŸ”„ MethodsPage: æœ¬åœ°æ•°æ®å˜åŒ–ï¼ŒåŒæ­¥åˆ°Contextå¹¶æ ‡è®°dirty')
+      console.log('?? MethodsPage: ±¾µØÊı¾İ±ä»¯£¬Í¬²½µ½Context²¢±ê¼Çdirty')
       lastLocalData.current = currentLocalDataStr
       
       // Sync to Context and mark as dirty
@@ -693,14 +693,14 @@ const MethodsPage: React.FC = () => {
       setIsDirty(true)
       
       // Trigger event to notify other pages (like TablePage)
-      console.log('ğŸ”” MethodsPage: è§¦å‘ methodsDataUpdated äº‹ä»¶')
-      console.log('ğŸ“‹ å˜åŒ–çš„æ•°æ®:', {
+      console.log('?? MethodsPage: ´¥·¢ methodsDataUpdated ÊÂ¼ş')
+      console.log('?? ±ä»¯µÄÊı¾İ:', {
         sampleCount: dataToSave.sampleCount,
-        å‰å¤„ç†è¯•å‰‚æ•°: dataToSave.preTreatmentReagents.length,
-        æµåŠ¨ç›¸Aè¯•å‰‚æ•°: dataToSave.mobilePhaseA.length,
-        æµåŠ¨ç›¸Bè¯•å‰‚æ•°: dataToSave.mobilePhaseB.length,
-        ä»ªå™¨èƒ½è€—: dataToSave.instrumentEnergy,
-        å‰å¤„ç†èƒ½è€—: dataToSave.pretreatmentEnergy
+        Ç°´¦ÀíÊÔ¼ÁÊı: dataToSave.preTreatmentReagents.length,
+        Á÷¶¯ÏàAÊÔ¼ÁÊı: dataToSave.mobilePhaseA.length,
+        Á÷¶¯ÏàBÊÔ¼ÁÊı: dataToSave.mobilePhaseB.length,
+        ÒÇÆ÷ÄÜºÄ: dataToSave.instrumentEnergy,
+        Ç°´¦ÀíÄÜºÄ: dataToSave.pretreatmentEnergy
       })
       window.dispatchEvent(new CustomEvent('methodsDataUpdated', { detail: dataToSave }))
     }
@@ -765,21 +765,21 @@ const MethodsPage: React.FC = () => {
     field: 'name' | 'percentage' | 'volume',
     value: string | number
   ) => {
-    console.log(`ğŸ”§ æ›´æ–°è¯•å‰‚ - type: ${type}, id: ${id}, field: ${field}, value:`, value)
+    console.log(`?? ¸üĞÂÊÔ¼Á - type: ${type}, id: ${id}, field: ${field}, value:`, value)
     
     if (type === 'preTreatment') {
       setPreTreatmentReagents(prev => {
-        console.log('ğŸ“‹ æ›´æ–°å‰çš„æ•°ç»„:', prev.map(r => `id:${r.id}, name:${r.name}, volume:${r.volume}`))
+        console.log('?? ¸üĞÂÇ°µÄÊı×é:', prev.map(r => `id:${r.id}, name:${r.name}, volume:${r.volume}`))
         const updated = prev.map(r => {
           if (r.id === id) {
             const newReagent = { ...r, [field]: value }
-            console.log(`âœ… æ›´æ–°è¯•å‰‚ ${id}:`, newReagent)
+            console.log(`? ¸üĞÂÊÔ¼Á ${id}:`, newReagent)
             return newReagent
           }
-          console.log(`â­ï¸ è·³è¿‡è¯•å‰‚ ${r.id}`)
+          console.log(`?? Ìø¹ıÊÔ¼Á ${r.id}`)
           return r
         })
-        console.log('ğŸ“‹ æ›´æ–°åçš„æ•°ç»„:', updated.map(r => `id:${r.id}, name:${r.name}, volume:${r.volume}`))
+        console.log('?? ¸üĞÂºóµÄÊı×é:', updated.map(r => `id:${r.id}, name:${r.name}, volume:${r.volume}`))
         return updated
       })
     } else if (type === 'phaseA') {
@@ -787,7 +787,7 @@ const MethodsPage: React.FC = () => {
         const updated = prev.map(r => 
           r.id === id ? { ...r, [field]: value } : r
         )
-        // ğŸ”¥ è¯•å‰‚æ”¹å˜æ—¶é‡æ–°è®¡ç®—gradient calculations
+        // ?? ÊÔ¼Á¸Ä±äÊ±ÖØĞÂ¼ÆËãgradient calculations
         recalculateGradientCalculations(updated, mobilePhaseB)
         return updated
       })
@@ -796,27 +796,27 @@ const MethodsPage: React.FC = () => {
         const updated = prev.map(r => 
           r.id === id ? { ...r, [field]: value } : r
         )
-        // ğŸ”¥ è¯•å‰‚æ”¹å˜æ—¶é‡æ–°è®¡ç®—gradient calculations
+        // ?? ÊÔ¼Á¸Ä±äÊ±ÖØĞÂ¼ÆËãgradient calculations
         recalculateGradientCalculations(mobilePhaseA, updated)
         return updated
       })
     }
   }, [mobilePhaseA, mobilePhaseB])
   
-  // ğŸ”¥ é‡æ–°è®¡ç®—gradientçš„calculationsï¼ˆå½“è¯•å‰‚é…ç½®æ”¹å˜æ—¶ï¼‰
+  // ?? ÖØĞÂ¼ÆËãgradientµÄcalculations£¨µ±ÊÔ¼ÁÅäÖÃ¸Ä±äÊ±£©
   const recalculateGradientCalculations = async (phaseA: Reagent[], phaseB: Reagent[]) => {
     try {
       const gradientData = await StorageHelper.getJSON(STORAGE_KEYS.GRADIENT)
       if (!gradientData) {
-        console.log('â­ï¸ æ²¡æœ‰gradientæ•°æ®ï¼Œè·³è¿‡é‡æ–°è®¡ç®—')
+        console.log('?? Ã»ÓĞgradientÊı¾İ£¬Ìø¹ıÖØĞÂ¼ÆËã')
         return
       }
       if (!gradientData.calculations) {
-        console.log('â­ï¸ gradientæ•°æ®æ²¡æœ‰calculationsï¼Œè·³è¿‡é‡æ–°è®¡ç®—')
+        console.log('?? gradientÊı¾İÃ»ÓĞcalculations£¬Ìø¹ıÖØĞÂ¼ÆËã')
         return
       }
       
-      console.log('ğŸ”„ é‡æ–°è®¡ç®—gradient calculations...')
+      console.log('?? ÖØĞÂ¼ÆËãgradient calculations...')
       
       // Get original volume data
       const totalVolumeA = gradientData.calculations.mobilePhaseA?.volume || 0
@@ -871,9 +871,9 @@ const MethodsPage: React.FC = () => {
       
       // Save updated gradient data
       await StorageHelper.setJSON(STORAGE_KEYS.GRADIENT, gradientData)
-      console.log('âœ… å·²æ›´æ–°gradient calculations')
+      console.log('? ÒÑ¸üĞÂgradient calculations')
     } catch (error) {
-      console.error('âŒ é‡æ–°è®¡ç®—gradient calculationså¤±è´¥:', error)
+      console.error('? ÖØĞÂ¼ÆËãgradient calculationsÊ§°Ü:', error)
     }
   }
 
@@ -890,7 +890,7 @@ const MethodsPage: React.FC = () => {
   // Validate percentage sum
   const validatePercentage = (reagents: Reagent[]): boolean => {
     const total = calculateTotal(reagents)
-    return Math.abs(total - 100) < 0.01 // å…è®¸æµ®ç‚¹è¯¯å·®
+    return Math.abs(total - 100) < 0.01 // ÔÊĞí¸¡µãÎó²î
   }
 
   // Get percentage display style
@@ -903,16 +903,16 @@ const MethodsPage: React.FC = () => {
     }
   }
 
-  // è®¡ç®—æŸ±çŠ¶å›¾æ•°æ® - Sample PreTreatmentï¼ˆéœ€è¦ä¹˜ä»¥æ ·å“æ•°ï¼‰
-  // ä½¿ç”¨ useMemo ç¼“å­˜æŸ±çŠ¶å›¾æ•°æ® - Sample PreTreatment
+  // ¼ÆËãÖù×´Í¼Êı¾İ - Sample PreTreatment£¨ĞèÒª³ËÒÔÑùÆ·Êı£©
+  // Ê¹ÓÃ useMemo »º´æÖù×´Í¼Êı¾İ - Sample PreTreatment
   const preTreatmentChartData = React.useMemo(() => {
-    console.log('ğŸ”„ è®¡ç®— PreTreatment å›¾è¡¨æ•°æ®')
+    console.log('?? ¼ÆËã PreTreatment Í¼±íÊı¾İ')
     const chartData: any[] = []
     const currentSampleCount = sampleCount || 1
     
-    // å¦‚æœfactorsDataæœªåŠ è½½ï¼Œè¿”å›ç©ºæ•°ç»„
+    // Èç¹ûfactorsDataÎ´¼ÓÔØ£¬·µ»Ø¿ÕÊı×é
     if (!factorsData || factorsData.length === 0) {
-      console.log('  âš ï¸ factorsData æœªåŠ è½½ï¼Œè·³è¿‡å›¾è¡¨è®¡ç®—')
+      console.log('  ?? factorsData Î´¼ÓÔØ£¬Ìø¹ıÍ¼±í¼ÆËã')
       return chartData
     }
     
@@ -921,7 +921,7 @@ const MethodsPage: React.FC = () => {
       
       const factor = factorsData.find(f => f.name === reagent.name)
       if (!factor) {
-        console.log(`  âš ï¸ æ‰¾ä¸åˆ°è¯•å‰‚ ${reagent.name} çš„factoræ•°æ®`)
+        console.log(`  ?? ÕÒ²»µ½ÊÔ¼Á ${reagent.name} µÄfactorÊı¾İ`)
         return
       }
       
@@ -939,45 +939,45 @@ const MethodsPage: React.FC = () => {
       })
     })
     
-    console.log(`  âœ… ç”Ÿæˆäº† ${chartData.length} ä¸ªæ•°æ®ç‚¹`)
+    console.log(`  ? Éú³ÉÁË ${chartData.length} ¸öÊı¾İµã`)
     return chartData
   }, [preTreatmentReagents, sampleCount, factorsData])
 
-  // åŸæ¥çš„calculatePreTreatmentChartDataå‡½æ•°åˆ é™¤ï¼Œç”±useMemoæ›¿ä»£
+  // Ô­À´µÄcalculatePreTreatmentChartDataº¯ÊıÉ¾³ı£¬ÓÉuseMemoÌæ´ú
 
-  // è®¡ç®—æŸ±çŠ¶å›¾æ•°æ® - Mobile Phase (éœ€è¦ HPLC Gradient æ•°æ®)
+  // ¼ÆËãÖù×´Í¼Êı¾İ - Mobile Phase (ĞèÒª HPLC Gradient Êı¾İ)
   const calculatePhaseChartData = async (phaseType: 'A' | 'B') => {
     const chartData: any[] = []
     
     try {
       const gradientData = await StorageHelper.getJSON(STORAGE_KEYS.GRADIENT)
-      console.log(`ğŸ“Š è®¡ç®— Mobile Phase ${phaseType} å›¾è¡¨æ•°æ®`)
-      console.log('  - å­˜å‚¨ä¸­çš„gradientæ•°æ®:', gradientData ? 'å­˜åœ¨' : 'ä¸å­˜åœ¨')
+      console.log(`?? ¼ÆËã Mobile Phase ${phaseType} Í¼±íÊı¾İ`)
+      console.log('  - ´æ´¢ÖĞµÄgradientÊı¾İ:', gradientData ? '´æÔÚ' : '²»´æÔÚ')
       
       if (!gradientData) {
-        console.log('  âŒ æ²¡æœ‰gradientæ•°æ®')
+        console.log('  ? Ã»ÓĞgradientÊı¾İ')
         return chartData
       }
-      console.log('  - gradientæ•°æ®ç±»å‹:', Array.isArray(gradientData) ? 'æ•°ç»„' : 'å¯¹è±¡')
-      console.log('  - gradientå¯¹è±¡é”®:', Object.keys(gradientData))
-      console.log('  - æ˜¯å¦æœ‰calculations:', 'calculations' in gradientData)
-      console.log('  - isValidæ ‡è®°:', gradientData.isValid)
+      console.log('  - gradientÊı¾İÀàĞÍ:', Array.isArray(gradientData) ? 'Êı×é' : '¶ÔÏó')
+      console.log('  - gradient¶ÔÏó¼ü:', Object.keys(gradientData))
+      console.log('  - ÊÇ·ñÓĞcalculations:', 'calculations' in gradientData)
+      console.log('  - isValid±ê¼Ç:', gradientData.isValid)
       console.log('  - invalidReason:', gradientData.invalidReason)
       
-      // ğŸ”¥ æ£€æŸ¥æ•°æ®æ˜¯å¦è¢«æ ‡è®°ä¸ºæ— æ•ˆï¼ˆæ‰€æœ‰æµé€Ÿä¸º0ï¼‰
+      // ?? ¼ì²éÊı¾İÊÇ·ñ±»±ê¼ÇÎªÎŞĞ§£¨ËùÓĞÁ÷ËÙÎª0£©
       if (gradientData.isValid === false || gradientData.calculations === null) {
-        console.log('  âš ï¸ Gradientæ•°æ®æ— æ•ˆï¼ˆæµé€Ÿä¸º0ï¼‰ï¼Œè¿”å›ç‰¹æ®Šæ ‡è®°')
-        return 'INVALID_FLOW_RATE' as any // ç‰¹æ®Šæ ‡è®°
+        console.log('  ?? GradientÊı¾İÎŞĞ§£¨Á÷ËÙÎª0£©£¬·µ»ØÌØÊâ±ê¼Ç')
+        return 'INVALID_FLOW_RATE' as any // ÌØÊâ±ê¼Ç
       }
       
       const phaseKey = phaseType === 'A' ? 'mobilePhaseA' : 'mobilePhaseB'
       const phaseData = gradientData.calculations?.[phaseKey]
       
-      console.log(`  - ${phaseKey} æ•°æ®:`, phaseData)
+      console.log(`  - ${phaseKey} Êı¾İ:`, phaseData)
       console.log(`  - ${phaseKey} components:`, phaseData?.components)
       
       if (!phaseData || !phaseData.components) {
-        console.log(`  âŒ æ²¡æœ‰ ${phaseKey} çš„ components æ•°æ®`)
+        console.log(`  ? Ã»ÓĞ ${phaseKey} µÄ components Êı¾İ`)
         return chartData
       }
       
@@ -986,11 +986,11 @@ const MethodsPage: React.FC = () => {
         
         const factor = factorsData.find(f => f.name === component.reagentName)
         if (!factor) {
-          console.log(`  âš ï¸ æ‰¾ä¸åˆ°è¯•å‰‚ ${component.reagentName} çš„factoræ•°æ®`)
+          console.log(`  ?? ÕÒ²»µ½ÊÔ¼Á ${component.reagentName} µÄfactorÊı¾İ`)
           return
         }
         
-        const mass = component.volume * factor.density // è´¨é‡ = ä½“ç§¯ Ã— å¯†åº¦
+        const mass = component.volume * factor.density // ÖÊÁ¿ = Ìå»ı ¡Á ÃÜ¶È
         
         // Note: For reagents with density=0 (like CO2, Water), all scores will be 0
         // They will appear in the chart but with no visible bars
@@ -1005,37 +1005,37 @@ const MethodsPage: React.FC = () => {
         })
       })
       
-      console.log(`  âœ… ç”Ÿæˆäº† ${chartData.length} ä¸ªæŸ±çŠ¶å›¾æ•°æ®ç‚¹`)
+      console.log(`  ? Éú³ÉÁË ${chartData.length} ¸öÖù×´Í¼Êı¾İµã`)
     } catch (error) {
-      console.error('âŒ è®¡ç®— Mobile Phase å›¾è¡¨æ•°æ®å¤±è´¥:', error)
+      console.error('? ¼ÆËã Mobile Phase Í¼±íÊı¾İÊ§°Ü:', error)
     }
 
     return chartData
   }
 
-  // ä½¿ç”¨ useEffect è®¡ç®—å›¾è¡¨æ•°æ®ï¼ˆå› ä¸ºæ˜¯å¼‚æ­¥æ“ä½œï¼‰
+  // Ê¹ÓÃ useEffect ¼ÆËãÍ¼±íÊı¾İ£¨ÒòÎªÊÇÒì²½²Ù×÷£©
   useEffect(() => {
     const loadPhaseAChartData = async () => {
-      console.log('ğŸ”„ é‡æ–°è®¡ç®— Phase A å›¾è¡¨æ•°æ®')
+      console.log('?? ÖØĞÂ¼ÆËã Phase A Í¼±íÊı¾İ')
       console.log('  - factorsData.length:', factorsData.length)
-      console.log('  - gradientCalculations:', gradientCalculations ? 'å­˜åœ¨' : 'ä¸å­˜åœ¨')
+      console.log('  - gradientCalculations:', gradientCalculations ? '´æÔÚ' : '²»´æÔÚ')
       console.log('  - isDataLoading:', isDataLoading)
       
-      // å¦‚æœæ­£åœ¨åŠ è½½ï¼Œä¸åšä»»ä½•æ“ä½œï¼ˆä¿æŒç°æœ‰å›¾è¡¨ï¼‰
+      // Èç¹ûÕıÔÚ¼ÓÔØ£¬²»×öÈÎºÎ²Ù×÷£¨±£³ÖÏÖÓĞÍ¼±í£©
       if (isDataLoading) {
-        console.log('  â³ æ•°æ®åŠ è½½ä¸­ï¼Œä¿æŒç°æœ‰å›¾è¡¨')
+        console.log('  ? Êı¾İ¼ÓÔØÖĞ£¬±£³ÖÏÖÓĞÍ¼±í')
         return
       }
       
-      // æ•°æ®åŠ è½½å®Œæˆä½†ä¸å®Œæ•´ï¼Œæ‰æ¸…ç©ºå›¾è¡¨
+      // Êı¾İ¼ÓÔØÍê³Éµ«²»ÍêÕû£¬²ÅÇå¿ÕÍ¼±í
       if (factorsData.length === 0 || !gradientCalculations) {
-        console.log('  âš ï¸ æ•°æ®ä¸å®Œæ•´ï¼Œæ¸…ç©º Phase A å›¾è¡¨')
+        console.log('  ?? Êı¾İ²»ÍêÕû£¬Çå¿Õ Phase A Í¼±í')
         setPhaseAChartData([])
         return
       }
       
       const data = await calculatePhaseChartData('A')
-      console.log('ğŸ“ˆ Phase A å›¾è¡¨æ•°æ®:', data)
+      console.log('?? Phase A Í¼±íÊı¾İ:', data)
       setPhaseAChartData(data)
     }
     
@@ -1044,26 +1044,26 @@ const MethodsPage: React.FC = () => {
   
   useEffect(() => {
     const loadPhaseBChartData = async () => {
-      console.log('ğŸ”„ é‡æ–°è®¡ç®— Phase B å›¾è¡¨æ•°æ®')
+      console.log('?? ÖØĞÂ¼ÆËã Phase B Í¼±íÊı¾İ')
       console.log('  - factorsData.length:', factorsData.length)
-      console.log('  - gradientCalculations:', gradientCalculations ? 'å­˜åœ¨' : 'ä¸å­˜åœ¨')
+      console.log('  - gradientCalculations:', gradientCalculations ? '´æÔÚ' : '²»´æÔÚ')
       console.log('  - isDataLoading:', isDataLoading)
       
-      // å¦‚æœæ­£åœ¨åŠ è½½ï¼Œä¸åšä»»ä½•æ“ä½œï¼ˆä¿æŒç°æœ‰å›¾è¡¨ï¼‰
+      // Èç¹ûÕıÔÚ¼ÓÔØ£¬²»×öÈÎºÎ²Ù×÷£¨±£³ÖÏÖÓĞÍ¼±í£©
       if (isDataLoading) {
-        console.log('  â³ æ•°æ®åŠ è½½ä¸­ï¼Œä¿æŒç°æœ‰å›¾è¡¨')
+        console.log('  ? Êı¾İ¼ÓÔØÖĞ£¬±£³ÖÏÖÓĞÍ¼±í')
         return
       }
       
-      // æ•°æ®åŠ è½½å®Œæˆä½†ä¸å®Œæ•´ï¼Œæ‰æ¸…ç©ºå›¾è¡¨
+      // Êı¾İ¼ÓÔØÍê³Éµ«²»ÍêÕû£¬²ÅÇå¿ÕÍ¼±í
       if (factorsData.length === 0 || !gradientCalculations) {
-        console.log('  âš ï¸ æ•°æ®ä¸å®Œæ•´ï¼Œæ¸…ç©º Phase B å›¾è¡¨')
+        console.log('  ?? Êı¾İ²»ÍêÕû£¬Çå¿Õ Phase B Í¼±í')
         setPhaseBChartData([])
         return
       }
       
       const data = await calculatePhaseChartData('B')
-      console.log('ğŸ“ˆ Phase B å›¾è¡¨æ•°æ®:', data)
+      console.log('?? Phase B Í¼±íÊı¾İ:', data)
       setPhaseBChartData(data)
     }
     
@@ -1071,11 +1071,11 @@ const MethodsPage: React.FC = () => {
   }, [factorsData, gradientCalculations, isDataLoading])
   
   // Calculate Power Factor (P) score
-  // è®¡ç®—På› å­ï¼ˆä½¿ç”¨ç”¨æˆ·è¾“å…¥çš„èƒ½è€—å€¼ï¼‰
+  // ¼ÆËãPÒò×Ó£¨Ê¹ÓÃÓÃ»§ÊäÈëµÄÄÜºÄÖµ£©
   const calculatePowerScore = (energy_kwh: number): number => {
-    // æ–°å…¬å¼: 
-    // å¦‚æœ E < 1.5 kWh: P = 100 Ã— (E/1.5)^0.235
-    // å¦‚æœ E â‰¥ 1.5 kWh: P = 100
+    // ĞÂ¹«Ê½: 
+    // Èç¹û E < 1.5 kWh: P = 100 ¡Á (E/1.5)^0.235
+    // Èç¹û E ¡İ 1.5 kWh: P = 100
     
     if (energy_kwh <= 0) {
       return 0
@@ -1085,10 +1085,10 @@ const MethodsPage: React.FC = () => {
       return 100
     }
     
-    // ä½¿ç”¨å¹‚å‡½æ•°å…¬å¼
+    // Ê¹ÓÃÃİº¯Êı¹«Ê½
     const p_score = 100 * Math.pow(energy_kwh / 1.5, 0.235)
     
-    console.log(`âš¡ På› å­è®¡ç®—: E=${energy_kwh.toFixed(4)} kWh, P=${p_score.toFixed(2)}`)
+    console.log(`? PÒò×Ó¼ÆËã: E=${energy_kwh.toFixed(4)} kWh, P=${p_score.toFixed(2)}`)
     
     return p_score
   }
@@ -1105,11 +1105,11 @@ const MethodsPage: React.FC = () => {
         pretreatment_d: 0
       }
 
-      // é˜¶æ®µ1ï¼šä»ªå™¨åˆ†æè¯•å‰‚ï¼ˆæµåŠ¨ç›¸ï¼‰
+      // ½×¶Î1£ºÒÇÆ÷·ÖÎöÊÔ¼Á£¨Á÷¶¯Ïà£©
       let instrument_r_sum = 0
       let instrument_d_sum = 0
 
-      console.log('ğŸ” å¼€å§‹è®¡ç®—ä»ªå™¨åˆ†æR/Då› å­...')
+      console.log('?? ¿ªÊ¼¼ÆËãÒÇÆ÷·ÖÎöR/DÒò×Ó...')
 
       const gradientData = await StorageHelper.getJSON(STORAGE_KEYS.GRADIENT)
       if (gradientData) {
@@ -1118,15 +1118,15 @@ const MethodsPage: React.FC = () => {
         if (calculations) {
           // Mobile Phase A
           if (calculations.mobilePhaseA?.components) {
-            console.log('  æµåŠ¨ç›¸A:', calculations.mobilePhaseA.components)
+            console.log('  Á÷¶¯ÏàA:', calculations.mobilePhaseA.components)
             calculations.mobilePhaseA.components.forEach((component: any) => {
               const factor = factors.find((f: any) => f.name === component.reagentName)
               if (factor) {
                 const mass = component.volume * factor.density
                 const r_contribution = mass * (factor.regeneration || 0)
                 const d_contribution = mass * factor.disposal
-                console.log(`    ${component.reagentName}: volume=${component.volume}mL, mass=${mass.toFixed(4)}g, R=${factor.regeneration}, D=${factor.disposal}`)
-                console.log(`      â†’ Rè´¡çŒ®=${r_contribution.toFixed(6)}, Dè´¡çŒ®=${d_contribution.toFixed(6)}`)
+                console.log(`    ${component.reagentName}: volume=${component.volume}ml, mass=${mass.toFixed(4)}g, R=${factor.regeneration}, D=${factor.disposal}`)
+                console.log(`      ¡ú R¹±Ï×=${r_contribution.toFixed(6)}, D¹±Ï×=${d_contribution.toFixed(6)}`)
                 instrument_r_sum += r_contribution
                 instrument_d_sum += d_contribution
               }
@@ -1135,7 +1135,7 @@ const MethodsPage: React.FC = () => {
 
           // Mobile Phase B
           if (calculations.mobilePhaseB?.components) {
-            console.log('  æµåŠ¨ç›¸B:', calculations.mobilePhaseB.components)
+            console.log('  Á÷¶¯ÏàB:', calculations.mobilePhaseB.components)
             calculations.mobilePhaseB.components.forEach((component: any) => {
               const factor = factors.find((f: any) => f.name === component.reagentName)
               if (factor) {
@@ -1143,7 +1143,7 @@ const MethodsPage: React.FC = () => {
                 const r_contribution = mass * (factor.regeneration || 0)
                 const d_contribution = mass * factor.disposal
                 console.log(`    ${component.reagentName}: volume=${component.volume}ml, mass=${mass.toFixed(4)}g, R=${factor.regeneration}, D=${factor.disposal}`)
-                console.log(`      â†’ Rè´¡çŒ®=${r_contribution.toFixed(6)}, Dè´¡çŒ®=${d_contribution.toFixed(6)}`)
+                console.log(`      ¡ú R¹±Ï×=${r_contribution.toFixed(6)}, D¹±Ï×=${d_contribution.toFixed(6)}`)
                 instrument_r_sum += r_contribution
                 instrument_d_sum += d_contribution
               }
@@ -1152,9 +1152,9 @@ const MethodsPage: React.FC = () => {
         }
       }
       
-      console.log(`  ä»ªå™¨åˆ†æç´¯åŠ ç»“æœ: R_sum=${instrument_r_sum.toFixed(6)}, D_sum=${instrument_d_sum.toFixed(6)}`)
+      console.log(`  ÒÇÆ÷·ÖÎöÀÛ¼Ó½á¹û: R_sum=${instrument_r_sum.toFixed(6)}, D_sum=${instrument_d_sum.toFixed(6)}`)
 
-      // é˜¶æ®µ2ï¼šå‰å¤„ç†è¯•å‰‚
+      // ½×¶Î2£ºÇ°´¦ÀíÊÔ¼Á
       let pretreatment_r_sum = 0
       let pretreatment_d_sum = 0
 
@@ -1170,21 +1170,21 @@ const MethodsPage: React.FC = () => {
         }
       })
 
-      // åˆ†åˆ«å½’ä¸€åŒ–ä¸¤ä¸ªé˜¶æ®µï¼ˆä½¿ç”¨æ–°å…¬å¼ï¼‰
-      // æ–°å…¬å¼: Score = min{45 Ã— logâ‚â‚€(1 + 14 Ã— Î£), 100}
+      // ·Ö±ğ¹éÒ»»¯Á½¸ö½×¶Î£¨Ê¹ÓÃĞÂ¹«Ê½£©
+      // ĞÂ¹«Ê½: Score = min{45 ¡Á log??(1 + 14 ¡Á ¦²), 100}
       const instrument_r = instrument_r_sum > 0 ? Math.min(100, 45.0 * Math.log10(1 + 14 * instrument_r_sum)) : 0
       const instrument_d = instrument_d_sum > 0 ? Math.min(100, 45.0 * Math.log10(1 + 14 * instrument_d_sum)) : 0
       const pretreatment_r = pretreatment_r_sum > 0 ? Math.min(100, 45.0 * Math.log10(1 + 14 * pretreatment_r_sum)) : 0
       const pretreatment_d = pretreatment_d_sum > 0 ? Math.min(100, 45.0 * Math.log10(1 + 14 * pretreatment_d_sum)) : 0
 
-      console.log('ğŸ“Š R/Då› å­è®¡ç®—ç»“æœï¼ˆåˆ†é˜¶æ®µï¼‰:', {
-        ä»ªå™¨åˆ†æ: {
+      console.log('?? R/DÒò×Ó¼ÆËã½á¹û£¨·Ö½×¶Î£©:', {
+        ÒÇÆ÷·ÖÎö: {
           r_weighted_sum: instrument_r_sum.toFixed(3),
           d_weighted_sum: instrument_d_sum.toFixed(3),
           r_factor: instrument_r.toFixed(2),
           d_factor: instrument_d.toFixed(2)
         },
-        å‰å¤„ç†: {
+        Ç°´¦Àí: {
           r_weighted_sum: pretreatment_r_sum.toFixed(3),
           d_weighted_sum: pretreatment_d_sum.toFixed(3),
           r_factor: pretreatment_r.toFixed(2),
@@ -1209,16 +1209,16 @@ const MethodsPage: React.FC = () => {
     }
   }
 
-  // è®¡ç®—å®Œæ•´è¯„åˆ†ï¼ˆè°ƒç”¨åç«¯APIï¼‰
+  // ¼ÆËãÍêÕûÆÀ·Ö£¨µ÷ÓÃºó¶ËAPI£©
   const calculateFullScoreAPI = async (options?: { silent?: boolean; overrides?: any }) => {
     const silent = options?.silent || false
     const overrides = options?.overrides || {}
     setIsCalculatingScore(true)
     
-    console.log('ğŸš€ å¼€å§‹æ‰§è¡Œ calculateFullScoreAPI, silent:', silent, 'overrides:', overrides)
+    console.log('?? ¿ªÊ¼Ö´ĞĞ calculateFullScoreAPI, silent:', silent, 'overrides:', overrides)
     
     try {
-      // 1. è·å–æ¢¯åº¦æ•°æ®
+      // 1. »ñÈ¡Ìİ¶ÈÊı¾İ
       const gradientData = await StorageHelper.getJSON(STORAGE_KEYS.GRADIENT)
       if (!gradientData) {
         if (!silent) message.error('Please configure gradient program in HPLC Gradient page first')
@@ -1226,9 +1226,9 @@ const MethodsPage: React.FC = () => {
         return
       }
       
-      console.log('âœ… æ¢¯åº¦æ•°æ®åŠ è½½æˆåŠŸ:', gradientData)
+      console.log('? Ìİ¶ÈÊı¾İ¼ÓÔØ³É¹¦:', gradientData)
       
-      // 2. è·å–å› å­æ•°æ®
+      // 2. »ñÈ¡Òò×ÓÊı¾İ
       const factors = await StorageHelper.getJSON<any[]>(STORAGE_KEYS.FACTORS)
       if (!factors) {
         if (!silent) message.error('Please configure reagent factors in Factors page first')
@@ -1236,9 +1236,9 @@ const MethodsPage: React.FC = () => {
         return
       }
       
-      console.log('âœ… å› å­æ•°æ®åŠ è½½æˆåŠŸ:', factors.length, 'ä¸ªè¯•å‰‚')
+      console.log('? Òò×ÓÊı¾İ¼ÓÔØ³É¹¦:', factors.length, '¸öÊÔ¼Á')
       
-      // è¾…åŠ©å‡½æ•°ï¼šæ¸…ç†æ•°å­—æ•°æ®
+      // ¸¨Öúº¯Êı£ºÇåÀíÊı×ÖÊı¾İ
       const cleanNumber = (value: any, defaultValue: number = 0): number => {
         const num = parseFloat(String(value))
         if (isNaN(num) || !isFinite(num)) {
@@ -1247,18 +1247,18 @@ const MethodsPage: React.FC = () => {
         return num
       }
       
-      // è¾…åŠ©å‡½æ•°ï¼šæ¸…ç†æ•°å­—æ•°ç»„
+      // ¸¨Öúº¯Êı£ºÇåÀíÊı×ÖÊı×é
       const cleanNumberArray = (arr: any[]): number[] => {
         return arr.map(v => cleanNumber(v, 0))
       }
       
-      // 3. æ„å»ºè¯•å‰‚å› å­çŸ©é˜µï¼ˆæ˜ å°„å­—æ®µååˆ°åç«¯æœŸæœ›çš„æ ¼å¼ï¼‰
+      // 3. ¹¹½¨ÊÔ¼ÁÒò×Ó¾ØÕó£¨Ó³Éä×Ö¶ÎÃûµ½ºó¶ËÆÚÍûµÄ¸ñÊ½£©
       const buildFactorMatrix = (reagentNames: string[]) => {
         const matrix: any = {}
         reagentNames.forEach(name => {
           const factor = factors.find((f: any) => f.name === name)
           if (factor) {
-            // æ˜ å°„å‰ç«¯å­—æ®µååˆ°åç«¯å­—æ®µå
+            // Ó³ÉäÇ°¶Ë×Ö¶ÎÃûµ½ºó¶Ë×Ö¶ÎÃû
             matrix[name] = {
               S1: cleanNumber(factor.releasePotential, 0),     // Release Potential
               S2: cleanNumber(factor.fireExplos, 0),            // Fire/Explosives
@@ -1272,13 +1272,13 @@ const MethodsPage: React.FC = () => {
             }
             
           } else {
-            throw new Error(`æ‰¾ä¸åˆ°è¯•å‰‚ "${name}" çš„å› å­æ•°æ®ï¼Œè¯·å…ˆåœ¨ Factors é¡µé¢å¯¼å…¥è¯¥è¯•å‰‚çš„æ•°æ®`)
+            throw new Error(`ÕÒ²»µ½ÊÔ¼Á "${name}" µÄÒò×ÓÊı¾İ£¬ÇëÏÈÔÚ Factors Ò³Ãæµ¼Èë¸ÃÊÔ¼ÁµÄÊı¾İ`)
           }
         })
         return matrix
       }
 
-      // 4. è·å–è¯•å‰‚å¯†åº¦æ•°æ®ï¼ˆä»å› å­æ•°æ®ä¸­ï¼‰
+      // 4. »ñÈ¡ÊÔ¼ÁÃÜ¶ÈÊı¾İ£¨´ÓÒò×ÓÊı¾İÖĞ£©
       const getDensities = (reagentNames: string[]) => {
         const densities: any = {}
         reagentNames.forEach(name => {
@@ -1286,15 +1286,15 @@ const MethodsPage: React.FC = () => {
           if (factor && factor.density) {
             densities[name] = factor.density
           } else {
-            // é»˜è®¤å¯†åº¦ï¼ˆæ°´ï¼‰
+            // Ä¬ÈÏÃÜ¶È£¨Ë®£©
             densities[name] = 1.0
           }
         })
         return densities
       }
 
-      // 5. æ„å»ºä»ªå™¨åˆ†ææ•°æ®
-      console.log('ğŸ“‹ Mobile Phase æ•°æ®:')
+      // 5. ¹¹½¨ÒÇÆ÷·ÖÎöÊı¾İ
+      console.log('?? Mobile Phase Êı¾İ:')
       console.log('  - mobilePhaseA:', mobilePhaseA)
       console.log('  - mobilePhaseB:', mobilePhaseB)
       
@@ -1303,27 +1303,27 @@ const MethodsPage: React.FC = () => {
         ...mobilePhaseB.map(r => r.name)
       ].filter((name, index, self) => name && self.indexOf(name) === index)
       
-      console.log('  - æå–çš„è¯•å‰‚åˆ—è¡¨:', instrumentReagents)
+      console.log('  - ÌáÈ¡µÄÊÔ¼ÁÁĞ±í:', instrumentReagents)
       
-      // éªŒè¯æ¢¯åº¦æ•°æ®ç»“æ„
+      // ÑéÖ¤Ìİ¶ÈÊı¾İ½á¹¹
       if (!gradientData.steps || !Array.isArray(gradientData.steps)) {
         message.error('Gradient data format error: missing steps array')
         setIsCalculatingScore(false)
         return
       }
       
-      console.log('âœ… æ¢¯åº¦æ­¥éª¤æ•°é‡:', gradientData.steps.length)
+      console.log('? Ìİ¶È²½ÖèÊıÁ¿:', gradientData.steps.length)
 
       const instrumentComposition: any = {}
       
-      console.log('ğŸ”„ å¼€å§‹æ„å»º compositionï¼Œè¯•å‰‚æ•°é‡:', instrumentReagents.length)
+      console.log('?? ¿ªÊ¼¹¹½¨ composition£¬ÊÔ¼ÁÊıÁ¿:', instrumentReagents.length)
       
       instrumentReagents.forEach(reagent => {
-        console.log(`\nğŸ“Œ å¤„ç†è¯•å‰‚: ${reagent}`)
+        console.log(`\n?? ´¦ÀíÊÔ¼Á: ${reagent}`)
         
         const percentages = gradientData.steps.map((step: any, index: number) => {
-          // è®¡ç®—è¯¥è¯•å‰‚åœ¨æ¯ä¸ªæ­¥éª¤çš„ç™¾åˆ†æ¯”
-          // æ³¨æ„ï¼šå­—æ®µåæ˜¯ phaseA å’Œ phaseBï¼Œä¸æ˜¯ compositionA å’Œ compositionB
+          // ¼ÆËã¸ÃÊÔ¼ÁÔÚÃ¿¸ö²½ÖèµÄ°Ù·Ö±È
+          // ×¢Òâ£º×Ö¶ÎÃûÊÇ phaseA ºÍ phaseB£¬²»ÊÇ compositionA ºÍ compositionB
           const phaseAPercent = cleanNumber(step.phaseA, 0) / 100
           const phaseBPercent = cleanNumber(step.phaseB, 0) / 100
           
@@ -1335,7 +1335,7 @@ const MethodsPage: React.FC = () => {
           
           const result = (phaseAPercent * percentInA + phaseBPercent * percentInB) * 100
           
-          console.log(`ğŸ” æ­¥éª¤${index} - ${reagent}:`, {
+          console.log(`?? ²½Öè${index} - ${reagent}:`, {
             step: step,
             phaseA: step.phaseA,
             phaseB: step.phaseB,
@@ -1345,24 +1345,24 @@ const MethodsPage: React.FC = () => {
             reagentInB,
             percentInA,
             percentInB,
-            è®¡ç®—ç»“æœ: result
+            ¼ÆËã½á¹û: result
           })
           
           return cleanNumber(result, 0)
         })
         
-        // ç¡®ä¿æ•°ç»„ä¸­æ‰€æœ‰å€¼éƒ½æ˜¯æœ‰æ•ˆæ•°å­—
+        // È·±£Êı×éÖĞËùÓĞÖµ¶¼ÊÇÓĞĞ§Êı×Ö
         instrumentComposition[reagent] = cleanNumberArray(percentages)
-        console.log(`  âœ… ${reagent} composition å®Œæˆ:`, instrumentComposition[reagent])
+        console.log(`  ? ${reagent} composition Íê³É:`, instrumentComposition[reagent])
       })
       
-      console.log('ğŸ“Š æœ€ç»ˆ composition å¯¹è±¡:', instrumentComposition)
-      console.log('ğŸ“Š composition keys æ•°é‡:', Object.keys(instrumentComposition).length)
+      console.log('?? ×îÖÕ composition ¶ÔÏó:', instrumentComposition)
+      console.log('?? composition keys ÊıÁ¿:', Object.keys(instrumentComposition).length)
 
-      // éªŒè¯æ—¶é—´ç‚¹æ•°æ®
+      // ÑéÖ¤Ê±¼äµãÊı¾İ
       const timePoints = cleanNumberArray(gradientData.steps.map((s: any) => s.time))
       
-      // æå–æ›²çº¿ç±»å‹æ•°æ®
+      // ÌáÈ¡ÇúÏßÀàĞÍÊı¾İ
       const curveTypes = gradientData.steps.map((s: any) => s.curve || 'linear')
 
       const instrumentData = {
@@ -1371,10 +1371,10 @@ const MethodsPage: React.FC = () => {
         flow_rate: cleanNumber(gradientData.flowRate, 1.0),
         densities: getDensities(instrumentReagents),
         factor_matrix: buildFactorMatrix(instrumentReagents),
-        curve_types: curveTypes  // æ–°å¢ï¼šå‘é€æ›²çº¿ç±»å‹
+        curve_types: curveTypes  // ĞÂÔö£º·¢ËÍÇúÏßÀàĞÍ
       }
       
-      console.log('ğŸ“¦ æ„å»ºçš„ instrumentData:')
+      console.log('?? ¹¹½¨µÄ instrumentData:')
       console.log('  - time_points:', instrumentData.time_points)
       console.log('  - composition keys:', Object.keys(instrumentData.composition))
       console.log('  - composition:', instrumentData.composition)
@@ -1382,48 +1382,48 @@ const MethodsPage: React.FC = () => {
       console.log('  - densities:', instrumentData.densities)
       console.log('  - curve_types:', instrumentData.curve_types)
 
-      // éªŒè¯ä»ªå™¨æ•°æ®
-      console.log('ğŸ“‹ ä»ªå™¨åˆ†ææ•°æ®éªŒè¯:', {
+      // ÑéÖ¤ÒÇÆ÷Êı¾İ
+      console.log('?? ÒÇÆ÷·ÖÎöÊı¾İÑéÖ¤:', {
         reagents: instrumentReagents,
         timePoints: timePoints,
         composition: instrumentComposition,
         flowRate: instrumentData.flow_rate
       })
 
-      // 6. æ„å»ºå‰å¤„ç†æ•°æ®
+      // 6. ¹¹½¨Ç°´¦ÀíÊı¾İ
       const prepReagents = preTreatmentReagents.map(r => r.name).filter(Boolean)
       
-      console.log('ğŸ“‹ å‰å¤„ç†è¯•å‰‚éªŒè¯:', {
-        åŸå§‹æ•°æ®: preTreatmentReagents,
-        æå–çš„è¯•å‰‚å: prepReagents,
-        è¯•å‰‚æ•°é‡: prepReagents.length
+      console.log('?? Ç°´¦ÀíÊÔ¼ÁÑéÖ¤:', {
+        Ô­Ê¼Êı¾İ: preTreatmentReagents,
+        ÌáÈ¡µÄÊÔ¼ÁÃû: prepReagents,
+        ÊÔ¼ÁÊıÁ¿: prepReagents.length
       })
       
-      // å¦‚æœæ²¡æœ‰å‰å¤„ç†è¯•å‰‚ï¼Œä½¿ç”¨ç©ºå¯¹è±¡
+      // Èç¹ûÃ»ÓĞÇ°´¦ÀíÊÔ¼Á£¬Ê¹ÓÃ¿Õ¶ÔÏó
       const prepVolumes: any = {}
       const prepDensities: any = {}
       const prepFactorMatrix: any = {}
       
       if (prepReagents.length > 0) {
-        console.log('  âœ… æœ‰å‰å¤„ç†è¯•å‰‚ï¼Œå¼€å§‹æ„å»ºæ•°æ®...')
+        console.log('  ? ÓĞÇ°´¦ÀíÊÔ¼Á£¬¿ªÊ¼¹¹½¨Êı¾İ...')
         preTreatmentReagents.forEach(r => {
           if (r.name) {
             const volume = cleanNumber(r.volume, 0)
             prepVolumes[r.name] = volume
-            console.log(`  ğŸ“Œ å‰å¤„ç†è¯•å‰‚: ${r.name}, åŸå§‹ä½“ç§¯: ${r.volume}, æ¸…ç†å: ${volume} mL`)
+            console.log(`  ?? Ç°´¦ÀíÊÔ¼Á: ${r.name}, Ô­Ê¼Ìå»ı: ${r.volume}, ÇåÀíºó: ${volume} ml`)
           }
         })
         
         Object.assign(prepDensities, getDensities(prepReagents))
         Object.assign(prepFactorMatrix, buildFactorMatrix(prepReagents))
         
-        console.log('  âœ… å‰å¤„ç†ä½“ç§¯:', prepVolumes)
-        console.log('  âœ… å‰å¤„ç†å¯†åº¦:', prepDensities)
-        console.log('  âœ… å‰å¤„ç†å› å­çŸ©é˜µ:', prepFactorMatrix)
+        console.log('  ? Ç°´¦ÀíÌå»ı:', prepVolumes)
+        console.log('  ? Ç°´¦ÀíÃÜ¶È:', prepDensities)
+        console.log('  ? Ç°´¦ÀíÒò×Ó¾ØÕó:', prepFactorMatrix)
       } else {
-        console.log('  âš ï¸ æ²¡æœ‰å‰å¤„ç†è¯•å‰‚ï¼Œä½¿ç”¨Waterä½œä¸ºå ä½ç¬¦')
-        // å¦‚æœæ²¡æœ‰å‰å¤„ç†è¯•å‰‚ï¼Œåˆ›å»ºä¸€ä¸ªè™šæ‹Ÿè¯•å‰‚é¿å…ç©ºæ•°æ®é”™è¯¯
-        prepVolumes['Water'] = 0.001  // ä½¿ç”¨æå°å€¼
+        console.log('  ?? Ã»ÓĞÇ°´¦ÀíÊÔ¼Á£¬Ê¹ÓÃWater×÷ÎªÕ¼Î»·û')
+        // Èç¹ûÃ»ÓĞÇ°´¦ÀíÊÔ¼Á£¬´´½¨Ò»¸öĞéÄâÊÔ¼Á±ÜÃâ¿ÕÊı¾İ´íÎó
+        prepVolumes['Water'] = 0.001  // Ê¹ÓÃ¼«Ğ¡Öµ
         prepDensities['Water'] = 1.0
         const waterFactor = factors.find((f: any) => f.name === 'Water')
         if (waterFactor) {
@@ -1439,7 +1439,7 @@ const MethodsPage: React.FC = () => {
             E3: waterFactor.waterHazard || 0
           }
         } else {
-          // å¦‚æœæ‰¾ä¸åˆ°Waterï¼Œä½¿ç”¨å…¨0å› å­
+          // Èç¹ûÕÒ²»µ½Water£¬Ê¹ÓÃÈ«0Òò×Ó
           prepFactorMatrix['Water'] = {
             S1: 0, S2: 0, S3: 0, S4: 0,
             H1: 0, H2: 0,
@@ -1454,38 +1454,38 @@ const MethodsPage: React.FC = () => {
         factor_matrix: prepFactorMatrix
       }
 
-      // éªŒè¯å‰å¤„ç†æ•°æ®
-      console.log('ğŸ“‹ å‰å¤„ç†æ•°æ®éªŒè¯:', {
+      // ÑéÖ¤Ç°´¦ÀíÊı¾İ
+      console.log('?? Ç°´¦ÀíÊı¾İÑéÖ¤:', {
         reagents: prepReagents,
         volumes: prepVolumes,
         densities: prepDensities
       })
 
-      // 7. è®¡ç®—På› å­ï¼ˆåˆ†é˜¶æ®µï¼Œä½¿ç”¨ç”¨æˆ·è¾“å…¥çš„èƒ½è€—ï¼‰
+      // 7. ¼ÆËãPÒò×Ó£¨·Ö½×¶Î£¬Ê¹ÓÃÓÃ»§ÊäÈëµÄÄÜºÄ£©
       const instrument_p_factor = cleanNumber(calculatePowerScore(instrumentEnergy), 0)
       const pretreatment_p_factor = cleanNumber(calculatePowerScore(pretreatmentEnergy), 0)
 
-      // 8. è®¡ç®—Rå’ŒDå› å­ï¼ˆåˆ†é˜¶æ®µï¼‰
+      // 8. ¼ÆËãRºÍDÒò×Ó£¨·Ö½×¶Î£©
       const rdFactors = await calculateRDFactors()
       const instrument_r = cleanNumber(rdFactors.instrument_r, 0)
       const instrument_d = cleanNumber(rdFactors.instrument_d, 0)
       const pretreatment_r = cleanNumber(rdFactors.pretreatment_r, 0)
       const pretreatment_d = cleanNumber(rdFactors.pretreatment_d, 0)
 
-      console.log('ğŸ¯ P/R/Då› å­è®¡ç®—ç»“æœï¼ˆåˆ†é˜¶æ®µï¼‰:')
-      console.log('  ä»ªå™¨åˆ†æ: P=' + instrument_p_factor + ', R=' + instrument_r + ', D=' + instrument_d)
-      console.log('  å‰å¤„ç†: P=' + pretreatment_p_factor + ', R=' + pretreatment_r + ', D=' + pretreatment_d)
+      console.log('?? P/R/DÒò×Ó¼ÆËã½á¹û£¨·Ö½×¶Î£©:')
+      console.log('  ÒÇÆ÷·ÖÎö: P=' + instrument_p_factor + ', R=' + instrument_r + ', D=' + instrument_d)
+      console.log('  Ç°´¦Àí: P=' + pretreatment_p_factor + ', R=' + pretreatment_r + ', D=' + pretreatment_d)
 
-      // 9. æ„å»ºå®Œæ•´è¯·æ±‚
+      // 9. ¹¹½¨ÍêÕûÇëÇó
       const requestData = {
         instrument: instrumentData,
         preparation: prepData,
-        p_factor: instrument_p_factor,  // ä»ªå™¨åˆ†æPå› å­
-        pretreatment_p_factor: pretreatment_p_factor,  // å‰å¤„ç†På› å­
-        instrument_r_factor: Number(instrument_r),  // ç¡®ä¿æ˜¯æ•°å­—ç±»å‹
-        instrument_d_factor: Number(instrument_d),  // ç¡®ä¿æ˜¯æ•°å­—ç±»å‹
-        pretreatment_r_factor: Number(pretreatment_r),  // ç¡®ä¿æ˜¯æ•°å­—ç±»å‹
-        pretreatment_d_factor: Number(pretreatment_d),  // ç¡®ä¿æ˜¯æ•°å­—ç±»å‹
+        p_factor: instrument_p_factor,  // ÒÇÆ÷·ÖÎöPÒò×Ó
+        pretreatment_p_factor: pretreatment_p_factor,  // Ç°´¦ÀíPÒò×Ó
+        instrument_r_factor: Number(instrument_r),  // È·±£ÊÇÊı×ÖÀàĞÍ
+        instrument_d_factor: Number(instrument_d),  // È·±£ÊÇÊı×ÖÀàĞÍ
+        pretreatment_r_factor: Number(pretreatment_r),  // È·±£ÊÇÊı×ÖÀàĞÍ
+        pretreatment_d_factor: Number(pretreatment_d),  // È·±£ÊÇÊı×ÖÀàĞÍ
         safety_scheme: overrides.safetyScheme || safetyScheme,
         health_scheme: overrides.healthScheme || healthScheme,
         environment_scheme: overrides.environmentScheme || environmentScheme,
@@ -1495,34 +1495,34 @@ const MethodsPage: React.FC = () => {
         custom_weights: overrides.customWeights || customWeights
       }
 
-      // æ‰“å°è¯·æ±‚æ•°æ®ï¼ˆä½¿ç”¨å­—ç¬¦ä¸²æ‹¼æ¥é¿å…å¯¹è±¡å±•å¼€é—®é¢˜ï¼‰
-      console.log('ğŸ“Š å‘é€è¯„åˆ†è¯·æ±‚:')
+      // ´òÓ¡ÇëÇóÊı¾İ£¨Ê¹ÓÃ×Ö·û´®Æ´½Ó±ÜÃâ¶ÔÏóÕ¹¿ªÎÊÌâ£©
+      console.log('?? ·¢ËÍÆÀ·ÖÇëÇó:')
       console.log('  - instrument_r_factor:', requestData.instrument_r_factor)
       console.log('  - instrument_d_factor:', requestData.instrument_d_factor)
       console.log('  - pretreatment_r_factor:', requestData.pretreatment_r_factor)
       console.log('  - pretreatment_d_factor:', requestData.pretreatment_d_factor)
       
-      // è¯¦ç»†çš„æ•°æ®éªŒè¯å’Œè°ƒè¯•
-      console.log('ğŸ” æ•°æ®éªŒè¯å¼€å§‹:')
-      console.log('  - time_points é•¿åº¦:', instrumentData.time_points.length)
+      // ÏêÏ¸µÄÊı¾İÑéÖ¤ºÍµ÷ÊÔ
+      console.log('?? Êı¾İÑéÖ¤¿ªÊ¼:')
+      console.log('  - time_points ³¤¶È:', instrumentData.time_points.length)
       console.log('  - composition keys:', Object.keys(instrumentData.composition))
-      console.log('  - composition æ ·ä¾‹:', instrumentData.composition)
+      console.log('  - composition ÑùÀı:', instrumentData.composition)
       
-      // éªŒè¯ composition ä¸­çš„å€¼
+      // ÑéÖ¤ composition ÖĞµÄÖµ
       const compositionValues = Object.values(instrumentData.composition)
-      console.log('  - composition values æ•°é‡:', compositionValues.length)
+      console.log('  - composition values ÊıÁ¿:', compositionValues.length)
       
       let hasNaN = false
       Object.entries(instrumentData.composition).forEach(([key, arr]: [string, any]) => {
         if (arr.some((val: any) => isNaN(val) || !isFinite(val))) {
-          console.error(`    âŒ ${key} åŒ…å«æ— æ•ˆå€¼:`, arr)
+          console.error(`    ? ${key} °üº¬ÎŞĞ§Öµ:`, arr)
           hasNaN = true
         } else {
-          console.log(`    âœ… ${key} æ•°æ®æ­£å¸¸:`, arr)
+          console.log(`    ? ${key} Êı¾İÕı³£:`, arr)
         }
       })
       
-      // æœ€ç»ˆæ•°æ®éªŒè¯
+      // ×îÖÕÊı¾İÑéÖ¤
       const hasInvalidData = (
         !instrumentData.time_points.length ||
         Object.keys(instrumentData.composition).length === 0 ||
@@ -1530,7 +1530,7 @@ const MethodsPage: React.FC = () => {
       )
       
       if (hasInvalidData) {
-        // æä¾›å‹å¥½çš„æ£€æŸ¥æç¤º
+        // Ìá¹©ÓÑºÃµÄ¼ì²éÌáÊ¾
         let warningMsg = 'Please check: '
         const checks = []
         if (!instrumentData.time_points.length) {
@@ -1545,9 +1545,9 @@ const MethodsPage: React.FC = () => {
         warningMsg += checks.join(', ')
         
         if (!silent) message.warning(warningMsg)
-        console.error('âŒ æ•°æ®éªŒè¯å¤±è´¥')
-        console.error('âŒ æ•°æ®éªŒè¯å¤±è´¥')
-        console.error('  è¯¦ç»†ä¿¡æ¯:', {
+        console.error('? Êı¾İÑéÖ¤Ê§°Ü')
+        console.error('? Êı¾İÑéÖ¤Ê§°Ü')
+        console.error('  ÏêÏ¸ĞÅÏ¢:', {
           hasTimePoints: !!instrumentData.time_points.length,
           hasComposition: Object.keys(instrumentData.composition).length > 0,
           hasNaN: hasNaN
@@ -1556,39 +1556,39 @@ const MethodsPage: React.FC = () => {
         return
       }
       
-      console.log('âœ… æ•°æ®éªŒè¯é€šè¿‡')
+      console.log('? Êı¾İÑéÖ¤Í¨¹ı')
 
-      // 10. è°ƒç”¨åç«¯API
-      console.log('ğŸŒ è°ƒç”¨åç«¯API: /api/v1/scoring/full-score')
-      console.log('ğŸ“¦ è¯·æ±‚æ•°æ®:', JSON.stringify(requestData, null, 2))
+      // 10. µ÷ÓÃºó¶ËAPI
+      console.log('?? µ÷ÓÃºó¶ËAPI: /api/v1/scoring/full-score')
+      console.log('?? ÇëÇóÊı¾İ:', JSON.stringify(requestData, null, 2))
       const response = await api.calculateFullScore(requestData)
       
       if (response.data.success) {
         setScoreResults(response.data.data)
         if (!silent) message.success('Scoring calculation completed successfully!')
         
-        // è¯¦ç»†æ—¥å¿—è¾“å‡º
-        console.log('âœ… è¯„åˆ†è®¡ç®—æˆåŠŸï¼å®Œæ•´ç»“æœ:', response.data.data)
-        console.log('ğŸ“Š å°å› å­å¾—åˆ† (merged.sub_factors):', response.data.data.merged.sub_factors)
-        console.log('ğŸ¯ æœ€ç»ˆæ€»åˆ† (Scoreâ‚ƒ):', response.data.data.final.score3)
-        console.log('ğŸ”¬ ä»ªå™¨é˜¶æ®µ (Scoreâ‚):', response.data.data.instrument.score1)
-        console.log('ğŸ§ª å‰å¤„ç†é˜¶æ®µ (Scoreâ‚‚):', response.data.data.preparation.score2)
+        // ÏêÏ¸ÈÕÖ¾Êä³ö
+        console.log('? ÆÀ·Ö¼ÆËã³É¹¦£¡ÍêÕû½á¹û:', response.data.data)
+        console.log('?? Ğ¡Òò×ÓµÃ·Ö (merged.sub_factors):', response.data.data.merged.sub_factors)
+        console.log('?? ×îÖÕ×Ü·Ö (Score?):', response.data.data.final.score3)
+        console.log('?? ÒÇÆ÷½×¶Î (Score?):', response.data.data.instrument.score1)
+        console.log('?? Ç°´¦Àí½×¶Î (Score?):', response.data.data.preparation.score2)
         
-        // ä¿å­˜è¯„åˆ†ç»“æœåˆ°StorageHelper
+        // ±£´æÆÀ·Ö½á¹ûµ½StorageHelper
         await StorageHelper.setJSON(STORAGE_KEYS.SCORE_RESULTS, response.data.data)
-        console.log('ğŸ’¾ MethodsPage: è¯„åˆ†ç»“æœå·²ä¿å­˜åˆ° SCORE_RESULTS')
+        console.log('?? MethodsPage: ÆÀ·Ö½á¹ûÒÑ±£´æµ½ SCORE_RESULTS')
         
-        // è§¦å‘GraphPageæ›´æ–°
-        console.log('ğŸ”” MethodsPage: è§¦å‘ scoreDataUpdated äº‹ä»¶')
+        // ´¥·¢GraphPage¸üĞÂ
+        console.log('?? MethodsPage: ´¥·¢ scoreDataUpdated ÊÂ¼ş')
         window.dispatchEvent(new CustomEvent('scoreDataUpdated'))
       } else {
         if (!silent) message.error('Scoring calculation failed: ' + response.data.message)
       }
     } catch (error: any) {
-      console.error('è¯„åˆ†è®¡ç®—é”™è¯¯:', error)
-      console.error('é”™è¯¯è¯¦æƒ…:', error.response?.data)
+      console.error('ÆÀ·Ö¼ÆËã´íÎó:', error)
+      console.error('´íÎóÏêÇé:', error.response?.data)
       
-      // æ›´å¥½çš„é”™è¯¯ä¿¡æ¯æ˜¾ç¤º
+      // ¸üºÃµÄ´íÎóĞÅÏ¢ÏÔÊ¾
       let errorMessage = 'Score calculation failed'
       if (error.response?.data?.detail) {
         if (typeof error.response.data.detail === 'string') {
@@ -1606,51 +1606,51 @@ const MethodsPage: React.FC = () => {
         errorMessage += ': ' + error.message
       }
       
-      if (!silent) message.error(errorMessage, 8) // æ˜¾ç¤º8ç§’
+      if (!silent) message.error(errorMessage, 8) // ÏÔÊ¾8Ãë
     } finally {
       setIsCalculatingScore(false)
     }
   }
 
-  // è‡ªåŠ¨è®¡ç®—è¯„åˆ†ï¼ˆæ•°æ®å˜åŒ–æ—¶è§¦å‘ï¼‰
+  // ×Ô¶¯¼ÆËãÆÀ·Ö£¨Êı¾İ±ä»¯Ê±´¥·¢£©
   useEffect(() => {
     // Skip on initial mount
     if (!isAutoCalcInitialized.current) {
-      console.log('â­ï¸ è‡ªåŠ¨è®¡ç®—: è·³è¿‡åˆå§‹æŒ‚è½½')
+      console.log('?? ×Ô¶¯¼ÆËã: Ìø¹ı³õÊ¼¹ÒÔØ')
       isAutoCalcInitialized.current = true
       return
     }
     
-    // âš ï¸ å¦‚æœæ•°æ®æ­£åœ¨åŠ è½½ä¸­ï¼Œè·³è¿‡è‡ªåŠ¨è®¡ç®—ï¼ˆç­‰æ•°æ®åŠ è½½å®Œæˆåå†è§¦å‘ï¼‰
+    // ?? Èç¹ûÊı¾İÕıÔÚ¼ÓÔØÖĞ£¬Ìø¹ı×Ô¶¯¼ÆËã£¨µÈÊı¾İ¼ÓÔØÍê³ÉºóÔÙ´¥·¢£©
     if (isDataLoading) {
-      console.log('â­ï¸ è‡ªåŠ¨è®¡ç®—: æ•°æ®åŠ è½½ä¸­ï¼Œè·³è¿‡')
+      console.log('?? ×Ô¶¯¼ÆËã: Êı¾İ¼ÓÔØÖĞ£¬Ìø¹ı')
       return
     }
     
-    console.log('ğŸ”„ è‡ªåŠ¨è®¡ç®—: æ•°æ®å·²å˜åŒ–ï¼Œå‡†å¤‡è®¡ç®—è¯„åˆ†')
+    console.log('?? ×Ô¶¯¼ÆËã: Êı¾İÒÑ±ä»¯£¬×¼±¸¼ÆËãÆÀ·Ö')
     
-    // ç«‹å³æ‰§è¡Œè‡ªåŠ¨è®¡ç®—
+    // Á¢¼´Ö´ĞĞ×Ô¶¯¼ÆËã
     ;(async () => {
-      // æ£€æŸ¥å¿…è¦æ•°æ®
+      // ¼ì²é±ØÒªÊı¾İ
       const gradientData = await StorageHelper.getJSON(STORAGE_KEYS.GRADIENT)
       const factors = await StorageHelper.getJSON<any[]>(STORAGE_KEYS.FACTORS)
       
       if (gradientData && factors && factors.length > 0) {
-        console.log('âœ… è‡ªåŠ¨è®¡ç®—: æ•°æ®å®Œæ•´ï¼Œå¼€å§‹è°ƒç”¨åç«¯API')
+        console.log('? ×Ô¶¯¼ÆËã: Êı¾İÍêÕû£¬¿ªÊ¼µ÷ÓÃºó¶ËAPI')
         try {
           await calculateFullScoreAPI({ silent: true })
-          console.log('âœ… è‡ªåŠ¨è®¡ç®—: è¯„åˆ†è®¡ç®—å®Œæˆ')
+          console.log('? ×Ô¶¯¼ÆËã: ÆÀ·Ö¼ÆËãÍê³É')
         } catch (error) {
-          console.error('âŒ è‡ªåŠ¨è®¡ç®—å¤±è´¥:', error)
+          console.error('? ×Ô¶¯¼ÆËãÊ§°Ü:', error)
         }
       } else {
-        console.log('âš ï¸ è‡ªåŠ¨è®¡ç®—: è·³è¿‡ï¼ˆç¼ºå°‘æ¢¯åº¦æˆ–å› å­æ•°æ®ï¼‰')
+        console.log('?? ×Ô¶¯¼ÆËã: Ìø¹ı£¨È±ÉÙÌİ¶È»òÒò×ÓÊı¾İ£©')
       }
     })()
     
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    // ç›‘å¬æ‰€æœ‰å¯èƒ½å½±å“è¯„åˆ†çš„æ•°æ®
+    // ¼àÌıËùÓĞ¿ÉÄÜÓ°ÏìÆÀ·ÖµÄÊı¾İ
     safetyScheme,
     healthScheme,
     environmentScheme,
@@ -1665,39 +1665,39 @@ const MethodsPage: React.FC = () => {
     pretreatmentEnergy
   ])
 
-  // ç›‘å¬Storageå˜åŒ–äº‹ä»¶ï¼ˆå½“Factorsé¡µé¢æ›´æ–°æ•°æ®æ—¶è§¦å‘ï¼‰
+  // ¼àÌıStorage±ä»¯ÊÂ¼ş£¨µ±FactorsÒ³Ãæ¸üĞÂÊı¾İÊ±´¥·¢£©
   useEffect(() => {
     const handleStorageChange = async (event: CustomEvent) => {
       if (event.detail?.key === STORAGE_KEYS.FACTORS) {
-        console.log('ğŸ“¦ æ£€æµ‹åˆ°Factorsæ•°æ®æ›´æ–°ï¼Œé‡æ–°åŠ è½½å¹¶è‡ªåŠ¨è®¡ç®—...')
+        console.log('?? ¼ì²âµ½FactorsÊı¾İ¸üĞÂ£¬ÖØĞÂ¼ÓÔØ²¢×Ô¶¯¼ÆËã...')
         
-        // é‡æ–°åŠ è½½factorsæ•°æ®
+        // ÖØĞÂ¼ÓÔØfactorsÊı¾İ
         try {
           const factors = await StorageHelper.getJSON<any[]>(STORAGE_KEYS.FACTORS)
           if (factors && factors.length > 0) {
             setFactorsData(factors)
             
-            // æå–è¯•å‰‚åç§°
+            // ÌáÈ¡ÊÔ¼ÁÃû³Æ
             const reagentNames = Array.from(
               new Set(factors.map((f: any) => f.name).filter((n: string) => n && n.trim()))
             ).sort()
             setAvailableReagents(reagentNames as string[])
             
-            // å»¶è¿Ÿè§¦å‘è‡ªåŠ¨è®¡ç®—ï¼Œç¡®ä¿çŠ¶æ€å·²æ›´æ–°
+            // ÑÓ³Ù´¥·¢×Ô¶¯¼ÆËã£¬È·±£×´Ì¬ÒÑ¸üĞÂ
             setTimeout(() => {
               calculateFullScoreAPI()
             }, 500)
           }
         } catch (error) {
-          console.error('âŒ é‡æ–°åŠ è½½Factorsæ•°æ®å¤±è´¥:', error)
+          console.error('? ÖØĞÂ¼ÓÔØFactorsÊı¾İÊ§°Ü:', error)
         }
       }
     }
     
-    // ç›‘å¬æ¥è‡ª Results é¡µé¢çš„é‡æ–°è®¡ç®—è¯·æ±‚
+    // ¼àÌıÀ´×Ô Results Ò³ÃæµÄÖØĞÂ¼ÆËãÇëÇó
     const handleRecalculationRequest = () => {
-      console.log('ğŸ“Š MethodsPage: æ”¶åˆ°é‡æ–°è®¡ç®—è¯„åˆ†è¯·æ±‚')
-      // ç›´æ¥è°ƒç”¨å‡½æ•°
+      console.log('?? MethodsPage: ÊÕµ½ÖØĞÂ¼ÆËãÆÀ·ÖÇëÇó')
+      // Ö±½Óµ÷ÓÃº¯Êı
       calculateFullScoreAPI({ silent: true })
     }
 
@@ -1710,9 +1710,9 @@ const MethodsPage: React.FC = () => {
     }
   }, [])
   
-  // ç¡®è®¤æäº¤
+  // È·ÈÏÌá½»
   const handleConfirm = async () => {
-    // éªŒè¯è¯•å‰‚åç§°
+    // ÑéÖ¤ÊÔ¼ÁÃû³Æ
     const allReagents = [...preTreatmentReagents, ...mobilePhaseA, ...mobilePhaseB]
     if (allReagents.some(r => !r.name)) {
       message.error('Please select all reagents')
@@ -1736,22 +1736,22 @@ const MethodsPage: React.FC = () => {
       return
     }
 
-    // å‡†å¤‡åç»­è®¡ç®—æ‰€éœ€çš„æ•°æ®ç»“æ„
+    // ×¼±¸ºóĞø¼ÆËãËùĞèµÄÊı¾İ½á¹¹
     const methodsData = {
-      // åŸºç¡€ä¿¡æ¯
+      // »ù´¡ĞÅÏ¢
       sampleCount: sampleCount,
       timestamp: new Date().toISOString(),
       
-      // Sample PreTreatment æ•°æ®ï¼ˆç›´æ¥ä½¿ç”¨ä½“ç§¯ï¼Œç”¨äºåç»­è®¡ç®—ï¼‰
+      // Sample PreTreatment Êı¾İ£¨Ö±½ÓÊ¹ÓÃÌå»ı£¬ÓÃÓÚºóĞø¼ÆËã£©
       preTreatment: {
         reagents: preTreatmentReagents.map(r => ({
           reagentName: r.name,
-          volume: r.volume  // ä½“ç§¯(mL)
+          volume: r.volume  // Ìå»ı(ml)
         })),
         totalVolume: calculateTotalVolume(preTreatmentReagents)
       },
       
-      // Mobile Phase A æ•°æ®ï¼ˆç”¨äºåç»­è®¡ç®—ï¼‰
+      // Mobile Phase A Êı¾İ£¨ÓÃÓÚºóĞø¼ÆËã£©
       mobilePhaseA: {
         reagents: mobilePhaseA.map(r => ({
           reagentName: r.name,
@@ -1761,7 +1761,7 @@ const MethodsPage: React.FC = () => {
         totalPercentage: calculateTotal(mobilePhaseA)
       },
       
-      // Mobile Phase B æ•°æ®ï¼ˆç”¨äºåç»­è®¡ç®—ï¼‰
+      // Mobile Phase B Êı¾İ£¨ÓÃÓÚºóĞø¼ÆËã£©
       mobilePhaseB: {
         reagents: mobilePhaseB.map(r => ({
           reagentName: r.name,
@@ -1771,25 +1771,25 @@ const MethodsPage: React.FC = () => {
         totalPercentage: calculateTotal(mobilePhaseB)
       },
       
-      // è®¡ç®—å‚æ•°ï¼ˆé¢„ç•™ç»™åç»­ä½¿ç”¨ï¼‰
+      // ¼ÆËã²ÎÊı£¨Ô¤Áô¸øºóĞøÊ¹ÓÃ£©
       calculationParams: {
-        preTreatmentVolume: 0, // å°†åœ¨åç»­è®¡ç®—ä¸­å¡«å……
+        preTreatmentVolume: 0, // ½«ÔÚºóĞø¼ÆËãÖĞÌî³ä
         phaseAVolume: 0,
         phaseBVolume: 0,
         totalVolume: 0,
-        gradientSteps: [] // æ¢¯åº¦æ­¥éª¤
+        gradientSteps: [] // Ìİ¶È²½Öè
       }
     }
 
-    // è¿‡æ»¤æ‰ç©ºçš„è¯•å‰‚æ¡ç›®
+    // ¹ıÂËµô¿ÕµÄÊÔ¼ÁÌõÄ¿
     const validPreTreatmentReagents = preTreatmentReagents.filter(r => r.name && r.name.trim() && r.volume > 0)
     const validMobilePhaseA = mobilePhaseA.filter(r => r.name && r.name.trim() && r.percentage > 0)
     const validMobilePhaseB = mobilePhaseB.filter(r => r.name && r.name.trim() && r.percentage > 0)
     
-    // ğŸ¯ è¯»å–ç°æœ‰æ•°æ®ï¼Œä¿ç•™weightSchemeså’ŒcustomWeights
+    // ?? ¶ÁÈ¡ÏÖÓĞÊı¾İ£¬±£ÁôweightSchemesºÍcustomWeights
     const existingData = await StorageHelper.getJSON<any>(STORAGE_KEYS.METHODS) || {}
     
-    // ä¿å­˜åˆ°StorageHelperï¼ˆä¾›åç»­æ¨¡å—ä½¿ç”¨ï¼‰
+    // ±£´æµ½StorageHelper£¨¹©ºóĞøÄ£¿éÊ¹ÓÃ£©
     await StorageHelper.setJSON(STORAGE_KEYS.METHODS, {
       ...existingData,
       sampleCount,
@@ -1798,7 +1798,7 @@ const MethodsPage: React.FC = () => {
       mobilePhaseB: validMobilePhaseB,
       instrumentEnergy,
       pretreatmentEnergy,
-      // ğŸ¯ ä¿ç•™æƒé‡æ–¹æ¡ˆå’Œè‡ªå®šä¹‰æƒé‡
+      // ?? ±£ÁôÈ¨ÖØ·½°¸ºÍ×Ô¶¨ÒåÈ¨ÖØ
       weightSchemes: {
         ...existingData.weightSchemes,
         safetyScheme,
@@ -1811,7 +1811,7 @@ const MethodsPage: React.FC = () => {
       }
     })
 
-    // æ›´æ–° Context
+    // ¸üĞÂ Context
     updateMethodsData({
       sampleCount,
       preTreatmentReagents: validPreTreatmentReagents,
@@ -1824,7 +1824,7 @@ const MethodsPage: React.FC = () => {
 
     message.success('Data saved, navigating to LC Gradient Program')
     
-    // è§¦å‘è‡ªå®šä¹‰äº‹ä»¶ï¼Œé€šçŸ¥å…¶ä»–ç»„ä»¶æ•°æ®å·²æ›´æ–°
+    // ´¥·¢×Ô¶¨ÒåÊÂ¼ş£¬Í¨ÖªÆäËû×é¼şÊı¾İÒÑ¸üĞÂ
     window.dispatchEvent(new CustomEvent('methodsDataUpdated', { detail: {
       sampleCount,
       preTreatmentReagents: validPreTreatmentReagents,
@@ -1834,15 +1834,15 @@ const MethodsPage: React.FC = () => {
       pretreatmentEnergy
     } }))
     
-    // è·³è½¬åˆ°ä¸‹ä¸€é¡µ
+    // Ìø×ªµ½ÏÂÒ»Ò³
     navigate('/hplc-gradient')
   }
 
-  // æ¸²æŸ“ Sample PreTreatment è¯•å‰‚ç»„(ä½¿ç”¨ä½“ç§¯)
+  // äÖÈ¾ Sample PreTreatment ÊÔ¼Á×é(Ê¹ÓÃÌå»ı)
   const renderPreTreatmentGroup = () => {
     const totalVolume = calculateTotalVolume(preTreatmentReagents)
     
-    console.log('ğŸ¨ renderPreTreatmentGroup - availableReagents:', availableReagents.length, availableReagents)
+    console.log('?? renderPreTreatmentGroup - availableReagents:', availableReagents.length, availableReagents)
     
     return (
       <div className="reagent-section">
@@ -1876,7 +1876,7 @@ const MethodsPage: React.FC = () => {
                 placeholder="0.0"
                 value={reagent.volume}
                 onChange={(value) => updateReagent('preTreatment', reagent.id, 'volume', value || 0)}
-                addonAfter="mL"
+                addonAfter="ml"
               />
             </Col>
           </Row>
@@ -1907,13 +1907,13 @@ const MethodsPage: React.FC = () => {
         </Row>
         
         <div style={{ marginTop: 12, color: '#52c41a', fontWeight: 500, fontSize: 14 }}>
-          Total Volume: {totalVolume.toFixed(1)} mL
+          Total Volume: {totalVolume.toFixed(1)} ml
         </div>
       </div>
     )
   }
 
-  // æ¸²æŸ“ Mobile Phase è¯•å‰‚ç»„(ä½¿ç”¨ç™¾åˆ†æ¯”)
+  // äÖÈ¾ Mobile Phase ÊÔ¼Á×é(Ê¹ÓÃ°Ù·Ö±È)
   const renderReagentGroup = (
     title: string,
     reagents: Reagent[],
@@ -2000,7 +2000,7 @@ const MethodsPage: React.FC = () => {
     <div className="methods-page">
       <Title level={2}>Methods</Title>
 
-      {/* ç»¿è‰²åŒ–å­¦è¯„åˆ†ç³»ç»Ÿé…ç½® */}
+      {/* ÂÌÉ«»¯Ñ§ÆÀ·ÖÏµÍ³ÅäÖÃ */}
       <Card 
         title={
           <span>
@@ -2010,10 +2010,10 @@ const MethodsPage: React.FC = () => {
         }
         style={{ marginBottom: 16 }}
       >
-        {/* èƒ½è€—é…ç½® */}
+        {/* ÄÜºÄÅäÖÃ */}
         <Row gutter={16} style={{ marginBottom: 16 }}>
           <Col span={12}>
-            <div style={{ marginBottom: 8, fontSize: 14, fontWeight: 500 }}>Instrument Analysis Energy (kWh) <Tooltip title="P Factor Formula: When E<1.5, P=100Ã—(E/1.5)^0.235; When Eâ‰¥1.5, P=100"><QuestionCircleOutlined style={{ marginLeft: 4, color: '#1890ff' }} /></Tooltip></div>
+            <div style={{ marginBottom: 8, fontSize: 14, fontWeight: 500 }}>Instrument Analysis Energy (kWh) <Tooltip title="P Factor Formula: When E<1.5, P=100¡Á(E/1.5)^0.235; When E¡İ1.5, P=100"><QuestionCircleOutlined style={{ marginLeft: 4, color: '#1890ff' }} /></Tooltip></div>
             <InputNumber style={{ width: '100%' }} min={0} step={0.01} precision={4} value={instrumentEnergy} onChange={(value) => setInstrumentEnergy(value || 0)} placeholder="Instrument Energy" />
             <div style={{ marginTop: 4, fontSize: 12, color: '#666' }}>Current P Factor Score: {calculatePowerScore(instrumentEnergy).toFixed(2)}</div>
           </Col>
@@ -2026,7 +2026,7 @@ const MethodsPage: React.FC = () => {
 
         <Divider style={{ margin: '12px 0' }} />
 
-        {/* æƒé‡æ–¹æ¡ˆé…ç½® - ç«–å‘å¸ƒå±€ç¡®ä¿å†…å®¹å®Œæ•´æ˜¾ç¤º */}
+        {/* È¨ÖØ·½°¸ÅäÖÃ - ÊúÏò²¼¾ÖÈ·±£ÄÚÈİÍêÕûÏÔÊ¾ */}
         <Row gutter={16}>
           <Col span={8}>
             <div style={{ marginBottom: 8, fontSize: 13, fontWeight: 500 }}>
@@ -2041,12 +2041,12 @@ const MethodsPage: React.FC = () => {
                   }}
                   style={{ padding: 0, marginLeft: 8, height: 'auto' }}
                 >
-                  âœï¸ Edit
+                  ?? Edit
                 </Button>
               )}
             </div>
             <Select style={{ width: '100%', marginBottom: 12 }} value={safetyScheme} onChange={(value) => { 
-              console.log('âš–ï¸ å®‰å…¨å› å­æƒé‡æ–¹æ¡ˆå˜åŒ–:', safetyScheme, '->', value); 
+              console.log('?? °²È«Òò×ÓÈ¨ÖØ·½°¸±ä»¯:', safetyScheme, '->', value); 
               if (value === 'Custom') {
                 setCustomWeightType('safety');
                 setCustomWeightModalVisible(true);
@@ -2061,7 +2061,7 @@ const MethodsPage: React.FC = () => {
               <Option value="Personnel_Exposure">Personnel Exposure (S1:0.10/S2:0.20/S3:0.20/S4:0.50)</Option>
               <Option value="Material_Transport">Material Transport (S1:0.50/S2:0.20/S3:0.20/S4:0.10)</Option>
               <Option value="Custom" style={{ color: '#1890ff', fontWeight: 'bold' }}>
-                {customWeights.safety ? `ğŸ¯ Custom (S1:${customWeights.safety.S1?.toFixed(2)}/S2:${customWeights.safety.S2?.toFixed(2)}/S3:${customWeights.safety.S3?.toFixed(2)}/S4:${customWeights.safety.S4?.toFixed(2)})` : 'ğŸ¯ Custom...'}
+                {customWeights.safety ? `?? Custom (S1:${customWeights.safety.S1?.toFixed(2)}/S2:${customWeights.safety.S2?.toFixed(2)}/S3:${customWeights.safety.S3?.toFixed(2)}/S4:${customWeights.safety.S4?.toFixed(2)})` : '?? Custom...'}
               </Option>
             </Select>
           </Col>
@@ -2079,12 +2079,12 @@ const MethodsPage: React.FC = () => {
                   }}
                   style={{ padding: 0, marginLeft: 8, height: 'auto' }}
                 >
-                  âœï¸ Edit
+                  ?? Edit
                 </Button>
               )}
             </div>
             <Select style={{ width: '100%', marginBottom: 12 }} value={healthScheme} onChange={(value) => { 
-              console.log('âš–ï¸ Health Factoræƒé‡æ–¹æ¡ˆå˜åŒ–:', healthScheme, '->', value); 
+              console.log('?? Health FactorÈ¨ÖØ·½°¸±ä»¯:', healthScheme, '->', value); 
               if (value === 'Custom') {
                 setCustomWeightType('health');
                 setCustomWeightModalVisible(true);
@@ -2099,7 +2099,7 @@ const MethodsPage: React.FC = () => {
               <Option value="Strict_Compliance">Strict Compliance (H1:0.90/H2:0.10)</Option>
               <Option value="Absolute_Balance">Absolute Balance (H1:0.50/H2:0.50)</Option>
               <Option value="Custom" style={{ color: '#1890ff', fontWeight: 'bold' }}>
-                {customWeights.health ? `ğŸ¯ Custom (H1:${customWeights.health.H1?.toFixed(2)}/H2:${customWeights.health.H2?.toFixed(2)})` : 'ğŸ¯ Custom...'}
+                {customWeights.health ? `?? Custom (H1:${customWeights.health.H1?.toFixed(2)}/H2:${customWeights.health.H2?.toFixed(2)})` : '?? Custom...'}
               </Option>
             </Select>
 
@@ -2115,12 +2115,12 @@ const MethodsPage: React.FC = () => {
                   }}
                   style={{ padding: 0, marginLeft: 8, height: 'auto' }}
                 >
-                  âœï¸ Edit
+                  ?? Edit
                 </Button>
               )}
             </div>
             <Select style={{ width: '100%', marginBottom: 12 }} value={environmentScheme} onChange={(value) => { 
-              console.log('âš–ï¸ Environmental Factoræƒé‡æ–¹æ¡ˆå˜åŒ–:', environmentScheme, '->', value); 
+              console.log('?? Environmental FactorÈ¨ÖØ·½°¸±ä»¯:', environmentScheme, '->', value); 
               if (value === 'Custom') {
                 setCustomWeightType('environment');
                 setCustomWeightModalVisible(true);
@@ -2135,7 +2135,7 @@ const MethodsPage: React.FC = () => {
               <Option value="Deep_Impact">Deep Impact (E1:0.10/E2:0.10/E3:0.80)</Option>
               <Option value="Degradation_Priority">Degradation Priority (E1:0.70/E2:0.15/E3:0.15)</Option>
               <Option value="Custom" style={{ color: '#1890ff', fontWeight: 'bold' }}>
-                {customWeights.environment ? `ğŸ¯ Custom (E1:${customWeights.environment.E1?.toFixed(2)}/E2:${customWeights.environment.E2?.toFixed(2)}/E3:${customWeights.environment.E3?.toFixed(2)})` : 'ğŸ¯ Custom...'}
+                {customWeights.environment ? `?? Custom (E1:${customWeights.environment.E1?.toFixed(2)}/E2:${customWeights.environment.E2?.toFixed(2)}/E3:${customWeights.environment.E3?.toFixed(2)})` : '?? Custom...'}
               </Option>
             </Select>
           </Col>
@@ -2153,12 +2153,12 @@ const MethodsPage: React.FC = () => {
                   }}
                   style={{ padding: 0, marginLeft: 8, height: 'auto' }}
                 >
-                  âœï¸ Edit
+                  ?? Edit
                 </Button>
               )}
             </div>
             <Select style={{ width: '100%', marginBottom: 12 }} value={stageScheme} onChange={(value) => { 
-              console.log('âš–ï¸ Stageæƒé‡æ–¹æ¡ˆå˜åŒ–:', stageScheme, '->', value); 
+              console.log('?? StageÈ¨ÖØ·½°¸±ä»¯:', stageScheme, '->', value); 
               if (value === 'Custom') {
                 setCustomWeightType('stage');
                 setCustomWeightModalVisible(true);
@@ -2173,7 +2173,7 @@ const MethodsPage: React.FC = () => {
               <Option value="Eco_Friendly">Eco-Friendly (S:0.10 H:0.10 E:0.30 P:0.10 R:0.25 D:0.15)</Option>
               <Option value="Energy_Efficient">Energy Efficient (S:0.10 H:0.10 E:0.15 P:0.40 R:0.15 D:0.10)</Option>
               <Option value="Custom" style={{ color: '#1890ff', fontWeight: 'bold' }}>
-                {customWeights.stage ? `ğŸ¯ Custom (S:${customWeights.stage.S?.toFixed(2)} H:${customWeights.stage.H?.toFixed(2)} E:${customWeights.stage.E?.toFixed(2)} R:${customWeights.stage.R?.toFixed(2)} D:${customWeights.stage.D?.toFixed(2)} P:${customWeights.stage.P?.toFixed(2)})` : 'ğŸ¯ Custom...'}
+                {customWeights.stage ? `?? Custom (S:${customWeights.stage.S?.toFixed(2)} H:${customWeights.stage.H?.toFixed(2)} E:${customWeights.stage.E?.toFixed(2)} R:${customWeights.stage.R?.toFixed(2)} D:${customWeights.stage.D?.toFixed(2)} P:${customWeights.stage.P?.toFixed(2)})` : '?? Custom...'}
               </Option>
             </Select>
 
@@ -2189,12 +2189,12 @@ const MethodsPage: React.FC = () => {
                   }}
                   style={{ padding: 0, marginLeft: 8, height: 'auto' }}
                 >
-                  âœï¸ Edit
+                  ?? Edit
                 </Button>
               )}
             </div>
             <Select style={{ width: '100%' }} value={finalScheme} onChange={(value) => { 
-              console.log('âš–ï¸ æœ€ç»ˆæ±‡æ€»æƒé‡æ–¹æ¡ˆå˜åŒ–:', finalScheme, '->', value); 
+              console.log('?? ×îÖÕ»ã×ÜÈ¨ÖØ·½°¸±ä»¯:', finalScheme, '->', value); 
               if (value === 'Custom') {
                 setCustomWeightType('final');
                 setCustomWeightModalVisible(true);
@@ -2209,21 +2209,21 @@ const MethodsPage: React.FC = () => {
               <Option value="Equal">Equal Weight (Instrument:0.5 Prep:0.5)</Option>
               <Option value="Complex_Prep">Complex Prep (Instrument:0.3 Prep:0.7)</Option>
               <Option value="Custom" style={{ color: '#1890ff', fontWeight: 'bold' }}>
-                {customWeights.final ? `ğŸ¯ Custom (Inst:${customWeights.final.instrument?.toFixed(2)} Prep:${customWeights.final.preparation?.toFixed(2)})` : 'ğŸ¯ Custom...'}
+                {customWeights.final ? `?? Custom (Inst:${customWeights.final.instrument?.toFixed(2)} Prep:${customWeights.final.preparation?.toFixed(2)})` : '?? Custom...'}
               </Option>
             </Select>
           </Col>
         </Row>
       </Card>
 
-      {/* ä¸‰ä¸ªè¯•å‰‚éƒ¨åˆ† */}
+      {/* Èı¸öÊÔ¼Á²¿·Ö */}
       <Row gutter={16} style={{ marginLeft: 0, marginRight: 0 }}>
         <Col span={8}>
           <Card className="phase-card">
             {renderPreTreatmentGroup()}
             <div className="vine-divider vine-left"></div>
             <div className="chart-placeholder">
-              {/* Sample PreTreatment æŸ±çŠ¶å›¾ */}
+              {/* Sample PreTreatment Öù×´Í¼ */}
               {(() => {
                 const chartData = preTreatmentChartData
                 if (chartData.length === 0) {
@@ -2234,16 +2234,16 @@ const MethodsPage: React.FC = () => {
                   )
                 }
                 
-                const needsScroll = chartData.length > 2  // æ”¹ä¸ºè¶…è¿‡2ä¸ªæ‰æ»šåŠ¨
-                const chartWidth = needsScroll ? chartData.length * 200 : '100%'  // æ¯ä¸ªè¯•å‰‚200pxå®½
+                const needsScroll = chartData.length > 2  // ¸ÄÎª³¬¹ı2¸ö²Å¹ö¶¯
+                const chartWidth = needsScroll ? chartData.length * 200 : '100%'  // Ã¿¸öÊÔ¼Á200px¿í
                 
-                // è®¡ç®—è‡ªåŠ¨æœ€å¤§å€¼
+                // ¼ÆËã×Ô¶¯×î´óÖµ
                 const autoMax = Math.max(...chartData.flatMap(d => [d.S, d.H, d.E, d.R, d.D]))
                 const currentMax = preTreatmentYMax !== null ? preTreatmentYMax : autoMax
                 
                 return (
                   <div className="chart-container">
-                    {/* Yè½´æ§åˆ¶åŒº */}
+                    {/* YÖá¿ØÖÆÇø */}
                     <div className="y-axis-control">
                       <span>Y-axis Range: 0 - {currentMax.toFixed(2)}</span>
                       <input
@@ -2261,9 +2261,9 @@ const MethodsPage: React.FC = () => {
                       </button>
                     </div>
                     
-                    {/* å›¾è¡¨åŒºåŸŸ - ä½¿ç”¨flexå¸ƒå±€åˆ†ç¦»Yè½´å’ŒæŸ±çŠ¶å›¾ */}
+                    {/* Í¼±íÇøÓò - Ê¹ÓÃflex²¼¾Ö·ÖÀëYÖáºÍÖù×´Í¼ */}
                     <div style={{ display: 'flex', alignItems: 'stretch' }}>
-                      {/* å›ºå®šçš„Yè½´åŒºåŸŸ */}
+                      {/* ¹Ì¶¨µÄYÖáÇøÓò */}
                       <div style={{ 
                         width: 60, 
                         flexShrink: 0,
@@ -2271,7 +2271,7 @@ const MethodsPage: React.FC = () => {
                         paddingTop: 20,
                         paddingBottom: 5
                       }}>
-                        {/* Yè½´åˆ»åº¦ */}
+                        {/* YÖá¿Ì¶È */}
                         <div style={{ 
                           height: 240,
                           display: 'flex',
@@ -2280,8 +2280,7 @@ const MethodsPage: React.FC = () => {
                           alignItems: 'flex-end',
                           paddingRight: 8,
                           fontSize: 10,
-                          color: '#000',
-                          fontWeight: 700
+                          color: '#666'
                         }}>
                           <span>{currentMax.toFixed(1)}</span>
                           <span>{(currentMax * 0.75).toFixed(1)}</span>
@@ -2289,7 +2288,7 @@ const MethodsPage: React.FC = () => {
                           <span>{(currentMax * 0.25).toFixed(1)}</span>
                           <span>0</span>
                         </div>
-                        {/* Yè½´æ ‡ç­¾ */}
+                        {/* YÖá±êÇ© */}
                         <div style={{
                           position: 'absolute',
                           left: 0,
@@ -2304,14 +2303,14 @@ const MethodsPage: React.FC = () => {
                         </div>
                       </div>
                       
-                      {/* å¯æ»šåŠ¨çš„æŸ±çŠ¶å›¾å’ŒXè½´æ ‡ç­¾åŒºåŸŸ */}
+                      {/* ¿É¹ö¶¯µÄÖù×´Í¼ºÍXÖá±êÇ©ÇøÓò */}
                       <div style={{ 
                         flex: 1,
                         overflowX: needsScroll ? 'auto' : 'hidden',
                         overflowY: 'hidden'
                       }} className="chart-scroll-area">
                         <div style={{ width: needsScroll ? chartWidth : '100%', minWidth: '100%' }}>
-                          {/* å›¾è¡¨ä¸»ä½“ - éšè—Yè½´ */}
+                          {/* Í¼±íÖ÷Ìå - Òş²ØYÖá */}
                           <ResponsiveContainer width="100%" height={240}>
                             <BarChart data={chartData} margin={{ top: 20, right: 10, left: 0, bottom: 5 }}>
                               <CartesianGrid strokeDasharray="3 3" />
@@ -2329,7 +2328,7 @@ const MethodsPage: React.FC = () => {
                             </BarChart>
                           </ResponsiveContainer>
                           
-                          {/* Xè½´æ ‡ç­¾ - å’Œå›¾è¡¨ä¸€èµ·æ»šåŠ¨ */}
+                          {/* XÖá±êÇ© - ºÍÍ¼±íÒ»Æğ¹ö¶¯ */}
                           <div style={{ 
                             display: 'flex',
                             height: 70,
@@ -2360,7 +2359,7 @@ const MethodsPage: React.FC = () => {
                       </div>
                     </div>
                     
-                    {/* å›ºå®šLegend */}
+                    {/* ¹Ì¶¨Legend */}
                     <div style={{ 
                       display: 'flex', 
                       justifyContent: 'center', 
@@ -2417,11 +2416,11 @@ const MethodsPage: React.FC = () => {
             {renderReagentGroup('Mobile Phase A', mobilePhaseA, 'phaseA')}
             <div className="vine-divider vine-middle"></div>
             <div className="chart-placeholder">
-              {/* Mobile Phase A æŸ±çŠ¶å›¾ - éœ€è¦ HPLC Gradient æ•°æ® */}
+              {/* Mobile Phase A Öù×´Í¼ - ĞèÒª HPLC Gradient Êı¾İ */}
               {(() => {
                 const chartData = phaseAChartData
                 
-                // ğŸ”¥ æ£€æŸ¥æ˜¯å¦æ˜¯æ— æ•ˆæµé€Ÿæ ‡è®°
+                // ?? ¼ì²éÊÇ·ñÊÇÎŞĞ§Á÷ËÙ±ê¼Ç
                 if (chartData === 'INVALID_FLOW_RATE') {
                   return (
                     <div style={{ 
@@ -2437,12 +2436,13 @@ const MethodsPage: React.FC = () => {
                       border: '2px dashed #ff7875',
                       borderRadius: 8
                     }}>
-                      <div style={{ fontSize: 48, marginBottom: 12 }}>âš ï¸</div>
+                      <div style={{ fontSize: 48, marginBottom: 12 }}>??</div>
                       <div style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 8 }}>
                         All Flow Rates are Zero!
                       </div>
-                      <div style={{ fontSize: 13, color: '#666', marginBottom: 12 }}>
-                        Cannot calculate volume when all flow rates are 0 mL/min
+                      <div style={{ fontSize: 13, color: '#000',
+                          fontWeight: 700, marginBottom: 12 }}>
+                        Cannot calculate volume when all flow rates are 0 ml/min
                       </div>
                       <div style={{ fontSize: 12, color: '#999' }}>
                         Please go to <strong>Time Gradient Curve</strong> page<br/>
@@ -2460,16 +2460,16 @@ const MethodsPage: React.FC = () => {
                   )
                 }
                 
-                const needsScroll = chartData.length > 2  // æ”¹ä¸ºè¶…è¿‡2ä¸ªæ‰æ»šåŠ¨
-                const chartWidth = needsScroll ? chartData.length * 200 : '100%'  // æ¯ä¸ªè¯•å‰‚200pxå®½
+                const needsScroll = chartData.length > 2  // ¸ÄÎª³¬¹ı2¸ö²Å¹ö¶¯
+                const chartWidth = needsScroll ? chartData.length * 200 : '100%'  // Ã¿¸öÊÔ¼Á200px¿í
                 
-                // è®¡ç®—è‡ªåŠ¨æœ€å¤§å€¼
+                // ¼ÆËã×Ô¶¯×î´óÖµ
                 const autoMax = Math.max(...chartData.flatMap(d => [d.S, d.H, d.E, d.R, d.D]))
                 const currentMax = phaseAYMax !== null ? phaseAYMax : autoMax
                 
                 return (
                   <div className="chart-container">
-                    {/* Yè½´æ§åˆ¶åŒº */}
+                    {/* YÖá¿ØÖÆÇø */}
                     <div className="y-axis-control">
                       <span>Y-axis Range: 0 - {currentMax.toFixed(2)}</span>
                       <input
@@ -2487,9 +2487,9 @@ const MethodsPage: React.FC = () => {
                       </button>
                     </div>
                     
-                    {/* å›¾è¡¨åŒºåŸŸ - ä½¿ç”¨flexå¸ƒå±€åˆ†ç¦»Yè½´å’ŒæŸ±çŠ¶å›¾ */}
+                    {/* Í¼±íÇøÓò - Ê¹ÓÃflex²¼¾Ö·ÖÀëYÖáºÍÖù×´Í¼ */}
                     <div style={{ display: 'flex', alignItems: 'stretch' }}>
-                      {/* å›ºå®šçš„Yè½´åŒºåŸŸ */}
+                      {/* ¹Ì¶¨µÄYÖáÇøÓò */}
                       <div style={{ 
                         width: 60, 
                         flexShrink: 0,
@@ -2497,7 +2497,7 @@ const MethodsPage: React.FC = () => {
                         paddingTop: 20,
                         paddingBottom: 5
                       }}>
-                        {/* Yè½´åˆ»åº¦ */}
+                        {/* YÖá¿Ì¶È */}
                         <div style={{ 
                           height: 240,
                           display: 'flex',
@@ -2506,8 +2506,7 @@ const MethodsPage: React.FC = () => {
                           alignItems: 'flex-end',
                           paddingRight: 8,
                           fontSize: 10,
-                          color: '#000',
-                          fontWeight: 700
+                          color: '#666'
                         }}>
                           <span>{currentMax.toFixed(1)}</span>
                           <span>{(currentMax * 0.75).toFixed(1)}</span>
@@ -2515,7 +2514,7 @@ const MethodsPage: React.FC = () => {
                           <span>{(currentMax * 0.25).toFixed(1)}</span>
                           <span>0</span>
                         </div>
-                        {/* Yè½´æ ‡ç­¾ */}
+                        {/* YÖá±êÇ© */}
                         <div style={{
                           position: 'absolute',
                           left: 0,
@@ -2530,14 +2529,14 @@ const MethodsPage: React.FC = () => {
                         </div>
                       </div>
                       
-                      {/* å¯æ»šåŠ¨çš„æŸ±çŠ¶å›¾å’ŒXè½´æ ‡ç­¾åŒºåŸŸ */}
+                      {/* ¿É¹ö¶¯µÄÖù×´Í¼ºÍXÖá±êÇ©ÇøÓò */}
                       <div style={{ 
                         flex: 1,
                         overflowX: needsScroll ? 'auto' : 'hidden',
                         overflowY: 'hidden'
                       }} className="chart-scroll-area">
                         <div style={{ width: needsScroll ? chartWidth : '100%', minWidth: '100%' }}>
-                          {/* å›¾è¡¨ä¸»ä½“ - éšè—Yè½´ */}
+                          {/* Í¼±íÖ÷Ìå - Òş²ØYÖá */}
                           <ResponsiveContainer width="100%" height={240}>
                             <BarChart data={chartData} margin={{ top: 20, right: 10, left: 0, bottom: 5 }}>
                               <CartesianGrid strokeDasharray="3 3" />
@@ -2555,7 +2554,7 @@ const MethodsPage: React.FC = () => {
                             </BarChart>
                           </ResponsiveContainer>
                           
-                          {/* Xè½´æ ‡ç­¾ - å’Œå›¾è¡¨ä¸€èµ·æ»šåŠ¨ */}
+                          {/* XÖá±êÇ© - ºÍÍ¼±íÒ»Æğ¹ö¶¯ */}
                           <div style={{ 
                             display: 'flex',
                             height: 70,
@@ -2586,7 +2585,7 @@ const MethodsPage: React.FC = () => {
                       </div>
                     </div>
                     
-                    {/* å›ºå®šLegend */}
+                    {/* ¹Ì¶¨Legend */}
                     <div style={{ 
                       display: 'flex', 
                       justifyContent: 'center', 
@@ -2631,11 +2630,11 @@ const MethodsPage: React.FC = () => {
             {renderReagentGroup('Mobile Phase B', mobilePhaseB, 'phaseB')}
             <div className="vine-divider vine-right"></div>
             <div className="chart-placeholder">
-              {/* Mobile Phase B æŸ±çŠ¶å›¾ - éœ€è¦ HPLC Gradient æ•°æ® */}
+              {/* Mobile Phase B Öù×´Í¼ - ĞèÒª HPLC Gradient Êı¾İ */}
               {(() => {
                 const chartData = phaseBChartData
                 
-                // ğŸ”¥ æ£€æŸ¥æ˜¯å¦æ˜¯æ— æ•ˆæµé€Ÿæ ‡è®°
+                // ?? ¼ì²éÊÇ·ñÊÇÎŞĞ§Á÷ËÙ±ê¼Ç
                 if (chartData === 'INVALID_FLOW_RATE') {
                   return (
                     <div style={{ 
@@ -2651,12 +2650,13 @@ const MethodsPage: React.FC = () => {
                       border: '2px dashed #ff7875',
                       borderRadius: 8
                     }}>
-                      <div style={{ fontSize: 48, marginBottom: 12 }}>âš ï¸</div>
+                      <div style={{ fontSize: 48, marginBottom: 12 }}>??</div>
                       <div style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 8 }}>
                         All Flow Rates are Zero!
                       </div>
-                      <div style={{ fontSize: 13, color: '#666', marginBottom: 12 }}>
-                        Cannot calculate volume when all flow rates are 0 mL/min
+                      <div style={{ fontSize: 13, color: '#000',
+                          fontWeight: 700, marginBottom: 12 }}>
+                        Cannot calculate volume when all flow rates are 0 ml/min
                       </div>
                       <div style={{ fontSize: 12, color: '#999' }}>
                         Please go to <strong>Time Gradient Curve</strong> page<br/>
@@ -2674,16 +2674,16 @@ const MethodsPage: React.FC = () => {
                   )
                 }
                 
-                const needsScroll = chartData.length > 2  // æ”¹ä¸ºè¶…è¿‡2ä¸ªæ‰æ»šåŠ¨
-                const chartWidth = needsScroll ? chartData.length * 200 : '100%'  // æ¯ä¸ªè¯•å‰‚200pxå®½
+                const needsScroll = chartData.length > 2  // ¸ÄÎª³¬¹ı2¸ö²Å¹ö¶¯
+                const chartWidth = needsScroll ? chartData.length * 200 : '100%'  // Ã¿¸öÊÔ¼Á200px¿í
                 
-                // è®¡ç®—è‡ªåŠ¨æœ€å¤§å€¼
+                // ¼ÆËã×Ô¶¯×î´óÖµ
                 const autoMax = Math.max(...chartData.flatMap(d => [d.S, d.H, d.E, d.R, d.D]))
                 const currentMax = phaseBYMax !== null ? phaseBYMax : autoMax
                 
                 return (
                   <div className="chart-container">
-                    {/* Yè½´æ§åˆ¶åŒº */}
+                    {/* YÖá¿ØÖÆÇø */}
                     <div className="y-axis-control">
                       <span>Y-axis Range: 0 - {currentMax.toFixed(2)}</span>
                       <input
@@ -2701,9 +2701,9 @@ const MethodsPage: React.FC = () => {
                       </button>
                     </div>
                     
-                    {/* å›¾è¡¨åŒºåŸŸ - ä½¿ç”¨flexå¸ƒå±€åˆ†ç¦»Yè½´å’ŒæŸ±çŠ¶å›¾ */}
+                    {/* Í¼±íÇøÓò - Ê¹ÓÃflex²¼¾Ö·ÖÀëYÖáºÍÖù×´Í¼ */}
                     <div style={{ display: 'flex', alignItems: 'stretch' }}>
-                      {/* å›ºå®šçš„Yè½´åŒºåŸŸ */}
+                      {/* ¹Ì¶¨µÄYÖáÇøÓò */}
                       <div style={{ 
                         width: 60, 
                         flexShrink: 0,
@@ -2711,7 +2711,7 @@ const MethodsPage: React.FC = () => {
                         paddingTop: 20,
                         paddingBottom: 5
                       }}>
-                        {/* Yè½´åˆ»åº¦ */}
+                        {/* YÖá¿Ì¶È */}
                         <div style={{ 
                           height: 240,
                           display: 'flex',
@@ -2720,8 +2720,7 @@ const MethodsPage: React.FC = () => {
                           alignItems: 'flex-end',
                           paddingRight: 8,
                           fontSize: 10,
-                          color: '#000',
-                          fontWeight: 700
+                          color: '#666'
                         }}>
                           <span>{currentMax.toFixed(1)}</span>
                           <span>{(currentMax * 0.75).toFixed(1)}</span>
@@ -2729,7 +2728,7 @@ const MethodsPage: React.FC = () => {
                           <span>{(currentMax * 0.25).toFixed(1)}</span>
                           <span>0</span>
                         </div>
-                        {/* Yè½´æ ‡ç­¾ */}
+                        {/* YÖá±êÇ© */}
                         <div style={{
                           position: 'absolute',
                           left: 0,
@@ -2744,14 +2743,14 @@ const MethodsPage: React.FC = () => {
                         </div>
                       </div>
                       
-                      {/* å¯æ»šåŠ¨çš„æŸ±çŠ¶å›¾å’ŒXè½´æ ‡ç­¾åŒºåŸŸ */}
+                      {/* ¿É¹ö¶¯µÄÖù×´Í¼ºÍXÖá±êÇ©ÇøÓò */}
                       <div style={{ 
                         flex: 1,
                         overflowX: needsScroll ? 'auto' : 'hidden',
                         overflowY: 'hidden'
                       }} className="chart-scroll-area">
                         <div style={{ width: needsScroll ? chartWidth : '100%', minWidth: '100%' }}>
-                          {/* å›¾è¡¨ä¸»ä½“ - éšè—Yè½´ */}
+                          {/* Í¼±íÖ÷Ìå - Òş²ØYÖá */}
                           <ResponsiveContainer width="100%" height={240}>
                             <BarChart data={chartData} margin={{ top: 20, right: 10, left: 0, bottom: 5 }}>
                               <CartesianGrid strokeDasharray="3 3" />
@@ -2769,7 +2768,7 @@ const MethodsPage: React.FC = () => {
                             </BarChart>
                           </ResponsiveContainer>
                           
-                          {/* Xè½´æ ‡ç­¾ - å’Œå›¾è¡¨ä¸€èµ·æ»šåŠ¨ */}
+                          {/* XÖá±êÇ© - ºÍÍ¼±íÒ»Æğ¹ö¶¯ */}
                           <div style={{ 
                             display: 'flex',
                             height: 70,
@@ -2800,7 +2799,7 @@ const MethodsPage: React.FC = () => {
                       </div>
                     </div>
                     
-                    {/* å›ºå®šLegend */}
+                    {/* ¹Ì¶¨Legend */}
                     <div style={{ 
                       display: 'flex', 
                       justifyContent: 'center', 
@@ -2841,7 +2840,7 @@ const MethodsPage: React.FC = () => {
         </Col>
       </Row>
 
-          {/* ç¡®è®¤æŒ‰é’® */}
+          {/* È·ÈÏ°´Å¥ */}
       <div style={{ textAlign: 'right', marginTop: 24 }}>
         <Button type="primary" size="large" onClick={handleConfirm}>
           Confirm
@@ -2857,17 +2856,17 @@ const MethodsPage: React.FC = () => {
           setCustomWeightModalVisible(false);
         }}
         onConfirm={async (weights) => {
-          console.log('ğŸ¯ [Custom Weights] å¼€å§‹ä¿å­˜è‡ªå®šä¹‰æƒé‡:', weights);
+          console.log('?? [Custom Weights] ¿ªÊ¼±£´æ×Ô¶¨ÒåÈ¨ÖØ:', weights);
           
-          // æ›´æ–°è‡ªå®šä¹‰æƒé‡
+          // ¸üĞÂ×Ô¶¨ÒåÈ¨ÖØ
           const newCustomWeights = {
             ...customWeights,
             [customWeightType]: weights
           };
-          console.log('ğŸ¯ [Custom Weights] æ–°çš„customWeightså¯¹è±¡:', newCustomWeights);
+          console.log('?? [Custom Weights] ĞÂµÄcustomWeights¶ÔÏó:', newCustomWeights);
           setCustomWeights(newCustomWeights);
           
-          // æ›´æ–°å¯¹åº”çš„schemeä¸ºCustom
+          // ¸üĞÂ¶ÔÓ¦µÄschemeÎªCustom
           let newScheme = '';
           switch (customWeightType) {
             case 'safety':
@@ -2892,42 +2891,42 @@ const MethodsPage: React.FC = () => {
               break;
           }
           
-          console.log(`ğŸ¯ [Custom Weights] æ›´æ–°schemeå­—æ®µ: ${newScheme} = Custom`);
+          console.log(`?? [Custom Weights] ¸üĞÂscheme×Ö¶Î: ${newScheme} = Custom`);
           
-          // ğŸ¯ ç«‹å³ä¿å­˜åˆ°storageï¼Œé˜²æ­¢åˆ·æ–°ä¸¢å¤±
+          // ?? Á¢¼´±£´æµ½storage£¬·ÀÖ¹Ë¢ĞÂ¶ªÊ§
           try {
-            console.log('ğŸ¯ [Custom Weights] è¯»å–å½“å‰METHODSæ•°æ®...');
+            console.log('?? [Custom Weights] ¶ÁÈ¡µ±Ç°METHODSÊı¾İ...');
             const currentMethodsData = await StorageHelper.getJSON<any>(STORAGE_KEYS.METHODS) || {};
-            console.log('ğŸ¯ [Custom Weights] å½“å‰METHODSæ•°æ®:', currentMethodsData);
+            console.log('?? [Custom Weights] µ±Ç°METHODSÊı¾İ:', currentMethodsData);
             
             const updatedWeightSchemes = {
               ...currentMethodsData.weightSchemes,
               [newScheme]: 'Custom',
               customWeights: newCustomWeights
             };
-            console.log('ğŸ¯ [Custom Weights] æ›´æ–°åçš„weightSchemes:', updatedWeightSchemes);
+            console.log('?? [Custom Weights] ¸üĞÂºóµÄweightSchemes:', updatedWeightSchemes);
             
             const dataToSave = {
               ...currentMethodsData,
               weightSchemes: updatedWeightSchemes
             };
-            console.log('ğŸ¯ [Custom Weights] å‡†å¤‡ä¿å­˜çš„å®Œæ•´æ•°æ®:', dataToSave);
+            console.log('?? [Custom Weights] ×¼±¸±£´æµÄÍêÕûÊı¾İ:', dataToSave);
             
             await StorageHelper.setJSON(STORAGE_KEYS.METHODS, dataToSave);
-            console.log('âœ… [Custom Weights] Custom weightså·²ä¿å­˜åˆ°storage!');
+            console.log('? [Custom Weights] Custom weightsÒÑ±£´æµ½storage!');
             
-            // éªŒè¯ä¿å­˜æ˜¯å¦æˆåŠŸ
+            // ÑéÖ¤±£´æÊÇ·ñ³É¹¦
             const verifyData = await StorageHelper.getJSON<any>(STORAGE_KEYS.METHODS);
-            console.log('ğŸ” [Custom Weights] éªŒè¯ä¿å­˜ç»“æœ:', verifyData?.weightSchemes?.customWeights);
+            console.log('?? [Custom Weights] ÑéÖ¤±£´æ½á¹û:', verifyData?.weightSchemes?.customWeights);
             
           } catch (error) {
-            console.error('âŒ [Custom Weights] ä¿å­˜å¤±è´¥:', error);
+            console.error('? [Custom Weights] ±£´æÊ§°Ü:', error);
             message.error('Failed to save custom weights!');
           }
           
           setCustomWeightModalVisible(false);
           
-          // é‡æ–°è®¡ç®—è¯„åˆ†
+          // ÖØĞÂ¼ÆËãÆÀ·Ö
           calculateFullScoreAPI({ 
             silent: true, 
             overrides: { 
