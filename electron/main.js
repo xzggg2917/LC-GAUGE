@@ -7,6 +7,32 @@ const isDev = require('electron-is-dev')
 const { spawn } = require('child_process')
 const { autoUpdater } = require('electron-updater')
 
+// 🔒 单实例锁定 - 防止同时运行多个实例
+const gotTheLock = app.requestSingleInstanceLock()
+
+if (!gotTheLock) {
+  // 如果没有获得锁，说明已经有一个实例在运行
+  console.log('⚠️ 应用已在运行，无法启动第二个实例')
+  app.quit()
+} else {
+  // 当第二个实例试图启动时，聚焦到第一个实例的窗口
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.focus()
+      
+      // 提示用户应用已在运行
+      dialog.showMessageBox(mainWindow, {
+        type: 'info',
+        title: 'LC GAUGE',
+        message: '应用已在运行',
+        detail: 'LC GAUGE 已经在运行中，无需重复打开。',
+        buttons: ['确定']
+      })
+    }
+  })
+}
+
 let mainWindow
 let backendProcess
 let splashWindow
@@ -400,9 +426,53 @@ async function checkBackendHealth(maxRetries = 30, delayMs = 1000) {
   return false
 }
 
+// 检查端口是否已被占用
+function checkPortInUse(port) {
+  return new Promise((resolve) => {
+    const net = require('net')
+    const server = net.createServer()
+    
+    server.once('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        resolve(true) // 端口已被占用
+      } else {
+        resolve(false)
+      }
+    })
+    
+    server.once('listening', () => {
+      server.close()
+      resolve(false) // 端口未被占用
+    })
+    
+    server.listen(port, '127.0.0.1')
+  })
+}
+
 async function startBackend() {
   // 在生产环境启动后端服务（如果存在）
   if (!isDev) {
+    // 🔍 首先检查8000端口是否已被占用
+    const portInUse = await checkPortInUse(8000)
+    if (portInUse) {
+      console.log('⚠️ 端口8000已被占用，可能是另一个实例的后端正在运行')
+      console.log('✅ 将复用现有后端服务')
+      
+      // 检查现有后端是否健康
+      const isHealthy = await checkBackendHealth(10, 500)
+      if (isHealthy) {
+        console.log('✅ 检测到可用的后端服务，将复用该服务')
+        return true
+      } else {
+        console.error('❌ 端口被占用但后端服务不可用')
+        dialog.showErrorBox(
+          '后端服务错误',
+          '端口8000已被占用，但无法连接到后端服务。\n请关闭其他可能占用该端口的程序后重试。'
+        )
+        return false
+      }
+    }
+    
     // 后端exe被解压到app.asar.unpacked目录
     const backendPath = path.join(
       process.resourcesPath,
@@ -412,23 +482,60 @@ async function startBackend() {
       'hplc-backend.exe'
     )
     
+    console.log('🔍 检查后端路径:', backendPath)
+    console.log('🔍 process.resourcesPath:', process.resourcesPath)
+    
     // 检查后端文件是否存在
     if (fsSync.existsSync(backendPath)) {
+      console.log('✅ 找到后端文件:', backendPath)
+      
+      // 创建日志文件路径
+      const logDir = path.join(app.getPath('userData'), 'logs')
+      if (!fsSync.existsSync(logDir)) {
+        fsSync.mkdirSync(logDir, { recursive: true })
+      }
+      const logFile = path.join(logDir, `backend-${Date.now()}.log`)
+      const logStream = fsSync.createWriteStream(logFile, { flags: 'a' })
+      
+      console.log('📝 后端日志将写入:', logFile)
+      
       console.log('🚀 Starting backend service:', backendPath)
       backendProcess = spawn(backendPath, [], {
-        cwd: path.join(process.resourcesPath, 'app.asar.unpacked', 'backend'),
+        cwd: path.join(process.resourcesPath, 'app.asar.unpacked', 'backend', 'dist'),
       })
 
+      let backendOutput = ''
+      let backendError = ''
+
       backendProcess.stdout.on('data', (data) => {
-        console.log(`Backend: ${data}`)
+        const output = data.toString()
+        backendOutput += output
+        console.log(`Backend stdout: ${output}`)
+        logStream.write(`[STDOUT] ${output}\n`)
       })
 
       backendProcess.stderr.on('data', (data) => {
-        console.error(`Backend Error: ${data}`)
+        const error = data.toString()
+        backendError += error
+        console.error(`Backend stderr: ${error}`)
+        logStream.write(`[STDERR] ${error}\n`)
       })
 
       backendProcess.on('close', (code) => {
         console.log(`Backend process exited with code ${code}`)
+        logStream.write(`[EXIT] Process exited with code ${code}\n`)
+        logStream.end()
+        
+        if (code !== 0 && code !== null) {
+          console.error('❌ 后端异常退出')
+          console.error('最后的错误输出:', backendError)
+        }
+      })
+      
+      backendProcess.on('error', (error) => {
+        console.error(`Failed to start backend process:`, error)
+        logStream.write(`[ERROR] ${error}\n`)
+        logStream.end()
       })
       
       console.log('✅ Backend process started, PID:', backendProcess.pid)
@@ -436,15 +543,47 @@ async function startBackend() {
       // 等待后端服务完全启动
       const isHealthy = await checkBackendHealth()
       if (!isHealthy) {
+        const errorMsg = backendError || backendOutput || '未捕获到错误信息'
+        console.error('完整的后端输出:', backendOutput)
+        console.error('完整的后端错误:', backendError)
+        
         dialog.showErrorBox(
-          'Backend Service Failed to Start',
-          'Unable to start backend service, the application may not work properly.\nPlease check logs or contact technical support.'
+          '后端服务启动失败',
+          `无法启动后端服务，应用可能无法正常工作。\n\n错误信息:\n${errorMsg.substring(0, 300)}\n\n日志文件: ${logFile}\n\n错误代码: BACKEND_STARTUP_TIMEOUT`
         )
       }
       return isHealthy
     } else {
-      console.log('⚠️ Backend service not found:', backendPath)
-      console.log('Will use remote API (if configured)')
+      console.error('❌ 后端文件不存在:', backendPath)
+      console.log('📁 列出资源目录内容:')
+      try {
+        const resourceDir = path.join(process.resourcesPath, 'app.asar.unpacked')
+        if (fsSync.existsSync(resourceDir)) {
+          console.log('app.asar.unpacked 目录存在')
+          const backendDir = path.join(resourceDir, 'backend')
+          if (fsSync.existsSync(backendDir)) {
+            console.log('backend 目录存在')
+            const distDir = path.join(backendDir, 'dist')
+            if (fsSync.existsSync(distDir)) {
+              console.log('dist 目录内容:', fsSync.readdirSync(distDir))
+            } else {
+              console.error('dist 目录不存在')
+            }
+          } else {
+            console.error('backend 目录不存在')
+            console.log('app.asar.unpacked 目录内容:', fsSync.readdirSync(resourceDir))
+          }
+        } else {
+          console.error('app.asar.unpacked 目录不存在')
+        }
+      } catch (e) {
+        console.error('检查目录时出错:', e)
+      }
+      
+      dialog.showErrorBox(
+        '后端文件缺失',
+        `找不到后端服务文件。\n\n预期路径: ${backendPath}\n\n请重新安装应用或联系技术支持。`
+      )
       return false
     }
   } else {

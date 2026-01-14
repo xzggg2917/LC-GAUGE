@@ -1,6 +1,6 @@
 {
   "name": "lc-gauge",
-  "version": "1.1.0",
+  "version": "1.1.2",
   "description": "LC GAUGE - Greenness Assessment Unified Generalised Evaluator",
   "author": "Dalian University of Technology",
   "main": "electron/main.js",

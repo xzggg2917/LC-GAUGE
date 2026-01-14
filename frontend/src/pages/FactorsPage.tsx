@@ -9,7 +9,7 @@ import './FactorsPage.css'
 
 const { Title } = Typography
 
-const FACTORS_DATA_VERSION = 6 // Increment this when BASE_REAGENTS changes
+const FACTORS_DATA_VERSION = 7 // Increment this when BASE_REAGENTS changes (v7: 39 reagents)
 
 // 自动按首字母排序函数
 const sortReagentsByName = (reagents: ReagentFactor[]): ReagentFactor[] => {
@@ -54,10 +54,61 @@ const FactorsPage: React.FC = () => {
           }
         }
         
-        // 3. 如果数据存在，正常加载
+        // 3. 如果数据存在，检查版本并自动升级
         if (stored && stored.length > 0) {
           console.log('📚 从全局试剂库加载', stored.length, '个试剂')
-          setReagents(sortReagentsByName(stored))
+          
+          // 🔄 版本检查：自动补充新增试剂
+          const storedVersion = await StorageHelper.getJSON(STORAGE_KEYS.FACTORS_VERSION)
+          const currentVersion = FACTORS_DATA_VERSION
+          
+          if (storedVersion !== currentVersion.toString()) {
+            console.log(`🔄 检测到版本升级: v${storedVersion || 'unknown'} → v${currentVersion}`)
+            
+            // 获取存储数据中的试剂ID
+            const storedIds = new Set(stored.map(r => r.id))
+            
+            // 找出新增的预定义试剂
+            const newReagents = PREDEFINED_REAGENTS.filter(r => !storedIds.has(r.id))
+            
+            if (newReagents.length > 0) {
+              console.log(`➕ 发现 ${newReagents.length} 个新增试剂:`, newReagents.map(r => r.name))
+              
+              // 合并：保留用户数据 + 新增预定义试剂
+              const upgradedData = sortReagentsByName([...stored, ...newReagents])
+              setReagents(upgradedData)
+              
+              // 保存升级后的数据
+              await StorageHelper.setJSON(STORAGE_KEYS.FACTORS, upgradedData)
+              await StorageHelper.setJSON(STORAGE_KEYS.FACTORS_VERSION, currentVersion.toString())
+              
+              // 保存备份
+              const backupData = {
+                version: currentVersion,
+                lastModified: new Date().toISOString(),
+                reagentsCount: upgradedData.length,
+                reagents: upgradedData
+              }
+              if ((window as any).electronAPI?.writeAppData) {
+                await (window as any).electronAPI.writeAppData('hplc_factors_backup', JSON.stringify(backupData))
+              }
+              
+              message.success(`✅ 数据已升级：新增 ${newReagents.length} 种试剂，当前共 ${upgradedData.length} 种`, 5)
+              console.log(`✅ 升级完成：${stored.length} → ${upgradedData.length} 个试剂`)
+              
+              // 通知其他页面
+              window.dispatchEvent(new Event('factorsLibraryUpdated'))
+              window.dispatchEvent(new Event('factorsDataUpdated'))
+            } else {
+              // 无新增试剂，只更新版本号
+              setReagents(sortReagentsByName(stored))
+              await StorageHelper.setJSON(STORAGE_KEYS.FACTORS_VERSION, currentVersion.toString())
+              console.log('✅ 版本已更新，无新增试剂')
+            }
+          } else {
+            // 版本一致，正常加载
+            setReagents(sortReagentsByName(stored))
+          }
         } else {
           // 🆕 首次运行：自动加载预定义数据（S/H/E 已自动计算）
           console.log('🎯 首次运行，正在初始化默认试剂库...')
@@ -66,6 +117,7 @@ const FactorsPage: React.FC = () => {
           
           // 保存到 userData（首次初始化）
           await StorageHelper.setJSON(STORAGE_KEYS.FACTORS, initialData)
+          await StorageHelper.setJSON(STORAGE_KEYS.FACTORS_VERSION, FACTORS_DATA_VERSION.toString())
           
           // 同时保存备份
           const backupData = {
