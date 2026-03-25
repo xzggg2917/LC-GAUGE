@@ -4,12 +4,11 @@ import { PlusOutlined, DeleteOutlined, EditOutlined, SaveOutlined } from '@ant-d
 import type { ReagentFactor } from '../contexts/AppContext'
 import AddReagentModal from '../components/AddReagentModal'
 import { StorageHelper, STORAGE_KEYS } from '../utils/storage'
-import { calculateScores, PREDEFINED_REAGENTS } from '../utils/defaultReagents'
+import { calculateScores, FACTORS_DATA_VERSION, PREDEFINED_REAGENTS } from '../utils/defaultReagents'
 import './FactorsPage.css'
 
 const { Title } = Typography
-
-const FACTORS_DATA_VERSION = 7 // Increment this when BASE_REAGENTS changes (v7: 39 reagents)
+const PREDEFINED_ID_SET = new Set(PREDEFINED_REAGENTS.map(r => r.id))
 
 // 自动按首字母排序函数
 const sortReagentsByName = (reagents: ReagentFactor[]): ReagentFactor[] => {
@@ -64,47 +63,92 @@ const FactorsPage: React.FC = () => {
           
           if (storedVersion !== currentVersion.toString()) {
             console.log(`🔄 检测到版本升级: v${storedVersion || 'unknown'} → v${currentVersion}`)
-            
-            // 获取存储数据中的试剂ID
-            const storedIds = new Set(stored.map(r => r.id))
-            
-            // 找出新增的预定义试剂
-            const newReagents = PREDEFINED_REAGENTS.filter(r => !storedIds.has(r.id))
-            
-            if (newReagents.length > 0) {
-              console.log(`➕ 发现 ${newReagents.length} 个新增试剂:`, newReagents.map(r => r.name))
-              
-              // 合并：保留用户数据 + 新增预定义试剂
-              const upgradedData = sortReagentsByName([...stored, ...newReagents])
-              setReagents(upgradedData)
-              
-              // 保存升级后的数据
-              await StorageHelper.setJSON(STORAGE_KEYS.FACTORS, upgradedData)
-              await StorageHelper.setJSON(STORAGE_KEYS.FACTORS_VERSION, currentVersion.toString())
-              
-              // 保存备份
-              const backupData = {
-                version: currentVersion,
-                lastModified: new Date().toISOString(),
-                reagentsCount: upgradedData.length,
-                reagents: upgradedData
+
+            // 升级策略：
+            // 1) 预定义试剂始终以当前版本为准（修正历史错误数据）
+            // 2) 非预定义ID的试剂视为用户自定义，完整保留
+            const customReagents = stored.filter(r => !PREDEFINED_ID_SET.has(r.id))
+            const preservedPresetCount = PREDEFINED_REAGENTS.reduce((count, predefined) => {
+              const existing = stored.find(r => r.id === predefined.id)
+              return existing?.isUserModifiedPreset ? count + 1 : count
+            }, 0)
+
+            const mergedPresets = PREDEFINED_REAGENTS.map(predefined => {
+              const existing = stored.find(r => r.id === predefined.id)
+              if (existing?.isUserModifiedPreset) {
+                return existing
               }
-              if ((window as any).electronAPI?.writeAppData) {
-                await (window as any).electronAPI.writeAppData('hplc_factors_backup', JSON.stringify(backupData))
+              return predefined
+            })
+
+            const upgradedData = sortReagentsByName([...mergedPresets, ...customReagents])
+
+            const correctedCount = PREDEFINED_REAGENTS.reduce((count, predefined) => {
+              const old = stored.find(r => r.id === predefined.id)
+              if (!old) return count
+
+              const oldComparable = {
+                name: old.name,
+                density: old.density,
+                releasePotential: old.releasePotential,
+                fireExplos: old.fireExplos,
+                reactDecom: old.reactDecom,
+                acuteToxicity: old.acuteToxicity,
+                irritation: old.irritation,
+                chronicToxicity: old.chronicToxicity,
+                persistency: old.persistency,
+                airHazard: old.airHazard,
+                waterHazard: old.waterHazard,
+                regeneration: old.regeneration ?? 0,
+                disposal: old.disposal,
               }
-              
-              message.success(`✅ 数据已升级：新增 ${newReagents.length} 种试剂，当前共 ${upgradedData.length} 种`, 5)
-              console.log(`✅ 升级完成：${stored.length} → ${upgradedData.length} 个试剂`)
-              
-              // 通知其他页面
-              window.dispatchEvent(new Event('factorsLibraryUpdated'))
-              window.dispatchEvent(new Event('factorsDataUpdated'))
-            } else {
-              // 无新增试剂，只更新版本号
-              setReagents(sortReagentsByName(stored))
-              await StorageHelper.setJSON(STORAGE_KEYS.FACTORS_VERSION, currentVersion.toString())
-              console.log('✅ 版本已更新，无新增试剂')
+
+              const newComparable = {
+                name: predefined.name,
+                density: predefined.density,
+                releasePotential: predefined.releasePotential,
+                fireExplos: predefined.fireExplos,
+                reactDecom: predefined.reactDecom,
+                acuteToxicity: predefined.acuteToxicity,
+                irritation: predefined.irritation,
+                chronicToxicity: predefined.chronicToxicity,
+                persistency: predefined.persistency,
+                airHazard: predefined.airHazard,
+                waterHazard: predefined.waterHazard,
+                regeneration: predefined.regeneration ?? 0,
+                disposal: predefined.disposal,
+              }
+
+              return JSON.stringify(oldComparable) !== JSON.stringify(newComparable) ? count + 1 : count
+            }, 0)
+
+            // 保存升级后的数据
+            setReagents(upgradedData)
+            await StorageHelper.setJSON(STORAGE_KEYS.FACTORS, upgradedData)
+            await StorageHelper.setJSON(STORAGE_KEYS.FACTORS_VERSION, currentVersion.toString())
+
+            // 保存备份
+            const backupData = {
+              version: currentVersion,
+              lastModified: new Date().toISOString(),
+              reagentsCount: upgradedData.length,
+              reagents: upgradedData
             }
+            if ((window as any).electronAPI?.writeAppData) {
+              await (window as any).electronAPI.writeAppData('hplc_factors_backup', JSON.stringify(backupData))
+            }
+
+            message.success(
+              `✅ Factors upgraded: ${correctedCount} predefined corrected, ${preservedPresetCount} user-edited preset kept, ${customReagents.length} custom preserved`,
+              5
+            )
+            console.log(
+              `✅ 升级完成：${stored.length} → ${upgradedData.length} 个试剂，修正 ${correctedCount} 个预定义试剂，保留 ${preservedPresetCount} 个用户修改预定义试剂`
+            )
+
+            // 通知其他页面
+            window.dispatchEvent(new Event('factorsLibraryUpdated'))
+            window.dispatchEvent(new Event('factorsDataUpdated'))
           } else {
             // 版本一致，正常加载
             setReagents(sortReagentsByName(stored))
@@ -303,6 +347,10 @@ const FactorsPage: React.FC = () => {
       // 🔥 自动重新计算 S、H、E 分数（使用统一的计算函数）
       const scores = calculateScores(updatedReagent)
       Object.assign(updatedReagent, scores)
+
+      if (PREDEFINED_ID_SET.has(r.id) && !r.isCustom) {
+        updatedReagent.isUserModifiedPreset = true
+      }
       
       console.log(`✅ updateReagent: ${updatedReagent.name} 更新后 S=${updatedReagent.safetyScore}, H=${updatedReagent.healthScore}, E=${updatedReagent.envScore}`)
       

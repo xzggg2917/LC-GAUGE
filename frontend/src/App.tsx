@@ -27,8 +27,10 @@ import ComparisonPage from './pages/ComparisonPage'
 import VineBorder from './components/VineBorder'
 import GaugeIcon from './components/GaugeIcon'
 import { AppProvider, useAppContext } from './contexts/AppContext'
+import type { ReagentFactor } from './contexts/AppContext'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { StorageHelper, STORAGE_KEYS } from './utils/storage'
+import { FACTORS_DATA_VERSION, PREDEFINED_REAGENTS } from './utils/defaultReagents'
 import { decryptData } from './utils/encryption'
 import './App.css'
 
@@ -55,13 +57,51 @@ const AppContent: React.FC = () => {
   // 🔧 DEBUG: AppContent渲染日志
   console.log('🔧 DEBUG: AppContent渲染中... location.pathname:', location.pathname, 'currentFilePath:', currentFilePath, 'isLoading:', isLoading)
   
-  // � 应用启动时预加载Factors数据（确保首次使用时试剂库已就绪）
+  // App startup: initialize/migrate Factors data so users always get corrected defaults.
   useEffect(() => {
     const preloadFactorsData = async () => {
       try {
-        const factors = await StorageHelper.getJSON(STORAGE_KEYS.FACTORS)
+        const factors = await StorageHelper.getJSON<ReagentFactor[]>(STORAGE_KEYS.FACTORS)
+        const storedVersion = await StorageHelper.getJSON(STORAGE_KEYS.FACTORS_VERSION)
+        const currentVersion = FACTORS_DATA_VERSION.toString()
+
         if (!factors || factors.length === 0) {
-          console.log('ℹ️ App启动：Factors数据为空，将在访问Factors页面时自动初始化')
+          await StorageHelper.setJSON(STORAGE_KEYS.FACTORS, PREDEFINED_REAGENTS)
+          await StorageHelper.setJSON(STORAGE_KEYS.FACTORS_VERSION, currentVersion)
+          console.log('✅ App启动：已初始化默认Factors数据 (', PREDEFINED_REAGENTS.length, '个试剂)')
+          window.dispatchEvent(new Event('factorsLibraryUpdated'))
+          window.dispatchEvent(new Event('factorsDataUpdated'))
+          return
+        }
+
+        if (storedVersion !== currentVersion) {
+          const predefinedIdSet = new Set(PREDEFINED_REAGENTS.map(r => r.id))
+          const customReagents = factors.filter(r => !predefinedIdSet.has(r.id))
+          const mergedPresets = PREDEFINED_REAGENTS.map(predefined => {
+            const existing = factors.find(r => r.id === predefined.id)
+            if (existing?.isUserModifiedPreset) {
+              return existing
+            }
+            return predefined
+          })
+
+          const merged = [...mergedPresets, ...customReagents].sort((a, b) =>
+            a.name.localeCompare(b.name, 'en', { sensitivity: 'base' })
+          )
+
+          await StorageHelper.setJSON(STORAGE_KEYS.FACTORS, merged)
+          await StorageHelper.setJSON(STORAGE_KEYS.FACTORS_VERSION, currentVersion)
+
+          console.log(
+            '✅ App启动：Factors已自动修正到最新版本 (',
+            merged.length,
+            '个试剂，自定义保留',
+            customReagents.length,
+            '个)'
+          )
+
+          window.dispatchEvent(new Event('factorsLibraryUpdated'))
+          window.dispatchEvent(new Event('factorsDataUpdated'))
         } else {
           console.log('✅ App启动：Factors数据已就绪 (', factors.length, '个试剂)')
         }

@@ -35,6 +35,9 @@ export interface ReagentFactor {
   disposal: number
   // Custom reagent flag
   isCustom?: boolean
+  // Whether a predefined reagent has been manually modified by user.
+  // If true, migrations should keep the user value instead of overwriting.
+  isUserModifiedPreset?: boolean
   // Original data for custom reagents (for reset functionality)
   originalData?: Omit<ReagentFactor, 'originalData'>
   // Main factors (aggregated scores)

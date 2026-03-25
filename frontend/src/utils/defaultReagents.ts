@@ -1,5 +1,8 @@
 import type { ReagentFactor } from '../contexts/AppContext'
 
+// Increment this when BASE_REAGENTS changes to trigger migration for existing users.
+export const FACTORS_DATA_VERSION = 8
+
 // 🧮 计算 S/H/E 分数的辅助函数（统一计算逻辑）
 export const calculateScores = (reagent: Partial<ReagentFactor>) => {
   const safetyScore = Number((
